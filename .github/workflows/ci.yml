@@ -24,7 +24,7 @@ jobs:
           - "3.14"
         include:
           - os: ubuntu-latest
-            python-version: "3.13-nogil"
+            python-version: "3.13t"
           - os: ubuntu-latest
             python-version: "pypy3.10"
 
