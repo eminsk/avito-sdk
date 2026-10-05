@@ -156,6 +156,35 @@ print(df[["id", "title", "price", "seller_name"]].head())
 
 ---
 
+### 6. 🌐 Мобильные прокси и многопоточность (Обязательно при потоковом сборе)
+
+> [!IMPORTANT]
+> **Использование мобильных прокси (`proxy` + `proxy_change_url`) обязательно при включении многопоточности (`max_workers > 1`), асинхронного режима (`concurrency > 1`) или глубокого сбора характеристик карточек (`enrich_details=True`)!**  
+> Антифрод-система Авито мгновенно банит (`403 Forbidden` / `429 Too Many Requests`) обычные серверные или домашние IP при частых параллельных запросах к карточкам. При передаче мобильного прокси и ссылки для смены IP (`proxy_change_url`) библиотека `avito-sdk` автоматически меняет IP-адрес оператора при любом ограничении и продолжает сбор без потери объявлений.
+
+```python
+from avito_sdk import AvitoClient
+
+# Инициализация клиента с мобильным прокси и ссылкой автосмены IP
+client = AvitoClient(
+    proxy="http://username:password@proxy.example.com:8000",
+    proxy_change_url="https://changeip.mobileproxy.space/?proxy_key=ВАШ_КЛЮЧ",
+)
+
+# Многопоточный сбор характеристик карточек (8 потоков параллельно)
+items = list(
+    client.search(
+        query="коммерческая недвижимость",
+        region="moskva",
+        enrich_details=True,  # Забирает блок «О помещении», все параметры, просмотры и описание
+        max_workers=8,        # Многопоточность (обязателен мобильный прокси!)
+        limit=100,
+    )
+)
+```
+
+---
+
 ## 🖥️ Использование из консоли (CLI)
 
 Библиотека включает встроенную консольную команду `avito-sdk` (или `avito-parser`):
@@ -163,6 +192,12 @@ print(df[["id", "title", "price", "seller_name"]].head())
 ```bash
 # Поиск с выводом на экран и сохранением в Excel:
 avito-sdk search "MacBook M2" --region moskva --max-price 90000 --output macbooks.xlsx
+
+# Многопоточный сбор всех характеристик («О помещении») через мобильный прокси:
+avito-sdk search "помещение" --region moskva --enrich --workers 5 \
+  --proxy "http://user:pass@ip:port" \
+  --proxy-change-url "https://changeip.mobileproxy.space/?proxy_key=..." \
+  --output premises.xlsx
 
 # Просмотр детальной карточки объявления:
 avito-sdk item 3854129841

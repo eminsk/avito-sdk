@@ -90,3 +90,22 @@ def test_async_client_enrich_item(monkeypatch, tmp_path):
         await client.close()
 
     asyncio.run(_test())
+
+
+def test_mobile_proxy_and_multithreading(monkeypatch, tmp_path):
+    client = AvitoClient(
+        proxy="user:pass@127.0.0.1:8080",
+        proxy_change_url="https://changeip.example.com/rotate",
+        tracker_db=tmp_path / "proxy_test.db",
+    )
+    assert client.transport.proxy == "http://user:pass@127.0.0.1:8080"
+    assert client.transport.proxy_change_url == "https://changeip.example.com/rotate"
+
+    monkeypatch.setattr(client.transport, "fetch_html", lambda url: MOCK_HTML_PAGE)
+    monkeypatch.setattr(client.transport, "fetch_item_card", lambda item_id: MOCK_CARD_PAYLOAD)
+
+    items = list(client.search("pixel", enrich_details=True, max_workers=2, limit=1, max_pages=1))
+    assert len(items) == 1
+    assert items[0].params["Мощность"] == "150 л.с."
+    client.close()
+

@@ -1,5 +1,6 @@
 """
-HTTP engine supporting both sync and async requests with TLS fingerprint impersonation.
+HTTP engine supporting both sync and async requests with TLS fingerprint impersonation
+and automatic Mobile Proxy IP rotation (proxy_change_url).
 Prefers curl_cffi when available; falls back cleanly to httpx/requests.
 """
 
@@ -42,17 +43,29 @@ WEB_HEADERS = {
 }
 
 
+def normalize_proxy(proxy: Optional[str]) -> Optional[str]:
+    """Normalize proxy string to full URL scheme if omitted (e.g. user:pass@ip:port)."""
+    if not proxy:
+        return None
+    proxy = proxy.strip()
+    if "://" not in proxy:
+        return f"http://{proxy}"
+    return proxy
+
+
 class SyncHttpTransport:
-    """Synchronous HTTP transport."""
+    """Synchronous HTTP transport with mobile proxy rotation support."""
 
     def __init__(
         self,
         proxy: Optional[str] = None,
+        proxy_change_url: Optional[str] = None,
         timeout: int = 25,
         max_retries: int = 3,
         impersonate: str = "chrome",
     ):
-        self.proxy = proxy
+        self.proxy = normalize_proxy(proxy)
+        self.proxy_change_url = proxy_change_url
         self.timeout = timeout
         self.max_retries = max_retries
         self.impersonate = impersonate
@@ -71,6 +84,25 @@ class SyncHttpTransport:
             if self.proxy:
                 session.proxies = {"http": self.proxy, "https": self.proxy}
             return session
+
+    def rotate_proxy_ip(self) -> bool:
+        """Trigger mobile proxy IP change via proxy_change_url."""
+        if not self.proxy_change_url:
+            return False
+        try:
+            import urllib.request
+            logger.info("Rotating mobile proxy IP via proxy_change_url...")
+            req = urllib.request.Request(
+                self.proxy_change_url,
+                headers={"User-Agent": DEFAULT_USER_AGENT},
+            )
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                logger.debug(f"Mobile proxy rotation status: {resp.status}")
+            time.sleep(2.5)
+            return True
+        except Exception as err:
+            logger.warning(f"Failed to rotate mobile proxy IP: {err}")
+            return False
 
     def request(
         self,
@@ -92,11 +124,16 @@ class SyncHttpTransport:
                     **kwargs,
                 )
                 if resp.status_code in (403, 429):
-                    delay = 1.5 * attempt + random.uniform(0.5, 1.5)
-                    logger.warning(
-                        f"Rate limited ({resp.status_code}) on {url}. Retrying in {delay:.1f}s"
-                    )
-                    time.sleep(delay)
+                    if self.proxy_change_url:
+                        self.rotate_proxy_ip()
+                    else:
+                        delay = 1.5 * attempt + random.uniform(0.5, 1.5)
+                        logger.warning(
+                            f"Rate limited ({resp.status_code}) on {url}. "
+                            f"Tip: Configure a Mobile Proxy (proxy + proxy_change_url) to avoid IP bans. "
+                            f"Retrying in {delay:.1f}s"
+                        )
+                        time.sleep(delay)
                     continue
 
                 resp.raise_for_status()
@@ -128,16 +165,18 @@ class SyncHttpTransport:
 
 
 class AsyncHttpTransport:
-    """Asynchronous HTTP transport."""
+    """Asynchronous HTTP transport with mobile proxy rotation support."""
 
     def __init__(
         self,
         proxy: Optional[str] = None,
+        proxy_change_url: Optional[str] = None,
         timeout: int = 25,
         max_retries: int = 3,
         impersonate: str = "chrome",
     ):
-        self.proxy = proxy
+        self.proxy = normalize_proxy(proxy)
+        self.proxy_change_url = proxy_change_url
         self.timeout = timeout
         self.max_retries = max_retries
         self.impersonate = impersonate
@@ -154,6 +193,25 @@ class AsyncHttpTransport:
                 import httpx
                 self._session = httpx.AsyncClient(proxy=self.proxy, timeout=self.timeout)
         return self._session
+
+    async def rotate_proxy_ip(self) -> bool:
+        """Trigger mobile proxy IP change asynchronously."""
+        if not self.proxy_change_url:
+            return False
+        import asyncio
+        try:
+            import urllib.request
+            logger.info("Rotating mobile proxy IP via proxy_change_url...")
+            req = urllib.request.Request(
+                self.proxy_change_url,
+                headers={"User-Agent": DEFAULT_USER_AGENT},
+            )
+            await asyncio.to_thread(urllib.request.urlopen, req, timeout=15)
+            await asyncio.sleep(2.5)
+            return True
+        except Exception as err:
+            logger.warning(f"Failed to rotate mobile proxy IP: {err}")
+            return False
 
     async def request(
         self,
@@ -178,8 +236,11 @@ class AsyncHttpTransport:
                     **kwargs,
                 )
                 if resp.status_code in (403, 429):
-                    delay = 1.5 * attempt + random.uniform(0.5, 1.5)
-                    await asyncio.sleep(delay)
+                    if self.proxy_change_url:
+                        await self.rotate_proxy_ip()
+                    else:
+                        delay = 1.5 * attempt + random.uniform(0.5, 1.5)
+                        await asyncio.sleep(delay)
                     continue
 
                 resp.raise_for_status()

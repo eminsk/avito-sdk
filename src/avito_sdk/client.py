@@ -49,6 +49,7 @@ class AvitoClient:
     def __init__(
         self,
         proxy: Optional[str] = None,
+        proxy_change_url: Optional[str] = None,
         timeout: int = 25,
         max_retries: int = 3,
         tracker_db: Optional[Union[str, Path]] = "avito_prices.db",
@@ -56,6 +57,7 @@ class AvitoClient:
     ):
         self.transport = SyncHttpTransport(
             proxy=proxy,
+            proxy_change_url=proxy_change_url,
             timeout=timeout,
             max_retries=max_retries,
         )
@@ -71,12 +73,15 @@ class AvitoClient:
         category: Optional[str] = None,
         with_delivery: bool = False,
         enrich_details: bool = False,
+        max_workers: int = 1,
         limit: Optional[int] = None,
         max_pages: int = 5,
     ) -> Generator[Item, None, None]:
         """
         Search Avito for items matching specified criteria.
         Yields Item objects one by one.
+        Note: When using max_workers > 1 or enrich_details=True, a mobile proxy
+        (proxy + proxy_change_url) is strongly recommended to prevent IP bans.
         """
         search_filter = SearchFilter(
             query=query,
@@ -99,11 +104,22 @@ class AvitoClient:
             if not items:
                 break
 
+            if limit:
+                remaining = limit - yielded_count
+                items = items[:remaining]
+
+            enriched_in_parallel = False
+            if enrich_details and max_workers > 1 and len(items) > 1:
+                from concurrent.futures import ThreadPoolExecutor
+                with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                    list(pool.map(self.enrich_item, items))
+                enriched_in_parallel = True
+
             for item in items:
                 if self.tracker:
                     self.tracker.check_and_update(item)
 
-                if enrich_details:
+                if enrich_details and not enriched_in_parallel:
                     self.enrich_item(item)
 
                 yield item
@@ -116,6 +132,7 @@ class AvitoClient:
         url: str,
         max_pages: int = 1,
         enrich_details: bool = False,
+        max_workers: int = 1,
     ) -> List[Item]:
         """Scrape items from an existing Avito search or catalog URL across multiple pages."""
         results: List[Item] = []
@@ -125,10 +142,17 @@ class AvitoClient:
             if not page_items:
                 break
 
+            enriched_in_parallel = False
+            if enrich_details and max_workers > 1 and len(page_items) > 1:
+                from concurrent.futures import ThreadPoolExecutor
+                with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                    list(pool.map(self.enrich_item, page_items))
+                enriched_in_parallel = True
+
             for item in page_items:
                 if self.tracker:
                     self.tracker.check_and_update(item)
-                if enrich_details:
+                if enrich_details and not enriched_in_parallel:
                     self.enrich_item(item)
                 results.append(item)
 

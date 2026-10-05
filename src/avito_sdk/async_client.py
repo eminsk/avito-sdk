@@ -45,6 +45,7 @@ class AsyncAvitoClient:
     def __init__(
         self,
         proxy: Optional[str] = None,
+        proxy_change_url: Optional[str] = None,
         timeout: int = 25,
         max_retries: int = 3,
         tracker_db: Optional[Union[str, Path]] = "avito_prices.db",
@@ -52,6 +53,7 @@ class AsyncAvitoClient:
     ):
         self.transport = AsyncHttpTransport(
             proxy=proxy,
+            proxy_change_url=proxy_change_url,
             timeout=timeout,
             max_retries=max_retries,
         )
@@ -67,12 +69,16 @@ class AsyncAvitoClient:
         category: Optional[str] = None,
         with_delivery: bool = False,
         enrich_details: bool = False,
+        concurrency: int = 1,
         limit: Optional[int] = None,
         max_pages: int = 5,
     ) -> AsyncGenerator[Item, None]:
         """
         Asynchronously search Avito and stream items.
+        Note: When using concurrency > 1 or enrich_details=True, a mobile proxy
+        (proxy + proxy_change_url) is strongly recommended to prevent IP bans.
         """
+        import asyncio
         search_filter = SearchFilter(
             query=query,
             region=region,
@@ -93,11 +99,26 @@ class AsyncAvitoClient:
             if not items:
                 break
 
+            if limit:
+                remaining = limit - yielded_count
+                items = items[:remaining]
+
+            enriched_in_parallel = False
+            if enrich_details and concurrency > 1 and len(items) > 1:
+                sem = asyncio.Semaphore(concurrency)
+
+                async def _enrich(it: Item):
+                    async with sem:
+                        await self.enrich_item(it)
+
+                await asyncio.gather(*(_enrich(it) for it in items))
+                enriched_in_parallel = True
+
             for item in items:
                 if self.tracker:
                     self.tracker.check_and_update(item)
 
-                if enrich_details:
+                if enrich_details and not enriched_in_parallel:
                     await self.enrich_item(item)
 
                 yield item

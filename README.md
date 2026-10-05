@@ -155,6 +155,35 @@ print(df[["id", "title", "price", "seller_name"]].head())
 
 ---
 
+### 6. 🌐 Mobile Proxies & Multithreading (Mandatory for High-Speed Scraping)
+
+> [!IMPORTANT]
+> **Using a Mobile Proxy (`proxy` + `proxy_change_url`) is mandatory when running multithreaded (`max_workers > 1`), high-concurrency async, or deep card scraping (`enrich_details=True`)!**  
+> Avito's anti-fraud firewall aggressively rate-limits (`429`) and bans (`403`) standard server/datacenter IP addresses under parallel load. With a mobile proxy and IP rotation URL configured, `avito-sdk` automatically rotates the operator IP whenever a block is detected and continues scraping seamlessly without data loss.
+
+```python
+from avito_sdk import AvitoClient
+
+# Initialize client with Mobile Proxy and automatic IP rotation URL
+client = AvitoClient(
+    proxy="http://username:password@proxy.example.com:8000",
+    proxy_change_url="https://changeip.mobileproxy.space/?proxy_key=YOUR_KEY",
+)
+
+# Run multithreaded card enrichment (8 parallel threads) safely via mobile proxy
+items = list(
+    client.search(
+        query="коммерческая недвижимость",
+        region="moskva",
+        enrich_details=True,  # Fetches full params («О помещении»), views & description
+        max_workers=8,        # Parallel threads (requires mobile proxy!)
+        limit=100,
+    )
+)
+```
+
+---
+
 ## 🖥️ Command-Line Interface (CLI)
 
 The package provides `avito-sdk` and `avito-parser` executable scripts:
@@ -162,6 +191,12 @@ The package provides `avito-sdk` and `avito-parser` executable scripts:
 ```bash
 # Search and save directly to Excel:
 avito-sdk search "MacBook M2" --region moskva --max-price 90000 --output macbooks.xlsx
+
+# High-speed multithreaded search with Mobile Proxy and deep parameter extraction:
+avito-sdk search "помещение" --region moskva --enrich --workers 5 \
+  --proxy "http://user:pass@ip:port" \
+  --proxy-change-url "https://changeip.mobileproxy.space/?proxy_key=..." \
+  --output premises.xlsx
 
 # Inspect single item card:
 avito-sdk item 3854129841
