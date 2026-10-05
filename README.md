@@ -1,5 +1,7 @@
 # avito-sdk
 
+[ 🇬🇧 English ] | [ 🇷🇺 Документация на русском ](README_RU.md)
+
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?color=blue)](https://pypi.org/project/avito-sdk/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/avito-sdk.svg)](https://pypi.org/project/avito-sdk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -7,65 +9,65 @@
 [![Free-Threaded No-GIL](https://img.shields.io/badge/PEP%20703-No--GIL%20Ready-brightgreen)](https://peps.python.org/pep-0703/)
 [![CI](https://github.com/eminsk/avito-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/eminsk/avito-sdk/actions)
 
-> **Высокопроизводительная библиотека и SDK для работы с Avito без GUI.**  
-> Разработана ключевым контрибьютором [`Duff89/parser_avito`](https://github.com/Duff89/parser_avito).
+> **High-performance headless Avito scraping and data extraction SDK for Python.**  
+> Developed by core contributor to [`Duff89/parser_avito`](https://github.com/Duff89/parser_avito).
 
 ---
 
-## 🚀 Возможности
+## 🚀 Key Features
 
-- 🚀 **100% Headless и легкий вес**: Никаких оконных библиотек (Tkinter, CustomTkinter, Flet, PyInstaller). Работает прямо в Linux, Docker, AWS, Raspberry Pi, macOS и Windows.
-- ⚡ **Asyncio и Синхронный режим**: `AsyncAvitoClient` для высоконагруженных Telegram-ботов (Aiogram 3, Telethon), FastAPI, и `AvitoClient` для простых скриптов.
-- 📉 **Отслеживание изменения цен (PR #334 / Issue #214)**: Автоматическая фиксация старой цены, вычисление снижения цены (`price_drop`) и ведение истории в SQLite.
-- 👤 **Извлечение данных продавца (PR #334 / Issue #333)**: Сбор имени продавца (`seller_name`) и slug/ID профиля/магазина (`seller_id`).
-- 📋 **Глубокий сбор характеристик (PR #337 / Issue #335)**: Извлечение всех параметров («О помещении», площадь, этаж, тех. характеристики авто и электроники) из Beduin-сценариев и Mobile API.
-- 📝 **Полный текст описания (PR #329 / Issue #305)**: Извлечение многострочного описания из микроразметки Schema.org и сценариев Avito.
-- 🛡️ **Обход TLS-fingerprinting**: Имитация сетевого отпечатка Chrome/Safari через `curl_cffi` с автоматическим фолбэком на стандартный HTTP-транспорт.
-- 📊 **Экспорт данных**: В Excel (`.xlsx` со стилями), CSV, JSON, JSONL, а также в Pandas и Polars DataFrame.
-- 💻 **Консольная утилита (CLI)**: Быстрый поиск прямо из терминала через `avito-sdk search` или `avito-parser`.
-- 🌐 **Мультиплатформенность**: Поддержка Python 3.8 – 3.16+, Free-Threaded No-GIL (3.13t–3.15t) и PyPy.
+- 🚀 **100% Headless & Lightweight**: Zero desktop window / GUI dependencies (No Tkinter, CustomTkinter, or Flet). Runs out of the box in Linux, Docker, AWS, Raspberry Pi, Windows, and macOS.
+- ⚡ **Dual Sync & Async API**: `AsyncAvitoClient` for high-throughput asyncio backends (Aiogram 3, FastAPI, aiohttp) and `AvitoClient` for scripts and automation.
+- 📉 **Real-time Price Tracking (PR #334 / Issue #214)**: Built-in `PriceTracker` engine with SQLite persistence, historical logs, and automatic price drop calculation (`item.price_drop`).
+- 👤 **Seller Details & Store Slugs (PR #334 / Issue #333)**: Extracts verified seller name (`seller_name`) and seller profile/brand ID (`seller_id`).
+- 📋 **Deep Parameters & Specs Parsing (PR #337 / Issue #335)**: Extracts full item characteristics («О помещении», floor, area, auto specs, electronics) from Beduin mobile scenarios and Mobile API.
+- 📝 **Full Multiline Descriptions (PR #329 / Issue #305)**: Extracts complete uncut descriptions from JSON scenarios and Schema.org microdata.
+- 🛡️ **Anti-Bot TLS Fingerprinting**: Browser impersonation (Chrome/Safari TLS fingerprints) via `curl_cffi` with transparent fallback to standard HTTP transport.
+- 📊 **Multi-Format Exporters**: Direct export to styled Excel (`.xlsx` with automatic column sizing via openpyxl), CSV, JSON, JSONL, and Pandas/Polars `DataFrame`.
+- 💻 **Command-Line Interface (CLI)**: Built-in CLI commands `avito-sdk` and `avito-parser` for instant terminal searches and exports.
+- 🌐 **Universal Python Support**: Full compatibility with Python 3.8 – 3.16+, Free-Threaded No-GIL (PEP 703: 3.13t–3.15t), and PyPy.
 
 ---
 
-## 📦 Установка
+## 📦 Installation
 
 ```bash
-# Базовая установка
+# Standard installation
 pip install avito-sdk
 
-# С поддержкой обхода анти-бот защиты (рекомендуется)
+# With anti-bot TLS impersonation (recommended)
 pip install "avito-sdk[tls]"
 
-# Полная установка (Excel, TLS, Async, DataFrames)
+# Full installation (Excel, TLS, Async, DataFrames)
 pip install "avito-sdk[all]"
 ```
 
-Или через Conda / Mamba:
+Or via Conda / Mamba:
 ```bash
 conda install -c conda-forge avito-sdk
 ```
 
 ---
 
-## ⚡ Быстрый старт
+## ⚡ Quickstart
 
-### 1. Синхронный поиск объявлений
+### 1. Synchronous Search
 
 ```python
 from avito_sdk import AvitoClient
 
 client = AvitoClient()
 
-# Поиск ноутбуков в Москве до 80 000 ₽
-for item in client.search("ноутбук thinkpad", region="Москва", max_price=80000, limit=10):
-    print(f"[{item.id}] {item.title} — {item.price:,} ₽ | Продавец: {item.seller_name}")
+# Search laptops in Moscow with price filter
+for item in client.search("thinkpad", region="moskva", max_price=80000, limit=10):
+    print(f"[{item.id}] {item.title} — {item.price:,} ₽ | Seller: {item.seller_name}")
     if item.has_price_changed:
-        print(f"  🔥 Цена изменилась! Старая: {item.old_price:,} ₽ (Снижение: {item.price_drop:,} ₽)")
+        print(f"  🔥 Price drop detected! Was {item.old_price:,} ₽ (Drop: {item.price_drop:,} ₽)")
 ```
 
 ---
 
-### 2. Асинхронный стриминг (для Telegram-ботов и FastAPI)
+### 2. Asynchronous Streaming (Telegram Bots & FastAPI)
 
 ```python
 import asyncio
@@ -73,60 +75,59 @@ from avito_sdk import AsyncAvitoClient
 
 async def main():
     async with AsyncAvitoClient() as client:
-        async for item in client.search("rtx 4070", region="Санкт-Петербург", limit=20):
-            print(f"Найдено: {item.title} ({item.price:,} ₽) -> {item.url}")
+        async for item in client.search("rtx 4070", region="sankt-peterburg", limit=20):
+            print(f"Found: {item.title} ({item.price:,} ₽) -> {item.url}")
 
 asyncio.run(main())
 ```
 
 ---
 
-### 3. Получение полных параметров и характеристик (PR #337)
+### 3. Extracting Detailed Parameters & Specs (PR #337)
 
 ```python
 from avito_sdk import AvitoClient
 
 client = AvitoClient()
 
-# Получаем карточку объявления со всеми характеристиками
+# Fetch rich item card with all specs
 item = client.get_item(1234567890)
 
-print("Название:", item.title)
-print("Цена:", item.price)
-print("Продавец:", item.seller_name)
-print("Просмотры:", f"{item.total_views} всего, {item.today_views} сегодня")
+print("Title:", item.title)
+print("Price:", item.price)
+print("Seller:", item.seller_name)
+print("Views:", f"{item.total_views} total, {item.today_views} today")
 
-print("\nХарактеристики (PR #337):")
+print("\nParameters (PR #337):")
 for param_name, param_val in item.params.items():
     print(f"  • {param_name}: {param_val}")
 
-print("\nОписание (PR #329):")
+print("\nDescription (PR #329):")
 print(item.description)
 ```
 
 ---
 
-### 4. Отслеживание падения цен (PR #334)
+### 4. Tracking Price Drops (PR #334)
 
 ```python
-from avito_sdk import AvitoClient, PriceTracker
+from avito_sdk import AvitoClient
 
 client = AvitoClient(tracker_db="prices.db")
 
-# Запускаем сбор и авто-трекинг
-items = list(client.search("iPhone 15 Pro", region="Москва", limit=50))
+# Scrape listings with automated price tracking
+items = list(client.search("iPhone 15 Pro", region="moskva", limit=50))
 
-# Получаем список объявлений, у которых цена упала:
-tracker = client.tracker
-drops = tracker.get_price_drops()
+# Query recorded price drops:
+drops = client.tracker.get_price_drops()
 for drop in drops:
     diff = drop["initial_price"] - drop["current_price"]
-    print(f"📉 Скидка! {drop['title']}: {drop['initial_price']:,} -> {drop['current_price']:,} ₽ (-{diff:,} ₽)")
+    print(f"📉 Deal! {drop['title']}: {drop['initial_price']:,} -> {drop['current_price']:,} ₽ (-{diff:,} ₽)")
 ```
 
 ---
 
-### 5. Экспорт в Excel / JSON / Pandas
+### 5. Export to Excel, JSON & Pandas
 
 ```python
 from avito_sdk import AvitoClient, to_excel, to_json, to_dataframe
@@ -134,10 +135,10 @@ from avito_sdk import AvitoClient, to_excel, to_json, to_dataframe
 client = AvitoClient()
 items = list(client.search("PlayStation 5", limit=30, enrich_details=True))
 
-# 1. Красивый Excel с автошириной колонок и форматированием
+# 1. Styled Excel spreadsheet with auto-width columns
 to_excel(items, "ps5_listings.xlsx")
 
-# 2. JSON Lines для ML и потоковой обработки
+# 2. JSON Lines for data pipelines and ML
 to_json(items, "ps5_listings.json")
 
 # 3. Pandas DataFrame
@@ -147,39 +148,39 @@ print(df[["id", "title", "price", "seller_name"]].head())
 
 ---
 
-## 🖥️ Использование из консоли (CLI)
+## 🖥️ Command-Line Interface (CLI)
 
-Библиотека включает встроенную консольную команду `avito-sdk` (или `avito-parser`):
+The package provides `avito-sdk` and `avito-parser` executable scripts:
 
 ```bash
-# Поиск с выводом на экран и сохранением в Excel:
+# Search and save directly to Excel:
 avito-sdk search "MacBook M2" --region moskva --max-price 90000 --output macbooks.xlsx
 
-# Просмотр детальной карточки объявления:
+# Inspect single item card:
 avito-sdk item 3854129841
 
-# Просмотр всех зафиксированных снижений цен:
+# View all recorded price drops:
 avito-sdk drops --db prices.db
 ```
 
 ---
 
-## 🛠️ Сравнение: `parser_avito` (GUI) vs `avito-sdk` (Библиотека)
+## 🛠️ Comparison: `parser_avito` (GUI) vs `avito-sdk` (Library)
 
-| Функция | Duff89/parser_avito | **avito-sdk** |
+| Feature | Duff89/parser_avito | **avito-sdk** |
 | :--- | :---: | :---: |
-| Назначение | Десктопное приложение для пользователей | Автономная Python-библиотека & SDK |
-| Графический интерфейс | ✅ Есть (CustomTkinter / GUI) | ❌ Отсутствует (100% Headless) |
-| Запуск на сервере / Docker / VPS | Требует виртуальный дисплей (xvfb) | ✅ Из коробки без зависимостей |
-| Асинхронный API (`asyncio`) | ❌ Нет | ✅ `AsyncAvitoClient` |
-| Использование в Telegram-ботах | Сложно | ✅ `pip install avito-sdk` |
-| Отслеживание цен (PR #334) | ✅ Есть | ✅ Встроенный `PriceTracker` |
-| Характеристики товара (PR #337) | ✅ Есть | ✅ Глубокий парсер Beduin & Mobile |
-| Поддержка Python 3.8 – 3.16+ | 3.11 – 3.13 | ✅ 3.8 – 3.16, No-GIL, PyPy |
+| Target Audience | End-users wanting a desktop GUI app | Developers, bots, ML pipelines & servers |
+| Graphical Interface | ✅ CustomTkinter / Tkinter GUI | ❌ None (100% Headless) |
+| Server / Docker / VPS | Requires virtual display (Xvfb) | ✅ Native headless out of the box |
+| Async API (`asyncio`) | ❌ No | ✅ `AsyncAvitoClient` |
+| Telegram Bots (Aiogram) | Difficult | ✅ `pip install avito-sdk` |
+| Price Tracking (PR #334) | ✅ Supported | ✅ Built-in `PriceTracker` engine |
+| Parameters Parsing (PR #337) | ✅ Supported | ✅ Beduin & Mobile API parser |
+| Python 3.8 – 3.16+ | 3.11 – 3.13 | ✅ 3.8 – 3.16, Free-Threaded No-GIL, PyPy |
 
 ---
 
-## 📄 Лицензия
+## 📄 License
 
-Распространяется под свободной лицензией **MIT**.  
-Автор: **eminsk** ([M_N_N@tut.by](mailto:M_N_N@tut.by))
+Distributed under the **MIT** License.  
+Author: **eminsk** ([M_N_N@tut.by](mailto:M_N_N@tut.by))
