@@ -71,18 +71,22 @@ def test_sync_client_scrape_page_items(monkeypatch, tmp_path):
     assert items[0].seller_name == "PixelShop"
 
 
-@pytest.mark.asyncio
-async def test_async_client_enrich_item(monkeypatch, tmp_path):
-    client = AsyncAvitoClient(tracker_db=tmp_path / "async_test.db")
+def test_async_client_enrich_item(monkeypatch, tmp_path):
+    import asyncio
 
-    async def mock_card(item_id):
-        return MOCK_CARD_PAYLOAD
+    async def _test():
+        client = AsyncAvitoClient(tracker_db=tmp_path / "async_test.db")
 
-    monkeypatch.setattr(client.transport, "fetch_item_card", mock_card)
+        async def mock_card(item_id):
+            return MOCK_CARD_PAYLOAD
 
-    item = Item(id=888)
-    await client.enrich_item(item)
+        monkeypatch.setattr(client.transport, "fetch_item_card", mock_card)
 
-    assert item.seller_name == "ООО Спецтехника"
-    assert item.params["Год выпуска"] == "2023"
-    await client.close()
+        item = Item(id=888)
+        await client.enrich_item(item)
+
+        assert item.seller_name == "ООО Спецтехника"
+        assert item.params["Год выпуска"] == "2023"
+        await client.close()
+
+    asyncio.run(_test())
