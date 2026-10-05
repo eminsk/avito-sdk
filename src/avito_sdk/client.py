@@ -24,6 +24,7 @@ from avito_sdk.extractors import (
 )
 from avito_sdk.http import SyncHttpTransport
 from avito_sdk.models import Item, SearchFilter, SearchPage
+from avito_sdk.telegram import TelegramNotifier
 from avito_sdk.tracker import PriceTracker
 from avito_sdk.url import (
     build_item_api_url,
@@ -50,18 +51,37 @@ class AvitoClient:
         self,
         proxy: Optional[str] = None,
         proxy_change_url: Optional[str] = None,
+        cookies: Optional[dict] = None,
+        use_playwright_cookies: bool = False,
         timeout: int = 25,
         max_retries: int = 3,
         tracker_db: Optional[Union[str, Path]] = "avito_prices.db",
         enable_tracking: bool = True,
+        tg_token: Optional[str] = None,
+        tg_chat_id: Optional[Union[str, int, List[Union[str, int]]]] = None,
+        telegram_notifier: Optional[TelegramNotifier] = None,
     ):
         self.transport = SyncHttpTransport(
             proxy=proxy,
             proxy_change_url=proxy_change_url,
+            cookies=cookies,
+            use_playwright_cookies=use_playwright_cookies,
             timeout=timeout,
             max_retries=max_retries,
         )
         self.tracker = PriceTracker(db_path=tracker_db) if (enable_tracking and tracker_db) else None
+        if telegram_notifier is not None:
+            self.notifier: Optional[TelegramNotifier] = telegram_notifier
+        elif tg_token and tg_chat_id:
+            self.notifier = TelegramNotifier(bot_token=tg_token, chat_id=tg_chat_id)
+        else:
+            self.notifier = None
+
+    def notify_telegram(self, item: Item) -> None:
+        """Send an item notification to the configured Telegram channel/chat."""
+        if not self.notifier:
+            raise ValueError("Telegram notifier is not configured. Pass tg_token and tg_chat_id to AvitoClient.")
+        self.notifier.notify(item=item)
 
     def search(
         self,
@@ -74,6 +94,10 @@ class AvitoClient:
         with_delivery: bool = False,
         enrich_details: bool = False,
         max_workers: int = 1,
+        notify_telegram: bool = False,
+        telegram_progress: bool = False,
+        show_progress: bool = False,
+        excel_path: Optional[Union[str, Path]] = None,
         limit: Optional[int] = None,
         max_pages: int = 5,
     ) -> Generator[Item, None, None]:
@@ -83,6 +107,8 @@ class AvitoClient:
         Note: When using max_workers > 1 or enrich_details=True, a mobile proxy
         (proxy + proxy_change_url) is strongly recommended to prevent IP bans.
         """
+        from avito_sdk.telegram import render_progress_bar
+
         search_filter = SearchFilter(
             query=query,
             region=region,
@@ -94,38 +120,96 @@ class AvitoClient:
             page=1,
         )
 
+        collected_for_excel: List[Item] = []
+        drops_count = 0
         yielded_count = 0
-        for page_num in range(1, max_pages + 1):
-            search_filter.page = page_num
-            url = build_search_url(search_filter)
-            logger.debug(f"Fetching search page {page_num}: {url}")
+        total_expected = limit or (max_pages * 50)
+        use_mob_proxy = bool(self.transport.proxy)
 
-            items = self.scrape_page_items(url)
-            if not items:
-                break
+        progress_ids = {}
+        if telegram_progress and self.notifier:
+            progress_ids = self.notifier.start_progress(
+                query=query or region or "Avito",
+                total=total_expected,
+                use_mobile_proxy=use_mob_proxy,
+                workers=max_workers,
+            )
 
-            if limit:
-                remaining = limit - yielded_count
-                items = items[:remaining]
+        try:
+            for page_num in range(1, max_pages + 1):
+                search_filter.page = page_num
+                url = build_search_url(search_filter)
+                logger.debug(f"Fetching search page {page_num}: {url}")
 
-            enriched_in_parallel = False
-            if enrich_details and max_workers > 1 and len(items) > 1:
-                from concurrent.futures import ThreadPoolExecutor
-                with ThreadPoolExecutor(max_workers=max_workers) as pool:
-                    list(pool.map(self.enrich_item, items))
-                enriched_in_parallel = True
+                items = self.scrape_page_items(url)
+                if not items:
+                    break
 
-            for item in items:
-                if self.tracker:
-                    self.tracker.check_and_update(item)
+                if limit:
+                    remaining = limit - yielded_count
+                    items = items[:remaining]
 
-                if enrich_details and not enriched_in_parallel:
-                    self.enrich_item(item)
+                enriched_in_parallel = False
+                if enrich_details and max_workers > 1 and len(items) > 1:
+                    from concurrent.futures import ThreadPoolExecutor
+                    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                        list(pool.map(self.enrich_item, items))
+                    enriched_in_parallel = True
 
-                yield item
-                yielded_count += 1
+                for item in items:
+                    if self.tracker:
+                        self.tracker.check_and_update(item)
+                    if item.price_drop and item.price_drop > 0:
+                        drops_count += 1
+
+                    if enrich_details and not enriched_in_parallel:
+                        self.enrich_item(item)
+
+                    if notify_telegram and self.notifier:
+                        try:
+                            self.notifier.notify(item=item)
+                        except Exception as tg_err:
+                            logger.warning(f"Failed to send Telegram notification for {item.id}: {tg_err}")
+
+                    collected_for_excel.append(item)
+                    yielded_count += 1
+
+                    if show_progress:
+                        bar = render_progress_bar(yielded_count, limit or max(yielded_count, len(items)))
+                        print(f"\r[*] {bar} | Ротаций IP: {self.transport.ip_rotations}", end="", flush=True)
+
+                    if progress_ids and self.notifier and (yielded_count % 5 == 0 or yielded_count == limit):
+                        self.notifier.update_progress(
+                            progress_ids=progress_ids,
+                            query=query or region or "Avito",
+                            current=yielded_count,
+                            total=limit or max(yielded_count, len(items)),
+                            use_mobile_proxy=use_mob_proxy,
+                            workers=max_workers,
+                            drops_count=drops_count,
+                            ip_rotations=self.transport.ip_rotations,
+                        )
+
+                    yield item
+                    if limit and yielded_count >= limit:
+                        break
                 if limit and yielded_count >= limit:
-                    return
+                    break
+        finally:
+            if show_progress and yielded_count > 0:
+                print()
+            if excel_path and collected_for_excel:
+                to_excel(collected_for_excel, excel_path)
+            if progress_ids and self.notifier:
+                self.notifier.finish_progress(
+                    progress_ids=progress_ids,
+                    query=query or region or "Avito",
+                    total_found=yielded_count,
+                    use_mobile_proxy=use_mob_proxy,
+                    drops_count=drops_count,
+                    ip_rotations=self.transport.ip_rotations,
+                    excel_path=excel_path if collected_for_excel else None,
+                )
 
     def scrape_url(
         self,
@@ -133,28 +217,85 @@ class AvitoClient:
         max_pages: int = 1,
         enrich_details: bool = False,
         max_workers: int = 1,
+        notify_telegram: bool = False,
+        telegram_progress: bool = False,
+        show_progress: bool = False,
+        excel_path: Optional[Union[str, Path]] = None,
     ) -> List[Item]:
         """Scrape items from an existing Avito search or catalog URL across multiple pages."""
+        from avito_sdk.telegram import render_progress_bar
+
         results: List[Item] = []
-        for page in range(1, max_pages + 1):
-            page_url = build_page_url(url, page)
-            page_items = self.scrape_page_items(page_url)
-            if not page_items:
-                break
+        drops_count = 0
+        use_mob_proxy = bool(self.transport.proxy)
 
-            enriched_in_parallel = False
-            if enrich_details and max_workers > 1 and len(page_items) > 1:
-                from concurrent.futures import ThreadPoolExecutor
-                with ThreadPoolExecutor(max_workers=max_workers) as pool:
-                    list(pool.map(self.enrich_item, page_items))
-                enriched_in_parallel = True
+        progress_ids = {}
+        if telegram_progress and self.notifier:
+            progress_ids = self.notifier.start_progress(
+                query=url[:50],
+                total=max_pages * 50,
+                use_mobile_proxy=use_mob_proxy,
+                workers=max_workers,
+            )
 
-            for item in page_items:
-                if self.tracker:
-                    self.tracker.check_and_update(item)
-                if enrich_details and not enriched_in_parallel:
-                    self.enrich_item(item)
-                results.append(item)
+        try:
+            for page in range(1, max_pages + 1):
+                page_url = build_page_url(url, page)
+                page_items = self.scrape_page_items(page_url)
+                if not page_items:
+                    break
+
+                enriched_in_parallel = False
+                if enrich_details and max_workers > 1 and len(page_items) > 1:
+                    from concurrent.futures import ThreadPoolExecutor
+                    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                        list(pool.map(self.enrich_item, page_items))
+                    enriched_in_parallel = True
+
+                for item in page_items:
+                    if self.tracker:
+                        self.tracker.check_and_update(item)
+                    if item.price_drop and item.price_drop > 0:
+                        drops_count += 1
+                    if enrich_details and not enriched_in_parallel:
+                        self.enrich_item(item)
+                    if notify_telegram and self.notifier:
+                        try:
+                            self.notifier.notify(item=item)
+                        except Exception as tg_err:
+                            logger.warning(f"Failed to send Telegram notification for {item.id}: {tg_err}")
+                    results.append(item)
+
+                    if show_progress:
+                        bar = render_progress_bar(len(results), max(len(results), len(page_items) * max_pages))
+                        print(f"\r[*] {bar} | Ротаций IP: {self.transport.ip_rotations}", end="", flush=True)
+
+                if progress_ids and self.notifier:
+                    self.notifier.update_progress(
+                        progress_ids=progress_ids,
+                        query=url[:50],
+                        current=len(results),
+                        total=max(len(results), len(page_items) * max_pages),
+                        use_mobile_proxy=use_mob_proxy,
+                        workers=max_workers,
+                        drops_count=drops_count,
+                        ip_rotations=self.transport.ip_rotations,
+                    )
+        finally:
+            if show_progress and results:
+                print()
+            if excel_path and results:
+                to_excel(results, excel_path)
+            if progress_ids and self.notifier:
+                self.notifier.finish_progress(
+                    progress_ids=progress_ids,
+                    query=url[:50],
+                    total_found=len(results),
+                    use_mobile_proxy=use_mob_proxy,
+                    drops_count=drops_count,
+                    ip_rotations=self.transport.ip_rotations,
+                    excel_path=excel_path if results else None,
+                )
 
         return results
 

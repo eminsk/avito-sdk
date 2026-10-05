@@ -184,6 +184,59 @@ items = list(
 
 ---
 
+### 7. 🎭 Playwright Cookie Harvesting + Telegram Progress Bar + Excel Upload
+
+Install with Playwright browser support (`pip install "avito-sdk[all]"`):
+
+```python
+from avito_sdk import AvitoClient
+
+client = AvitoClient(
+    proxy="http://user:pass@ip:port",
+    proxy_change_url="https://changeip.mobileproxy.space/?proxy_key=YOUR_KEY",
+    use_playwright_cookies=True,  # Automatically harvests 'ft' cookie via headless Chromium + stealth JS
+    tg_token="123456:ABC-DEF_BOT_TOKEN",
+    tg_chat_id="-1001234567890",  # Telegram channel or chat ID
+)
+
+# Scrapes with mobile proxy, updates a live [████████░░░░░░░░] 50% progress bar in Telegram,
+# sends formatted cards (📉 Old ➔ New price), saves styled .xlsx, and uploads the .xlsx to Telegram!
+items = list(
+    client.search(
+        query="аренда склада",
+        region="moskva",
+        enrich_details=True,
+        max_workers=4,
+        limit=50,
+        notify_telegram=True,
+        telegram_progress=True,
+        show_progress=True,
+        excel_path="warehouses.xlsx",
+    )
+)
+```
+
+---
+
+### 8. 🤖 Interactive Telegram Bot Controller (`AvitoTelegramBot`)
+
+Control parsing directly from Telegram (`/search`, `/proxy`, `/workers`, `/playwright`), watch a live updating progress bar (`[████████░░░░░░░░] 50%`), and receive the `.xlsx` report right in the chat:
+
+```python
+from avito_sdk import AvitoTelegramBot
+
+bot = AvitoTelegramBot(
+    bot_token="123456:ABC-DEF_BOT_TOKEN",
+    proxy="http://user:pass@ip:port",
+    proxy_change_url="https://changeip.mobileproxy.space/?proxy_key=YOUR_KEY",
+    workers=4,
+    use_playwright_cookies=True,
+)
+bot.run_polling()
+```
+
+---
+
 ## 🖥️ Command-Line Interface (CLI)
 
 The package provides `avito-sdk` and `avito-parser` executable scripts:
@@ -192,11 +245,19 @@ The package provides `avito-sdk` and `avito-parser` executable scripts:
 # Search and save directly to Excel:
 avito-sdk search "MacBook M2" --region moskva --max-price 90000 --output macbooks.xlsx
 
-# High-speed multithreaded search with Mobile Proxy and deep parameter extraction:
+# High-speed multithreaded search with Mobile Proxy, Playwright cookies, Telegram progress & Excel upload:
 avito-sdk search "помещение" --region moskva --enrich --workers 5 \
   --proxy "http://user:pass@ip:port" \
   --proxy-change-url "https://changeip.mobileproxy.space/?proxy_key=..." \
+  --playwright \
+  --tg-token "123456:ABC..." --tg-chat-id "-1001234567890" \
   --output premises.xlsx
+
+# Launch interactive Telegram Bot Controller (manage proxy, workers & receive .xlsx in Telegram):
+avito-sdk bot --tg-token "123456:ABC..." \
+  --proxy "http://user:pass@ip:port" \
+  --proxy-change-url "https://changeip.mobileproxy.space/?proxy_key=..." \
+  --playwright --workers 4
 
 # Inspect single item card:
 avito-sdk item 3854129841

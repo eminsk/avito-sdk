@@ -1,3 +1,11 @@
+python-avito-sdk (0.1.2-1) unstable; urgency=medium
+
+  * Add PlaywrightCookieProvider for headless Chromium ft cookie harvesting and stealth bypass.
+  * Add TelegramNotifier and AvitoTelegramBot for interactive Telegram bot control, visual progress bars, and Excel (.xlsx) uploads.
+  * Add avito-sdk bot CLI subcommand and --playwright / --tg-token / --tg-chat-id CLI options.
+
+ -- eminsk <M_N_N@tut.by>  Sun, 04 Oct 2026 20:00:00 +0000
+
 python-avito-sdk (0.1.1-1) unstable; urgency=medium
 
   * Add mobile proxy IP rotation support (proxy_change_url) for 403/429 rate limits.

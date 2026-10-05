@@ -60,16 +60,23 @@ class SyncHttpTransport:
         self,
         proxy: Optional[str] = None,
         proxy_change_url: Optional[str] = None,
+        cookies: Optional[Dict[str, str]] = None,
+        use_playwright_cookies: bool = False,
         timeout: int = 25,
         max_retries: int = 3,
         impersonate: str = "chrome",
     ):
         self.proxy = normalize_proxy(proxy)
         self.proxy_change_url = proxy_change_url
+        self.cookies: Dict[str, str] = dict(cookies) if cookies else {}
+        self.use_playwright_cookies = use_playwright_cookies
         self.timeout = timeout
         self.max_retries = max_retries
         self.impersonate = impersonate
+        self.ip_rotations = 0
         self._session = self._create_session()
+        if self.use_playwright_cookies and not self.cookies:
+            self.refresh_cookies()
 
     def _create_session(self):
         try:
@@ -77,13 +84,33 @@ class SyncHttpTransport:
             session = cffi_requests.Session(impersonate=self.impersonate)
             if self.proxy:
                 session.proxies = {"http": self.proxy, "https": self.proxy}
+            if self.cookies:
+                session.cookies.update(self.cookies)
             return session
         except ImportError:
             import requests
             session = requests.Session()
             if self.proxy:
                 session.proxies = {"http": self.proxy, "https": self.proxy}
+            if self.cookies:
+                session.cookies.update(self.cookies)
             return session
+
+    def refresh_cookies(self, target_url: Optional[str] = None) -> Dict[str, str]:
+        """Obtain fresh Avito cookies via Playwright + Mobile Proxy."""
+        from avito_sdk.cookies import PlaywrightCookieProvider
+        provider = PlaywrightCookieProvider(
+            proxy=self.proxy,
+            proxy_change_url=self.proxy_change_url,
+            headless=True,
+        )
+        new_cookies, _ = provider.fetch_cookies(target_url=target_url)
+        self.ip_rotations += provider.ip_rotations
+        if new_cookies:
+            self.cookies.update(new_cookies)
+            if hasattr(self._session, "cookies"):
+                self._session.cookies.update(new_cookies)
+        return self.cookies
 
     def rotate_proxy_ip(self) -> bool:
         """Trigger mobile proxy IP change via proxy_change_url."""
@@ -98,6 +125,7 @@ class SyncHttpTransport:
             )
             with urllib.request.urlopen(req, timeout=15) as resp:
                 logger.debug(f"Mobile proxy rotation status: {resp.status}")
+            self.ip_rotations += 1
             time.sleep(2.5)
             return True
         except Exception as err:
@@ -126,7 +154,12 @@ class SyncHttpTransport:
                 if resp.status_code in (403, 429):
                     if self.proxy_change_url:
                         self.rotate_proxy_ip()
-                    else:
+                    if self.use_playwright_cookies:
+                        try:
+                            self.refresh_cookies(target_url=url)
+                        except Exception as pw_err:
+                            logger.warning(f"Playwright cookie refresh failed: {pw_err}")
+                    elif not self.proxy_change_url:
                         delay = 1.5 * attempt + random.uniform(0.5, 1.5)
                         logger.warning(
                             f"Rate limited ({resp.status_code}) on {url}. "
@@ -171,28 +204,57 @@ class AsyncHttpTransport:
         self,
         proxy: Optional[str] = None,
         proxy_change_url: Optional[str] = None,
+        cookies: Optional[Dict[str, str]] = None,
+        use_playwright_cookies: bool = False,
         timeout: int = 25,
         max_retries: int = 3,
         impersonate: str = "chrome",
     ):
         self.proxy = normalize_proxy(proxy)
         self.proxy_change_url = proxy_change_url
+        self.cookies: Dict[str, str] = dict(cookies) if cookies else {}
+        self.use_playwright_cookies = use_playwright_cookies
         self.timeout = timeout
         self.max_retries = max_retries
         self.impersonate = impersonate
+        self.ip_rotations = 0
         self._session = None
 
     async def _get_session(self):
         if self._session is None:
+            if self.use_playwright_cookies and not self.cookies:
+                await self.refresh_cookies()
             try:
                 from curl_cffi.requests import AsyncSession
                 self._session = AsyncSession(impersonate=self.impersonate)
                 if self.proxy:
                     self._session.proxies = {"http": self.proxy, "https": self.proxy}
+                if self.cookies:
+                    self._session.cookies.update(self.cookies)
             except ImportError:
                 import httpx
-                self._session = httpx.AsyncClient(proxy=self.proxy, timeout=self.timeout)
+                self._session = httpx.AsyncClient(
+                    proxy=self.proxy,
+                    cookies=self.cookies,
+                    timeout=self.timeout,
+                )
         return self._session
+
+    async def refresh_cookies(self, target_url: Optional[str] = None) -> Dict[str, str]:
+        """Obtain fresh Avito cookies asynchronously via Playwright + Mobile Proxy."""
+        from avito_sdk.cookies import PlaywrightCookieProvider
+        provider = PlaywrightCookieProvider(
+            proxy=self.proxy,
+            proxy_change_url=self.proxy_change_url,
+            headless=True,
+        )
+        new_cookies, _ = await provider.fetch_cookies_async(target_url=target_url)
+        self.ip_rotations += provider.ip_rotations
+        if new_cookies:
+            self.cookies.update(new_cookies)
+            if self._session and hasattr(self._session, "cookies"):
+                self._session.cookies.update(new_cookies)
+        return self.cookies
 
     async def rotate_proxy_ip(self) -> bool:
         """Trigger mobile proxy IP change asynchronously."""
@@ -207,6 +269,7 @@ class AsyncHttpTransport:
                 headers={"User-Agent": DEFAULT_USER_AGENT},
             )
             await asyncio.to_thread(urllib.request.urlopen, req, timeout=15)
+            self.ip_rotations += 1
             await asyncio.sleep(2.5)
             return True
         except Exception as err:
@@ -238,7 +301,12 @@ class AsyncHttpTransport:
                 if resp.status_code in (403, 429):
                     if self.proxy_change_url:
                         await self.rotate_proxy_ip()
-                    else:
+                    if self.use_playwright_cookies:
+                        try:
+                            await self.refresh_cookies(target_url=url)
+                        except Exception as pw_err:
+                            logger.warning(f"Playwright async cookie refresh failed: {pw_err}")
+                    elif not self.proxy_change_url:
                         delay = 1.5 * attempt + random.uniform(0.5, 1.5)
                         await asyncio.sleep(delay)
                     continue

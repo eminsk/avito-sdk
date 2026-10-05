@@ -185,6 +185,60 @@ items = list(
 
 ---
 
+### 7. 🎭 Сбор Cookies через Playwright + Живой Прогресс-бар и Выгрузка Excel в Telegram
+
+Установите библиотеку с поддержкой Playwright и Excel (`pip install "avito-sdk[all]"`):
+
+```python
+from avito_sdk import AvitoClient
+
+client = AvitoClient(
+    proxy="http://user:pass@ip:port",
+    proxy_change_url="https://changeip.mobileproxy.space/?proxy_key=ВАШ_КЛЮЧ",
+    use_playwright_cookies=True,  # Автосбор куки 'ft' через headless Chromium + stealth JS
+    tg_token="123456:ABC-DEF_ТОКЕН_БОТА",
+    tg_chat_id="-1001234567890",  # ID Telegram-канала или чата
+)
+
+# Парсит через мобильный прокси, обновляет живой прогресс-бар [████████░░░░░░░░] 50% в Telegram,
+# отправляет карточки со старой/новой ценой (📉 50 000 ₽ ➔ 45 000 ₽),
+# сохраняет красивый .xlsx и автоматически загружает Excel-файл прямо в Telegram!
+items = list(
+    client.search(
+        query="аренда склада",
+        region="moskva",
+        enrich_details=True,
+        max_workers=4,
+        limit=50,
+        notify_telegram=True,
+        telegram_progress=True,
+        show_progress=True,
+        excel_path="warehouses.xlsx",
+    )
+)
+```
+
+---
+
+### 8. 🤖 Интерактивное управление через Telegram-бота (`AvitoTelegramBot`)
+
+Полное управление парсером прямо из Telegram (как в `parser_avito`): отправляйте боту поисковый запрос или ссылку Авито, меняйте мобильный прокси (`/proxy`), число потоков (`/workers`), режим Playwright (`/playwright`), наблюдайте за живым прогресс-баром `[████████░░░░░░░░] 50%` и получайте готовый `.xlsx` файл отчёта прямо в чат:
+
+```python
+from avito_sdk import AvitoTelegramBot
+
+bot = AvitoTelegramBot(
+    bot_token="123456:ABC-DEF_ТОКЕН_БОТА",
+    proxy="http://user:pass@ip:port",
+    proxy_change_url="https://changeip.mobileproxy.space/?proxy_key=ВАШ_КЛЮЧ",
+    workers=4,
+    use_playwright_cookies=True,
+)
+bot.run_polling()
+```
+
+---
+
 ## 🖥️ Использование из консоли (CLI)
 
 Библиотека включает встроенную консольную команду `avito-sdk` (или `avito-parser`):
@@ -193,11 +247,19 @@ items = list(
 # Поиск с выводом на экран и сохранением в Excel:
 avito-sdk search "MacBook M2" --region moskva --max-price 90000 --output macbooks.xlsx
 
-# Многопоточный сбор всех характеристик («О помещении») через мобильный прокси:
+# Многопоточный сбор характеристик («О помещении») через мобильный прокси + Playwright + выгрузка .xlsx в Telegram:
 avito-sdk search "помещение" --region moskva --enrich --workers 5 \
   --proxy "http://user:pass@ip:port" \
   --proxy-change-url "https://changeip.mobileproxy.space/?proxy_key=..." \
+  --playwright \
+  --tg-token "123456:ABC..." --tg-chat-id "-1001234567890" \
   --output premises.xlsx
+
+# Запуск интерактивного Telegram-бота для управления парсингом и получения Excel-отчётов:
+avito-sdk bot --tg-token "123456:ABC..." \
+  --proxy "http://user:pass@ip:port" \
+  --proxy-change-url "https://changeip.mobileproxy.space/?proxy_key=..." \
+  --playwright --workers 4
 
 # Просмотр детальной карточки объявления:
 avito-sdk item 3854129841

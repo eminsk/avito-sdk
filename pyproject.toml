@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "avito-sdk"
-version = "0.1.1"
+version = "0.1.2"
 description = "High-performance headless Avito scraping & data extraction SDK with price tracking, parameters parsing, and async support"
 readme = "README.md"
 authors = [
@@ -52,6 +52,10 @@ dependencies = [
 tls = [
     "curl-cffi>=0.7.0",
 ]
+browser = [
+    "playwright>=1.40.0",
+    "playwright-stealth>=1.0.6",
+]
 excel = [
     "openpyxl>=3.0.0",
 ]
@@ -66,6 +70,7 @@ all = [
     "openpyxl>=3.0.0",
     "httpx>=0.24.0",
     "pandas>=1.5.0",
+    "playwright>=1.40.0",
 ]
 dev = [
     "pytest>=7.0.0",
