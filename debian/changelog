@@ -1,0 +1,6 @@
+python-avito-sdk (0.1.0-1) unstable; urgency=medium
+
+  * Initial release of avito-sdk (version 0.1.0).
+  * High-performance headless Avito scraping and data extraction SDK.
+
+ -- eminsk <M_N_N@tut.by>  Sun, 04 Oct 2026 12:00:00 +0000

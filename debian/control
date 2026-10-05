@@ -1,0 +1,24 @@
+Source: python-avito-sdk
+Section: python
+Priority: optional
+Maintainer: eminsk <M_N_N@tut.by>
+Build-Depends: debhelper-compat (= 13),
+               dh-python,
+               pybuild-plugin-pyproject,
+               python3-all,
+               python3-hatchling
+Standards-Version: 4.6.2
+Homepage: https://github.com/eminsk/avito-sdk
+
+Package: python3-avito-sdk
+Architecture: all
+Depends: ${misc:Depends},
+         ${python3:Depends},
+         python3-bs4,
+         python3-requests
+Recommends: python3-openpyxl,
+            python3-httpx
+Description: Autonomous Avito scraping & data extraction SDK
+ High-performance headless Avito scraping and data extraction SDK
+ with price tracking, parameters parsing, and async support. Includes
+ CLI commands 'avito', 'avito-sdk', and 'avito-parser'.
