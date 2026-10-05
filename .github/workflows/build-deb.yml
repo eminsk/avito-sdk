@@ -5,9 +5,6 @@ on:
   push:
     tags:
       - "v*"
-    paths:
-      - "debian/**"
-      - ".github/workflows/build-deb.yml"
 
 permissions:
   contents: write
@@ -41,5 +38,5 @@ jobs:
       - name: Release Asset
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.1.0' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.1.1' }}
           files: deb-dist/*.deb

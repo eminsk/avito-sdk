@@ -45,7 +45,7 @@ from avito_sdk.url import (
     normalize_region,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __author__ = "eminsk"
 
 __all__ = [
