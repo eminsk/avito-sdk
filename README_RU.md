@@ -6,6 +6,7 @@
 [![Python Versions](https://img.shields.io/pypi/pyversions/avito-sdk.svg)](https://pypi.org/project/avito-sdk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Conda Forge](https://img.shields.io/badge/conda--forge-PR%20%2335071-orange.svg)](https://github.com/conda-forge/staged-recipes/pull/35071)
+[![eminsk PPA](https://img.shields.io/badge/APT%20PPA-python3--avito--sdk-blueviolet.svg)](https://eminsk.github.io/ppa/)
 [![Free-Threaded No-GIL](https://img.shields.io/badge/PEP%20703-No--GIL%20Ready-brightgreen)](https://peps.python.org/pep-0703/)
 [![CI](https://github.com/eminsk/avito-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/eminsk/avito-sdk/actions)
 
@@ -32,7 +33,7 @@
 ## 📦 Установка
 
 ```bash
-# Базовая установка
+# Базовая установка через PyPI
 pip install avito-sdk
 
 # С поддержкой обхода анти-бот защиты (рекомендуется)
@@ -40,6 +41,12 @@ pip install "avito-sdk[tls]"
 
 # Полная установка (Excel, TLS, Async, DataFrames)
 pip install "avito-sdk[all]"
+```
+
+### Через Debian / Ubuntu APT (eminsk PPA)
+```bash
+curl -sS https://eminsk.github.io/ppa/setup.sh | sudo bash
+sudo apt install python3-avito-sdk
 ```
 
 Или через Conda / Mamba:
