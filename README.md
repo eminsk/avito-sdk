@@ -5,7 +5,7 @@
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?color=blue)](https://pypi.org/project/avito-sdk/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/avito-sdk.svg)](https://pypi.org/project/avito-sdk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Conda Forge](https://img.shields.io/conda/vn/conda-forge/avito-sdk.svg?color=green)](https://anaconda.org/conda-forge/avito-sdk)
+[![Conda Forge](https://img.shields.io/badge/conda--forge-PR%20%2335071-orange.svg)](https://github.com/conda-forge/staged-recipes/pull/35071)
 [![Free-Threaded No-GIL](https://img.shields.io/badge/PEP%20703-No--GIL%20Ready-brightgreen)](https://peps.python.org/pep-0703/)
 [![CI](https://github.com/eminsk/avito-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/eminsk/avito-sdk/actions)
 
