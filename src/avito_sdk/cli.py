@@ -63,10 +63,34 @@ def main(argv=None) -> int:
     cfg_p = subparsers.add_parser("config", help="Run full parser_avito workflow from a config.toml file")
     cfg_p.add_argument("path", nargs="?", default="config.toml", help="Path to config.toml (default: config.toml)")
 
+    # MCP server command
+    mcp_p = subparsers.add_parser("mcp", help="Start Model Context Protocol (MCP) Server over stdio for Claude/Cursor/Windsurf")
+    mcp_p.add_argument("--proxy", default=None, help="Mobile proxy URL")
+    mcp_p.add_argument("--proxy-change-url", default=None, help="Mobile proxy IP rotation URL")
+    mcp_p.add_argument("--playwright", action="store_true", help="Enable Playwright Chromium cookie harvesting")
+    mcp_p.add_argument("--db", default="avito_prices.db", help="Path to SQLite price database")
+    mcp_p.add_argument("--tg-token", default=None, help="Telegram Bot Token")
+    mcp_p.add_argument("--tg-chat-id", default=None, help="Telegram Channel/Chat ID")
+    mcp_p.add_argument("--workers", type=int, default=4, help="Parallel worker threads")
+
     args = parser.parse_args(argv)
 
     if not args.command:
         parser.print_help()
+        return 0
+
+    if args.command == "mcp":
+        from avito_sdk.mcp_server import AvitoMCPServer
+        server = AvitoMCPServer(
+            proxy=args.proxy,
+            proxy_change_url=args.proxy_change_url,
+            use_playwright_cookies=args.playwright,
+            tracker_db=args.db,
+            tg_token=args.tg_token,
+            tg_chat_id=args.tg_chat_id,
+            workers=args.workers,
+        )
+        server.run_stdio()
         return 0
 
     if args.command == "config":

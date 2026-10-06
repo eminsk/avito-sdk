@@ -267,11 +267,38 @@ avito-sdk bot --tg-token "123456:ABC..." \
   --proxy-change-url "https://changeip.mobileproxy.space/?proxy_key=..." \
   --playwright --workers 4
 
+# Run directly from a parser_avito config.toml file:
+avito-sdk config config.toml
+
 # Inspect single item card:
 avito-sdk item 3854129841
 
 # View all recorded price drops:
 avito-sdk drops --db prices.db
+
+# Start Model Context Protocol (MCP) Server over stdio:
+avito-mcp --proxy "http://user:pass@ip:port" --proxy-change-url "https://..." --playwright
+```
+
+---
+
+## 🤖 Native MCP (Model Context Protocol) Server
+
+Connect **avito-sdk** directly to **Claude Desktop**, **Cursor**, **Windsurf**, or **Antigravity** via the built-in `avito-mcp` (`avito-sdk mcp`) JSON-RPC 2.0 server (`avito_search`, `avito_get_item`, `avito_price_drops`):
+
+```json
+{
+  "mcpServers": {
+    "avito": {
+      "command": "avito-mcp",
+      "args": ["--playwright", "--workers", "4"],
+      "env": {
+        "AVITO_PROXY": "http://user:pass@ip:port",
+        "AVITO_PROXY_CHANGE_URL": "https://changeip.mobileproxy.space/?proxy_key=YOUR_KEY"
+      }
+    }
+  }
+}
 ```
 
 ---

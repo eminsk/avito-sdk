@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "avito-sdk"
-version = "0.1.4"
+version = "0.1.5"
 description = "High-performance headless Avito scraping & data extraction SDK with price tracking, parameters parsing, and async support"
 readme = "README.md"
 authors = [
@@ -82,6 +82,7 @@ dev = [
 avito = "avito_sdk.cli:main"
 avito-sdk = "avito_sdk.cli:main"
 avito-parser = "avito_sdk.cli:main"
+avito-mcp = "avito_sdk.mcp_server:main_mcp"
 
 [project.urls]
 Homepage = "https://github.com/eminsk/avito-sdk"

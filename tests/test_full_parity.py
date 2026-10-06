@@ -282,3 +282,65 @@ def test_freethreaded_multithreaded_parallel_execution(tmp_path, monkeypatch):
     assert all(changed is True and drop == 1000 for changed, _, drop in results)
     assert len(client.tracker.get_price_drops()) == 16
 
+
+def test_avito_mcp_server(tmp_path, monkeypatch):
+    """Verify AvitoMCPServer JSON-RPC 2.0 initialize, tools/list, and tools/call."""
+    import json
+    from avito_sdk.mcp_server import AvitoMCPServer
+    from avito_sdk.http import SyncHttpTransport
+
+    mock_html = """
+    <html><body>
+    <script type="mime/invalid" data-mfe-state="true">
+    {"result": {"catalog": {"items": [
+        {"id": 777, "title": "Офис на Арбате 80 м²", "price": 90000, "sellerName": "Собственник"}
+    ]}}}
+    </script>
+    </body></html>
+    """
+    monkeypatch.setattr(SyncHttpTransport, "fetch_html", lambda self, url: mock_html)
+    monkeypatch.setattr(
+        SyncHttpTransport,
+        "fetch_item_card",
+        lambda self, item_id: {
+            "success": {
+                "mobile": {
+                    "params": [{"title": "О помещении", "description": "Первая линия"}],
+                    "stats": {"views": {"total": 300, "today": 15}},
+                }
+            }
+        },
+    )
+
+    server = AvitoMCPServer(tracker_db=str(tmp_path / "mcp_prices.db"))
+
+    # 1. initialize
+    init_resp = server.handle_request({"jsonrpc": "2.0", "id": 1, "method": "initialize"})
+    assert init_resp["result"]["serverInfo"]["name"] == "avito-sdk-mcp"
+
+    # 2. tools/list
+    tools_resp = server.handle_request({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
+    tool_names = [t["name"] for t in tools_resp["result"]["tools"]]
+    assert "avito_search" in tool_names
+    assert "avito_get_item" in tool_names
+    assert "avito_price_drops" in tool_names
+
+    # 3. tools/call -> avito_search
+    call_resp = server.handle_request(
+        {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {
+                "name": "avito_search",
+                "arguments": {"query": "офис", "enrich_details": True, "limit": 5},
+            },
+        }
+    )
+    assert call_resp["result"]["isError"] is False
+    payload = json.loads(call_resp["result"]["content"][0]["text"])
+    assert payload["count"] == 1
+    assert payload["items"][0]["id"] == 777
+    assert payload["items"][0]["params"]["О помещении"] == "Первая линия"
+
+

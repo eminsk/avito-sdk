@@ -60,8 +60,9 @@ from avito_sdk.url import (
     normalize_region,
 )
 from avito_sdk.vk import VKNotifier
+from avito_sdk.mcp_server import AvitoMCPServer
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 __author__ = "eminsk"
 
 __all__ = [
@@ -71,6 +72,7 @@ __all__ = [
     "AvitoConfig",
     "load_avito_config",
     "AdsFilter",
+    "AvitoMCPServer",
     "TelegramNotifier",
     "VKNotifier",
     "AvitoTelegramBot",

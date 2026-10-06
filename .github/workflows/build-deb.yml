@@ -38,5 +38,5 @@ jobs:
       - name: Release Asset
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.1.4' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.1.5' }}
           files: deb-dist/*.deb
