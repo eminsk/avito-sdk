@@ -75,8 +75,6 @@ class SyncHttpTransport:
         self.impersonate = impersonate
         self.ip_rotations = 0
         self._session = self._create_session()
-        if self.use_playwright_cookies and not self.cookies:
-            self.refresh_cookies()
 
     def _create_session(self):
         try:
@@ -96,15 +94,24 @@ class SyncHttpTransport:
                 session.cookies.update(self.cookies)
             return session
 
-    def refresh_cookies(self, target_url: Optional[str] = None) -> Dict[str, str]:
-        """Obtain fresh Avito cookies via Playwright + Mobile Proxy."""
+    def refresh_cookies(
+        self,
+        target_url: Optional[str] = None,
+        storage_path: Optional[str] = "storage/own_cookies.json",
+        force_refresh: bool = False,
+    ) -> Dict[str, str]:
+        """Obtain fresh Avito cookies via Playwright + Mobile Proxy (with optional disk cache)."""
         from avito_sdk.cookies import PlaywrightCookieProvider
         provider = PlaywrightCookieProvider(
             proxy=self.proxy,
             proxy_change_url=self.proxy_change_url,
             headless=True,
         )
-        new_cookies, _ = provider.fetch_cookies(target_url=target_url)
+        new_cookies, _ = provider.fetch_cookies(
+            target_url=target_url,
+            storage_path=storage_path,
+            force_refresh=force_refresh,
+        )
         self.ip_rotations += provider.ip_rotations
         if new_cookies:
             self.cookies.update(new_cookies)

@@ -14,7 +14,14 @@ from __future__ import annotations
 
 from avito_sdk.async_client import AsyncAvitoClient
 from avito_sdk.client import AvitoClient
-from avito_sdk.cookies import PlaywrightCookieProvider, parse_proxy_config
+from avito_sdk.config import AvitoConfig, load_avito_config
+from avito_sdk.cookies import (
+    AvitoUrlConverter,
+    ExternalApiCookiesProvider,
+    ParsePhone,
+    PlaywrightCookieProvider,
+    parse_proxy_config,
+)
 from avito_sdk.export import (
     to_csv,
     to_dataframe,
@@ -31,13 +38,19 @@ from avito_sdk.extractors import (
     extract_views,
     parse_raw_item,
 )
+from avito_sdk.filters import AdsFilter
 from avito_sdk.models import (
     Item,
     PriceRecord,
     SearchFilter,
     SearchPage,
 )
-from avito_sdk.telegram import AvitoTelegramBot, TelegramNotifier, render_progress_bar
+from avito_sdk.telegram import (
+    AvitoTelegramBot,
+    TelegramNotifier,
+    render_progress_bar,
+    render_telegram_progress_bar,
+)
 from avito_sdk.tracker import PriceTracker
 from avito_sdk.url import (
     build_item_api_url,
@@ -46,19 +59,28 @@ from avito_sdk.url import (
     build_search_url,
     normalize_region,
 )
+from avito_sdk.vk import VKNotifier
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __author__ = "eminsk"
 
 __all__ = [
     "__version__",
     "AvitoClient",
     "AsyncAvitoClient",
+    "AvitoConfig",
+    "load_avito_config",
+    "AdsFilter",
     "TelegramNotifier",
+    "VKNotifier",
     "AvitoTelegramBot",
     "PlaywrightCookieProvider",
+    "ExternalApiCookiesProvider",
+    "AvitoUrlConverter",
+    "ParsePhone",
     "parse_proxy_config",
     "render_progress_bar",
+    "render_telegram_progress_bar",
     "Item",
     "SearchFilter",
     "SearchPage",

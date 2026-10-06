@@ -59,10 +59,20 @@ def main(argv=None) -> int:
     drops_p = subparsers.add_parser("drops", help="Show all tracked items whose price has dropped")
     drops_p.add_argument("--db", default="avito_prices.db", help="Path to SQLite price database")
 
+    # Config command (100% compatible with parser_avito config.toml)
+    cfg_p = subparsers.add_parser("config", help="Run full parser_avito workflow from a config.toml file")
+    cfg_p.add_argument("path", nargs="?", default="config.toml", help="Path to config.toml (default: config.toml)")
+
     args = parser.parse_args(argv)
 
     if not args.command:
         parser.print_help()
+        return 0
+
+    if args.command == "config":
+        client = AvitoClient.from_config(args.path)
+        items = client.run_config(args.path)
+        print(f"[✓] Finished config run: collected {len(items)} items.")
         return 0
 
     if args.command == "bot":

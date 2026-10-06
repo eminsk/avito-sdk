@@ -344,17 +344,23 @@ def parse_raw_item(raw: Dict[str, Any]) -> Optional[Item]:
             if isinstance(img_url, str):
                 images.append(img_url)
     if not images and isinstance(raw.get("images"), list):
+        def _calc_dim(k: str) -> int:
+            parts = str(k).split("x")
+            if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                return int(parts[0]) * int(parts[1])
+            return 0
+
         for img in raw["images"]:
-            if isinstance(img, dict):
-                # { "140x105": "url", ... }
-                best = list(img.values())[-1] if img else None
+            if isinstance(img, dict) and img:
+                best_key = max(img.keys(), key=_calc_dim)
+                best = img.get(best_key)
                 if isinstance(best, str):
                     images.append(best)
 
-    # Promotion detection
-    is_promo = False
+    # Promotion & Reserve detection
+    is_promo = bool(raw.get("isPromotion", False))
     iva = raw.get("iva")
-    if isinstance(iva, dict):
+    if not is_promo and isinstance(iva, dict):
         date_steps = iva.get("DateInfoStep") or []
         for step in date_steps:
             payload = getattr(step, "payload", None) or (step.get("payload") if isinstance(step, dict) else None)
@@ -363,6 +369,10 @@ def parse_raw_item(raw: Dict[str, Any]) -> Optional[Item]:
                 if any(isinstance(v, dict) and v.get("title") == "Продвинуто" for v in vas):
                     is_promo = True
                     break
+
+    is_reserved = bool(raw.get("isReserved", False))
+    contacts = raw.get("contacts")
+    has_phone = bool(contacts.get("phone")) if isinstance(contacts, dict) else False
 
     # Seller ID
     seller_id = extract_seller_id(raw)
@@ -394,6 +404,9 @@ def parse_raw_item(raw: Dict[str, Any]) -> Optional[Item]:
         images=images,
         images_count=len(images) or (gallery.get("imagesCount") if isinstance(gallery, dict) else 0),
         is_promotion=is_promo,
+        is_reserved=is_reserved,
+        phone=raw.get("phone"),
+        has_phone=has_phone,
         published_at=pub_dt,
         raw_data=raw,
     )

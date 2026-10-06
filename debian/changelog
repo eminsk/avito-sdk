@@ -1,3 +1,12 @@
+python-avito-sdk (0.1.3-1) unstable; urgency=medium
+
+  * Add AdsFilter with all 9 filtering rules (white/black keywords, seller blacklist, geo, max_age, reserve, promotion, price change).
+  * Add VKNotifier for VKontakte alerts and photo uploads.
+  * Add AvitoConfig / load_avito_config and avito-sdk config CLI for 100% compatibility with parser_avito config.toml.
+  * Add ExternalApiCookiesProvider, AvitoUrlConverter, ParsePhone, and uniform Telegram progress bar.
+
+ -- eminsk <M_N_N@tut.by>  Sun, 04 Oct 2026 21:00:00 +0000
+
 python-avito-sdk (0.1.2-1) unstable; urgency=medium
 
   * Add PlaywrightCookieProvider for headless Chromium ft cookie harvesting and stealth bypass.

@@ -60,7 +60,11 @@ class AvitoClient:
         tg_token: Optional[str] = None,
         tg_chat_id: Optional[Union[str, int, List[Union[str, int]]]] = None,
         telegram_notifier: Optional[TelegramNotifier] = None,
+        vk_token: Optional[str] = None,
+        vk_user_id: Optional[Union[str, int, List[Union[str, int]]]] = None,
     ):
+        from avito_sdk.vk import VKNotifier
+
         self.transport = SyncHttpTransport(
             proxy=proxy,
             proxy_change_url=proxy_change_url,
@@ -77,6 +81,30 @@ class AvitoClient:
         else:
             self.notifier = None
 
+        self.vk_notifier: Optional[VKNotifier] = (
+            VKNotifier(vk_token=vk_token, user_id=vk_user_id) if (vk_token and vk_user_id) else None
+        )
+
+    @classmethod
+    def from_config(cls, config_or_path: Union[str, Path, "AvitoConfig"] = "config.toml") -> "AvitoClient":
+        """Create an AvitoClient instance configured from a parser_avito config.toml file."""
+        from avito_sdk.config import AvitoConfig, load_avito_config
+
+        cfg = load_avito_config(config_or_path) if not isinstance(config_or_path, AvitoConfig) else config_or_path
+        client = cls(
+            proxy=cfg.proxy_string,
+            proxy_change_url=cfg.proxy_change_url,
+            use_playwright_cookies=cfg.use_webdriver,
+            timeout=cfg.timeout,
+            max_retries=cfg.max_count_of_retry,
+            tg_token=cfg.tg_token,
+            tg_chat_id=cfg.tg_chat_id if cfg.tg_chat_id else None,
+            vk_token=cfg.vk_token,
+            vk_user_id=cfg.vk_user_id if cfg.vk_user_id else None,
+        )
+        client._avito_config = cfg
+        return client
+
     def notify_telegram(self, item: Item) -> None:
         """Send an item notification to the configured Telegram channel/chat."""
         if not self.notifier:
@@ -92,9 +120,18 @@ class AvitoClient:
         sort: str = "date",
         category: Optional[str] = None,
         with_delivery: bool = False,
+        white_keywords: Optional[List[str]] = None,
+        black_keywords: Optional[List[str]] = None,
+        seller_blacklist: Optional[List[str]] = None,
+        geo: Optional[str] = None,
+        max_age: Optional[int] = None,
+        ignore_reserved: bool = False,
+        ignore_promotion: bool = False,
+        only_new_or_changed: bool = False,
         enrich_details: bool = False,
         max_workers: int = 1,
         notify_telegram: bool = False,
+        notify_vk: bool = False,
         telegram_progress: bool = False,
         show_progress: bool = False,
         excel_path: Optional[Union[str, Path]] = None,
@@ -102,11 +139,12 @@ class AvitoClient:
         max_pages: int = 5,
     ) -> Generator[Item, None, None]:
         """
-        Search Avito for items matching specified criteria.
+        Search Avito for items matching specified criteria and all 9 AdsFilter rules.
         Yields Item objects one by one.
         Note: When using max_workers > 1 or enrich_details=True, a mobile proxy
         (proxy + proxy_change_url) is strongly recommended to prevent IP bans.
         """
+        from avito_sdk.filters import AdsFilter
         from avito_sdk.telegram import render_progress_bar
 
         search_filter = SearchFilter(
@@ -118,6 +156,18 @@ class AvitoClient:
             category=category,
             with_delivery=with_delivery,
             page=1,
+        )
+        ads_filter = AdsFilter(
+            min_price=min_price,
+            max_price=max_price,
+            white_keywords=white_keywords,
+            black_keywords=black_keywords,
+            seller_blacklist=seller_blacklist,
+            geo=geo,
+            max_age=max_age,
+            ignore_reserved=ignore_reserved,
+            ignore_promotion=ignore_promotion,
+            only_new_or_changed=only_new_or_changed,
         )
 
         collected_for_excel: List[Item] = []
@@ -159,17 +209,27 @@ class AvitoClient:
                 for item in items:
                     if self.tracker:
                         self.tracker.check_and_update(item)
-                    if item.price_drop and item.price_drop > 0:
-                        drops_count += 1
 
                     if enrich_details and not enriched_in_parallel:
                         self.enrich_item(item)
+
+                    if not ads_filter.matches(item):
+                        continue
+
+                    if item.price_drop and item.price_drop > 0:
+                        drops_count += 1
 
                     if notify_telegram and self.notifier:
                         try:
                             self.notifier.notify(item=item)
                         except Exception as tg_err:
                             logger.warning(f"Failed to send Telegram notification for {item.id}: {tg_err}")
+
+                    if notify_vk and self.vk_notifier:
+                        try:
+                            self.vk_notifier.notify(item=item)
+                        except Exception as vk_err:
+                            logger.warning(f"Failed to send VK notification for {item.id}: {vk_err}")
 
                     collected_for_excel.append(item)
                     yielded_count += 1
@@ -215,15 +275,40 @@ class AvitoClient:
         self,
         url: str,
         max_pages: int = 1,
+        min_price: Optional[int] = None,
+        max_price: Optional[int] = None,
+        white_keywords: Optional[List[str]] = None,
+        black_keywords: Optional[List[str]] = None,
+        seller_blacklist: Optional[List[str]] = None,
+        geo: Optional[str] = None,
+        max_age: Optional[int] = None,
+        ignore_reserved: bool = False,
+        ignore_promotion: bool = False,
+        only_new_or_changed: bool = False,
         enrich_details: bool = False,
         max_workers: int = 1,
         notify_telegram: bool = False,
+        notify_vk: bool = False,
         telegram_progress: bool = False,
         show_progress: bool = False,
         excel_path: Optional[Union[str, Path]] = None,
     ) -> List[Item]:
-        """Scrape items from an existing Avito search or catalog URL across multiple pages."""
+        """Scrape items from an existing Avito search or catalog URL across multiple pages with full filtering."""
+        from avito_sdk.filters import AdsFilter
         from avito_sdk.telegram import render_progress_bar
+
+        ads_filter = AdsFilter(
+            min_price=min_price,
+            max_price=max_price,
+            white_keywords=white_keywords,
+            black_keywords=black_keywords,
+            seller_blacklist=seller_blacklist,
+            geo=geo,
+            max_age=max_age,
+            ignore_reserved=ignore_reserved,
+            ignore_promotion=ignore_promotion,
+            only_new_or_changed=only_new_or_changed,
+        )
 
         results: List[Item] = []
         drops_count = 0
@@ -255,15 +340,22 @@ class AvitoClient:
                 for item in page_items:
                     if self.tracker:
                         self.tracker.check_and_update(item)
-                    if item.price_drop and item.price_drop > 0:
-                        drops_count += 1
                     if enrich_details and not enriched_in_parallel:
                         self.enrich_item(item)
+                    if not ads_filter.matches(item):
+                        continue
+                    if item.price_drop and item.price_drop > 0:
+                        drops_count += 1
                     if notify_telegram and self.notifier:
                         try:
                             self.notifier.notify(item=item)
                         except Exception as tg_err:
                             logger.warning(f"Failed to send Telegram notification for {item.id}: {tg_err}")
+                    if notify_vk and self.vk_notifier:
+                        try:
+                            self.vk_notifier.notify(item=item)
+                        except Exception as vk_err:
+                            logger.warning(f"Failed to send VK notification for {item.id}: {vk_err}")
                     results.append(item)
 
                     if show_progress:
@@ -298,6 +390,72 @@ class AvitoClient:
                 )
 
         return results
+
+    def run_config(self, config_or_path: Optional[Union[str, Path, "AvitoConfig"]] = None) -> List[Item]:
+        """
+        Execute a full parser_avito cycle (or continuous loop if one_time_start=False)
+        using a config.toml file or AvitoConfig object.
+        """
+        import time
+        from avito_sdk.config import AvitoConfig, load_avito_config
+        from avito_sdk.cookies import ParsePhone
+
+        if config_or_path is not None:
+            cfg = load_avito_config(config_or_path) if not isinstance(config_or_path, AvitoConfig) else config_or_path
+        elif hasattr(self, "_avito_config"):
+            cfg = self._avito_config
+        else:
+            cfg = load_avito_config("config.toml")
+
+        enrich = bool(cfg.parse_views or cfg.parse_description or cfg.parse_params)
+        all_collected: List[Item] = []
+
+        while True:
+            for idx, url in enumerate(cfg.urls):
+                out_file = None
+                if cfg.save_xlsx:
+                    cfg.output_dir.mkdir(parents=True, exist_ok=True)
+                    fname = f"avito_link_{idx + 1}.xlsx" if cfg.one_file_for_link else "avito_result.xlsx"
+                    out_file = cfg.output_dir / fname
+
+                items = self.scrape_url(
+                    url=url,
+                    max_pages=cfg.count,
+                    min_price=cfg.min_price,
+                    max_price=cfg.max_price,
+                    white_keywords=cfg.keys_word_white_list,
+                    black_keywords=cfg.keys_word_black_list,
+                    seller_blacklist=cfg.seller_black_list,
+                    geo=cfg.geo,
+                    max_age=cfg.max_age,
+                    ignore_reserved=cfg.ignore_reserv,
+                    ignore_promotion=cfg.ignore_promotion,
+                    only_new_or_changed=True,
+                    enrich_details=enrich,
+                    max_workers=cfg.max_workers,
+                    notify_telegram=bool(self.notifier),
+                    notify_vk=bool(self.vk_notifier),
+                    telegram_progress=bool(self.notifier),
+                    show_progress=True,
+                    excel_path=out_file,
+                )
+
+                if cfg.parse_phone and cfg.cookies_api_key and items:
+                    ParsePhone(api_key=cfg.cookies_api_key).enrich_phones(items)
+                    if out_file:
+                        to_excel(items, out_file)
+
+                all_collected.extend(items)
+                if idx < len(cfg.urls) - 1 and cfg.pause_between_links > 0:
+                    time.sleep(cfg.pause_between_links)
+
+            if cfg.one_time_start:
+                if self.notifier:
+                    self.notifier.notify(message="Парсинг Авито завершён. Все ссылки обработаны")
+                break
+            time.sleep(max(cfg.pause_general, 1))
+
+        return all_collected
 
     def scrape_page_items(self, url: str) -> List[Item]:
         """Fetch and extract items from a single page URL."""

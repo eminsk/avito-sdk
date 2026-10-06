@@ -96,10 +96,18 @@ def to_csv(
             })
 
 
+def _excel_safe(value: Any) -> Any:
+    """Protect against Excel formula injection (values starting with =, +, -, @)."""
+    if isinstance(value, str) and value.startswith(("=", "+", "-", "@")):
+        return "'" + value
+    return value
+
+
 def to_excel(
     items: List[Item],
     filepath: Union[str, Path],
     sheet_name: str = "Avito Listings",
+    append: bool = False,
 ) -> None:
     """
     Save items to a styled Excel (.xlsx) file using openpyxl.
@@ -117,10 +125,6 @@ def to_excel(
         to_csv(items, csv_path)
         return
 
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = sheet_name
-
     headers = [
         "ID",
         "Название",
@@ -129,50 +133,73 @@ def to_excel(
         "Снижение (₽)",
         "Продавец",
         "ID продавца",
+        "Телефон",
         "Ссылка",
         "Город / Регион",
         "Адрес",
+        "Координаты",
         "Категория",
         "Просмотров всего",
         "Просмотров сегодня",
         "Продвижение",
+        "В резерве",
         "Дата публикации",
+        "Изображения",
         "Характеристики",
         "Описание",
     ]
 
-    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="1E88E5", end_color="1E88E5", fill_type="solid")
+    if append and path.exists():
+        wb = openpyxl.load_workbook(path)
+        ws = wb.active
+    else:
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = sheet_name
 
-    ws.append(headers)
-    for col_num in range(1, len(headers) + 1):
-        cell = ws.cell(row=1, column=col_num)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="1E88E5", end_color="1E88E5", fill_type="solid")
+
+        ws.append(headers)
+        for col_num in range(1, len(headers) + 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
     for item in items:
-        params_str = "\n".join(f"{k}: {v}" for k, v in (item.params or {}).items())
+        params_str = "; ".join(f"{k}: {v}" for k, v in (item.params or {}).items())
         pub_str = item.published_at.strftime("%Y-%m-%d %H:%M") if item.published_at else ""
+        coords_str = ""
+        if isinstance(item.coords, dict):
+            lat = item.coords.get("lat")
+            lng = item.coords.get("lng")
+            if lat is not None and lng is not None:
+                coords_str = f"{lat};{lng}"
+        images_str = ";".join(item.images or [])
 
         row = [
             item.id,
-            item.title,
+            _excel_safe(item.title),
             item.price,
             item.old_price,
             item.price_drop,
-            item.seller_name or "",
-            item.seller_id or "",
-            item.url,
-            item.location_name or "",
-            item.address or "",
-            item.category_name or "",
+            _excel_safe(item.seller_name or ""),
+            _excel_safe(item.seller_id or ""),
+            _excel_safe(item.phone or ""),
+            _excel_safe(item.url),
+            _excel_safe(item.location_name or ""),
+            _excel_safe(item.address or ""),
+            _excel_safe(coords_str),
+            _excel_safe(item.category_name or ""),
             item.total_views,
             item.today_views,
             "Да" if item.is_promotion else "Нет",
+            "Да" if getattr(item, "is_reserved", False) else "Нет",
             pub_str,
-            params_str,
-            item.description or "",
+            _excel_safe(images_str),
+            _excel_safe(params_str),
+            _excel_safe(item.description or ""),
         ]
         ws.append(row)
 

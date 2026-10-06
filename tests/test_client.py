@@ -220,3 +220,79 @@ def test_telegram_bot_commands(monkeypatch):
     assert bot.limit == 25
     assert len(replies) == 4
 
+
+def test_ads_filter_all_9_rules():
+    from datetime import datetime, timedelta, timezone
+    from avito_sdk.filters import AdsFilter
+
+    now = datetime.now(timezone.utc)
+    good_item = Item(
+        id=1,
+        title="Склад 300 м² с рампой",
+        description="Отличное сухое помещение",
+        price=50000,
+        address="Москва, ЮАО",
+        seller_id="good_seller",
+        is_reserved=False,
+        is_promotion=False,
+        is_new=True,
+        published_at=now - timedelta(hours=2),
+    )
+    bad_black = Item(id=2, title="Склад субаренда", price=50000, address="Москва", published_at=now)
+    bad_seller = Item(id=3, title="Склад 200 м²", price=50000, address="Москва", seller_id="banned_1", published_at=now)
+    bad_reserved = Item(id=4, title="Склад 200 м²", price=50000, address="Москва", is_reserved=True, published_at=now)
+    bad_old = Item(
+        id=5,
+        title="Склад 200 м²",
+        price=50000,
+        address="Москва",
+        published_at=now - timedelta(days=5),
+    )
+
+    f = AdsFilter(
+        min_price=10000,
+        max_price=100000,
+        white_keywords=["склад"],
+        black_keywords=["субаренда"],
+        seller_blacklist=["banned_1"],
+        geo="москва",
+        max_age=86400,
+        ignore_reserved=True,
+        ignore_promotion=True,
+        only_new_or_changed=True,
+    )
+    filtered = f.apply([good_item, bad_black, bad_seller, bad_reserved, bad_old])
+    assert len(filtered) == 1
+    assert filtered[0].id == 1
+
+
+def test_vk_notifier_and_config_toml(tmp_path):
+    from avito_sdk.config import load_avito_config
+    from avito_sdk.vk import VKNotifier
+
+    vk = VKNotifier(vk_token="vk_tok", user_id="12345")
+    it = Item(id=99, title="MacBook Pro", price=120000, old_price=135000, seller_name="AppleStore")
+    text = vk.format_item(it)
+    assert "135 000" in text
+    assert "120 000" in text
+    assert "AppleStore" in text
+
+    cfg_file = tmp_path / "config.toml"
+    cfg_file.write_text(
+        '[avito]\nurls = ["https://www.avito.ru/moskva/noutbuki"]\n'
+        'min_price = 10000\nmax_price = 90000\n'
+        'keys_word_white_list = ["thinkpad"]\n'
+        'ignore_reserv = true\none_time_start = true\n',
+        encoding="utf-8",
+    )
+    cfg = load_avito_config(cfg_file)
+    assert cfg.urls == ["https://www.avito.ru/moskva/noutbuki"]
+    assert cfg.min_price == 10000
+    assert cfg.keys_word_white_list == ["thinkpad"]
+    assert cfg.one_time_start is True
+
+    client = AvitoClient.from_config(cfg_file)
+    assert client.transport.timeout == 20
+    client.close()
+
+

@@ -91,6 +91,7 @@ class PriceTracker:
 
             if row is None:
                 # First time seeing this item
+                item.is_new = True
                 cursor.execute(
                     """
                     INSERT INTO current_prices (item_id, price, title, seller_name, last_updated)
@@ -108,6 +109,7 @@ class PriceTracker:
                 conn.commit()
                 return False, None
 
+            item.is_new = False
             saved_price = int(row["price"])
             if saved_price != current_price:
                 # Price changed!

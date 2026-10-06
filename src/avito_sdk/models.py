@@ -39,7 +39,11 @@ class Item:
     total_views: Optional[int] = None
     today_views: Optional[int] = None
     is_promotion: bool = False
+    is_reserved: bool = False
     is_favorite: bool = False
+    is_new: bool = True
+    phone: Optional[str] = None
+    has_phone: bool = False
     published_at: Optional[datetime] = None
     raw_data: Optional[Dict[str, Any]] = None
 
