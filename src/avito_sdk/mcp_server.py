@@ -16,7 +16,13 @@ from typing import Any, Dict, List, Optional
 from avito_sdk.client import AvitoClient
 from avito_sdk.tracker import PriceTracker
 
-MCP_PROTOCOL_VERSION = "2024-11-05"
+SUPPORTED_PROTOCOL_VERSIONS = (
+    "2025-11-25",
+    "2025-06-18",
+    "2024-11-05",
+)
+LATEST_PROTOCOL_VERSION = SUPPORTED_PROTOCOL_VERSIONS[0]
+MCP_PROTOCOL_VERSION = LATEST_PROTOCOL_VERSION
 
 MCP_TOOLS_SCHEMA: List[Dict[str, Any]] = [
     {
@@ -127,8 +133,14 @@ class AvitoMCPServer:
         try:
             if method == "initialize":
                 from avito_sdk import __version__
+                client_version = params.get("protocolVersion")
+                negotiated_version = (
+                    client_version
+                    if client_version in SUPPORTED_PROTOCOL_VERSIONS
+                    else LATEST_PROTOCOL_VERSION
+                )
                 result = {
-                    "protocolVersion": MCP_PROTOCOL_VERSION,
+                    "protocolVersion": negotiated_version,
                     "capabilities": {"tools": {}},
                     "serverInfo": {
                         "name": "avito-sdk-mcp",
