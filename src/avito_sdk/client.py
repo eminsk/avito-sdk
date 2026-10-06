@@ -86,17 +86,24 @@ class AvitoClient:
         )
 
     @classmethod
-    def from_config(cls, config_or_path: Union[str, Path, "AvitoConfig"] = "config.toml") -> "AvitoClient":
+    def from_config(
+        cls,
+        config_or_path: Union[str, Path, "AvitoConfig"] = "config.toml",
+        tracker_db: Optional[Union[str, Path]] = None,
+    ) -> "AvitoClient":
         """Create an AvitoClient instance configured from a parser_avito config.toml file."""
         from avito_sdk.config import AvitoConfig, load_avito_config
 
         cfg = load_avito_config(config_or_path) if not isinstance(config_or_path, AvitoConfig) else config_or_path
+        cfg.output_dir.mkdir(parents=True, exist_ok=True)
+        resolved_db = tracker_db or (cfg.output_dir / "avito_prices.db")
         client = cls(
             proxy=cfg.proxy_string,
             proxy_change_url=cfg.proxy_change_url,
             use_playwright_cookies=cfg.use_webdriver,
             timeout=cfg.timeout,
             max_retries=cfg.max_count_of_retry,
+            tracker_db=resolved_db,
             tg_token=cfg.tg_token,
             tg_chat_id=cfg.tg_chat_id if cfg.tg_chat_id else None,
             vk_token=cfg.vk_token,

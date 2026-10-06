@@ -31,6 +31,24 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.13t"
           - os: ubuntu-latest
+            python-version: "3.14t"
+          - os: ubuntu-latest
+            python-version: "3.15t"
+          - os: ubuntu-latest
+            python-version: "3.16-dev"
+          - os: ubuntu-latest
+            python-version: "3.16t-dev"
+          - os: windows-latest
+            python-version: "3.13t"
+          - os: windows-latest
+            python-version: "3.14t"
+          - os: windows-latest
+            python-version: "3.15t"
+          - os: windows-latest
+            python-version: "3.16-dev"
+          - os: windows-latest
+            python-version: "3.16t-dev"
+          - os: ubuntu-latest
             python-version: "pypy3.10"
           - os: ubuntu-latest
             python-version: "pypy3.11"

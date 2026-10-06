@@ -1,3 +1,10 @@
+python-avito-sdk (0.1.4-1) unstable; urgency=medium
+
+  * Full Free-Threaded (No-GIL) thread-safe HTTP session pool & IP rotation lock for Python 3.13t, 3.14t, 3.15t, and 3.16t.
+  * Per-config tracker_db isolation in AvitoClient.from_config() and expanded 45-test suite.
+
+ -- eminsk <M_N_N@tut.by>  Sun, 04 Oct 2026 22:00:00 +0000
+
 python-avito-sdk (0.1.3-1) unstable; urgency=medium
 
   * Add AdsFilter with all 9 filtering rules (white/black keywords, seller blacklist, geo, max_age, reserve, promotion, price change).

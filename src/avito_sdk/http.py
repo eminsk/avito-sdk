@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import random
+import threading
 import time
 from typing import Any, Dict, Optional
 
@@ -74,7 +75,17 @@ class SyncHttpTransport:
         self.max_retries = max_retries
         self.impersonate = impersonate
         self.ip_rotations = 0
+        self._rotation_lock = threading.Lock()
+        self._last_rotation_ts = 0.0
+        self._thread_local = threading.local()
         self._session = self._create_session()
+
+    def _get_thread_session(self):
+        sess = getattr(self._thread_local, "session", None)
+        if sess is None:
+            sess = self._create_session()
+            self._thread_local.session = sess
+        return sess
 
     def _create_session(self):
         try:
@@ -102,42 +113,51 @@ class SyncHttpTransport:
     ) -> Dict[str, str]:
         """Obtain fresh Avito cookies via Playwright + Mobile Proxy (with optional disk cache)."""
         from avito_sdk.cookies import PlaywrightCookieProvider
-        provider = PlaywrightCookieProvider(
-            proxy=self.proxy,
-            proxy_change_url=self.proxy_change_url,
-            headless=True,
-        )
-        new_cookies, _ = provider.fetch_cookies(
-            target_url=target_url,
-            storage_path=storage_path,
-            force_refresh=force_refresh,
-        )
-        self.ip_rotations += provider.ip_rotations
-        if new_cookies:
-            self.cookies.update(new_cookies)
-            if hasattr(self._session, "cookies"):
-                self._session.cookies.update(new_cookies)
-        return self.cookies
+        with self._rotation_lock:
+            provider = PlaywrightCookieProvider(
+                proxy=self.proxy,
+                proxy_change_url=self.proxy_change_url,
+                headless=True,
+            )
+            new_cookies, _ = provider.fetch_cookies(
+                target_url=target_url,
+                storage_path=storage_path,
+                force_refresh=force_refresh,
+            )
+            self.ip_rotations += provider.ip_rotations
+            if new_cookies:
+                self.cookies.update(new_cookies)
+                if hasattr(self._session, "cookies"):
+                    self._session.cookies.update(new_cookies)
+                sess = getattr(self._thread_local, "session", None)
+                if sess is not None and hasattr(sess, "cookies"):
+                    sess.cookies.update(new_cookies)
+            return self.cookies
 
     def rotate_proxy_ip(self) -> bool:
-        """Trigger mobile proxy IP change via proxy_change_url."""
+        """Trigger mobile proxy IP change via proxy_change_url (thread-safe for 3.15t/3.16t No-GIL)."""
         if not self.proxy_change_url:
             return False
-        try:
-            import urllib.request
-            logger.info("Rotating mobile proxy IP via proxy_change_url...")
-            req = urllib.request.Request(
-                self.proxy_change_url,
-                headers={"User-Agent": DEFAULT_USER_AGENT},
-            )
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                logger.debug(f"Mobile proxy rotation status: {resp.status}")
-            self.ip_rotations += 1
-            time.sleep(2.5)
-            return True
-        except Exception as err:
-            logger.warning(f"Failed to rotate mobile proxy IP: {err}")
-            return False
+        with self._rotation_lock:
+            now = time.monotonic()
+            if self._last_rotation_ts > 0 and (now - self._last_rotation_ts) < 2.0:
+                return True
+            try:
+                import urllib.request
+                logger.info("Rotating mobile proxy IP via proxy_change_url...")
+                req = urllib.request.Request(
+                    self.proxy_change_url,
+                    headers={"User-Agent": DEFAULT_USER_AGENT},
+                )
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    logger.debug(f"Mobile proxy rotation status: {resp.status}")
+                self.ip_rotations += 1
+                self._last_rotation_ts = time.monotonic()
+                time.sleep(2.5)
+                return True
+            except Exception as err:
+                logger.warning(f"Failed to rotate mobile proxy IP: {err}")
+                return False
 
     def request(
         self,
@@ -148,9 +168,12 @@ class SyncHttpTransport:
         **kwargs,
     ) -> Any:
         last_error = None
+        session = self._get_thread_session()
+        if self.cookies and hasattr(session, "cookies"):
+            session.cookies.update(self.cookies)
         for attempt in range(1, self.max_retries + 1):
             try:
-                resp = self._session.request(
+                resp = session.request(
                     method=method,
                     url=url,
                     headers=headers,
