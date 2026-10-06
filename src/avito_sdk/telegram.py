@@ -37,7 +37,7 @@ def escape_markdown_v2(text: str) -> str:
 
 
 def render_progress_bar(current: int, total: int, width: int = 16) -> str:
-    """Render a visual progress bar string: [████████░░░░░░░░] 50% (25/50)."""
+    """Render a visual progress bar string for terminal: [████████░░░░░░░░] 50% (25/50)."""
     if total <= 0:
         return f"[{'█' * width}] {current} шт."
     ratio = min(max(current / total, 0.0), 1.0)
@@ -45,6 +45,17 @@ def render_progress_bar(current: int, total: int, width: int = 16) -> str:
     bar = "█" * filled + "░" * (width - filled)
     pct = int(round(ratio * 100))
     return f"[{bar}] {pct}% ({current}/{total})"
+
+
+def render_telegram_progress_bar(current: int, total: int, width: int = 10) -> str:
+    """Render a uniform emoji progress bar for Telegram proportional fonts: 🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 50% (25/50)."""
+    if total <= 0:
+        return f"{'🟩' * width} {current} шт."
+    ratio = min(max(current / total, 0.0), 1.0)
+    filled = int(round(width * ratio))
+    bar = "🟩" * filled + "⬜" * (width - filled)
+    pct = int(round(ratio * 100))
+    return f"{bar} {pct}% ({current}/{total})"
 
 
 class TelegramNotifier:
@@ -241,7 +252,7 @@ class TelegramNotifier:
         workers: int = 1,
     ) -> Dict[str, int]:
         """Send an initial live progress bar message to Telegram."""
-        bar = render_progress_bar(0, total)
+        bar = render_telegram_progress_bar(0, total)
         proxy_status = "Активен (автосмена IP)" if use_mobile_proxy else "Без прокси"
         text = (
             f"🚀 Парсинг Авито: {query}\n"
@@ -263,13 +274,13 @@ class TelegramNotifier:
         ip_rotations: int = 0,
     ) -> None:
         """Update the live progress bar message in Telegram."""
-        bar = render_progress_bar(current, total)
+        bar = render_telegram_progress_bar(current, total)
         proxy_status = f"Активен (ротаций IP: {ip_rotations})" if use_mobile_proxy else "Без прокси"
         text = (
             f"⏳ Парсинг Авито: {query}\n"
             f"{bar}\n"
             f"🌐 Мобильный прокси: {proxy_status}\n"
-            f"🧵 Потоков: {workers} | 📉 Снижений цен: {drops_count}"
+            f"🧵 Потоков: {workers}  |  📉 Снижений цен: {drops_count}"
         )
         for cid, mid in progress_ids.items():
             self.edit_message(cid, mid, text, parse_mode=None)
@@ -285,12 +296,12 @@ class TelegramNotifier:
         excel_path: Optional[Union[str, Path]] = None,
     ) -> None:
         """Mark the live progress bar as 100% complete and optionally upload the Excel file."""
-        bar = render_progress_bar(total_found, max(total_found, 1))
+        bar = render_telegram_progress_bar(total_found, max(total_found, 1))
         proxy_status = f"Активен (ротаций IP: {ip_rotations})" if use_mobile_proxy else "Без прокси"
         text = (
             f"✅ Парсинг завершён: {query}\n"
             f"{bar}\n"
-            f"📦 Собрано объявлений: {total_found} | 📉 Снижений цен: {drops_count}\n"
+            f"📦 Собрано объявлений: {total_found}  |  📉 Снижений цен: {drops_count}\n"
             f"🌐 Мобильный прокси: {proxy_status}"
         )
         for cid, mid in progress_ids.items():

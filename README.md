@@ -199,7 +199,7 @@ client = AvitoClient(
     tg_chat_id="-1001234567890",  # Telegram channel or chat ID
 )
 
-# Scrapes with mobile proxy, updates a live [████████░░░░░░░░] 50% progress bar in Telegram,
+# Scrapes with mobile proxy, updates a live progress bar in Telegram,
 # sends formatted cards (📉 Old ➔ New price), saves styled .xlsx, and uploads the .xlsx to Telegram!
 items = list(
     client.search(
@@ -216,11 +216,19 @@ items = list(
 )
 ```
 
+Live status message displayed in Telegram during scraping:
+```text
+⏳ Парсинг Авито: аренда склада
+🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 50% (25/50)
+🌐 Мобильный прокси: Активен (ротаций IP: 2)
+🧵 Потоков: 4  |  📉 Снижений цен: 3
+```
+
 ---
 
 ### 8. 🤖 Interactive Telegram Bot Controller (`AvitoTelegramBot`)
 
-Control parsing directly from Telegram (`/search`, `/proxy`, `/workers`, `/playwright`), watch a live updating progress bar (`[████████░░░░░░░░] 50%`), and receive the `.xlsx` report right in the chat:
+Control parsing directly from Telegram (`/search`, `/proxy`, `/workers`, `/playwright`), watch a live updating progress bar (`🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 50%`), and receive the `.xlsx` report right in the chat:
 
 ```python
 from avito_sdk import AvitoTelegramBot
