@@ -1,0 +1,42 @@
+context:
+  name: avito-sdk
+  version: "0.1.6"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  path: ..
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
+  python:
+    entry_points:
+      - avito = avito_sdk.cli:main
+      - avito-sdk = avito_sdk.cli:main
+      - avito-parser = avito_sdk.cli:main
+      - avito-mcp = avito_sdk.mcp_server:main_mcp
+
+requirements:
+  host:
+    - python >=3.8
+    - pip
+    - hatchling
+  run:
+    - python >=3.8
+    - beautifulsoup4 >=4.10.0
+    - requests >=2.28.0
+
+tests:
+  - python:
+      imports:
+        - avito_sdk
+      pip_check: true
+
+about:
+  homepage: https://github.com/eminsk/avito-sdk
+  license: MIT
+  summary: High-performance headless Avito scraping & data extraction SDK with price tracking
