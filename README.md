@@ -10,9 +10,13 @@
 [![Free-Threaded No-GIL](https://img.shields.io/badge/No--GIL-3.13t%20--%203.16t-brightgreen)](https://peps.python.org/pep-0703/)
 [![MCP Server](https://img.shields.io/badge/MCP-Native_Stdio_Server-00a67e.svg)](#native-mcp-model-context-protocol-server)
 [![CI](https://github.com/eminsk/avito-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/eminsk/avito-sdk/actions)
+[![Donate USDT](https://img.shields.io/badge/Donate-USDT-26A17B?logo=tether&logoColor=white)](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P)
 
 > **High-performance headless Avito scraping and data extraction SDK for Python.**  
 > Developed by core contributor to [`Duff89/parser_avito`](https://github.com/Duff89/parser_avito).
+
+> ⭐ **Enjoying avito-sdk?** Give it a star on GitHub to support development!  
+> ☕ **Want to support the author?** USDT (TRC-20): `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P` ([TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))
 
 ---
 
@@ -329,6 +333,18 @@ Connect **avito-sdk** directly to **Claude Desktop**, **Cursor**, **Windsurf**, 
 * 🖥️ [**NanoRecall**](https://github.com/eminsk/nanorecall) — 100% Private, offline desktop memory & semantic screen search engine powered by NanoVector (`pip install nanorecall`).
 * 📈 [**yfinance-ta-patterns**](https://github.com/eminsk/yfinance-ta-patterns) — Candlestick & chart pattern scanner with AI Confluence Scoring, Backtesting, and Native MCP Server (`pip install yfinance-ta-patterns`).
 * 📊 [**xlsx_vievers**](https://github.com/eminsk/xlsx_vievers) — Headless Excel formula engine (129+ functions), desktop spreadsheet viewer, SIMD SSE2 math, and Native MCP Server (`pip install xlsx-viewer-pro`).
+
+---
+
+## ☕ Support & Donations
+
+If you find this project valuable and would like to support ongoing development, scraping engine maintenance, and new features, contributions are deeply appreciated!
+
+* **USDT (TRC-20)**:  
+  `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P`  
+  *(Network: TRON / TRC-20 | [Verify on TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))*
+
+[![Donate USDT](https://img.shields.io/badge/Donate-USDT_(TRC20)-26A17B?style=for-the-badge&logo=tether&logoColor=white)](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P)
 
 ---
 
