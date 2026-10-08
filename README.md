@@ -339,15 +339,17 @@ Connect **avito-sdk** directly to **Claude Desktop**, **Cursor**, **Windsurf**, 
 
 ## ☕ Support, Community & Donations
 
-If you find this project valuable and would like to support ongoing development:
+If you find this project valuable, encounter issues, or want to support ongoing development:
 
 * ⭐ **Star the Repository**: If avito-sdk powers your scraping or bots, give us a star on GitHub — it helps more developers discover the SDK!
-* 💬 **Join Discussions**: Have ideas, use cases, or new parsers to discuss? Start or join a thread in [GitHub Discussions](https://github.com/eminsk/avito-sdk/discussions)!
+* 🐛 **Report Issues & Bugs**: Found a bug or did Avito update their layout? Please [open an Issue](https://github.com/eminsk/avito-sdk/issues) with reproduction details!
+* 💬 **Join Discussions**: Have feature ideas, architecture questions, or general feedback? Start or join a thread in [GitHub Discussions](https://github.com/eminsk/avito-sdk/discussions)!
 * ☕ **Donate (USDT TRC-20)**:  
   `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P`  
   *(Network: TRON / TRC-20 | [Verify on TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))*
 
 [![GitHub Repo stars](https://img.shields.io/github/stars/eminsk/avito-sdk?style=social)](https://github.com/eminsk/avito-sdk)
+[![GitHub Issues](https://img.shields.io/github/issues/eminsk/avito-sdk?color=red&style=flat-square)](https://github.com/eminsk/avito-sdk/issues)
 [![GitHub Discussions](https://img.shields.io/badge/Discussions-Join_Community-blue?logo=github&style=flat-square)](https://github.com/eminsk/avito-sdk/discussions)
 [![Donate USDT](https://img.shields.io/badge/Donate-USDT_(TRC20)-26A17B?style=flat-square&logo=tether&logoColor=white)](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P)
 
