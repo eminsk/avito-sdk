@@ -4,20 +4,26 @@
 
 
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?color=blue)](https://pypi.org/project/avito-sdk/)
-[![Python Versions](https://img.shields.io/pypi/pyversions/avito-sdk.svg)](https://pypi.org/project/avito-sdk/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Conda](https://img.shields.io/conda/vn/m_n_nik/avito-sdk.svg?style=flat&logo=anaconda)](https://anaconda.org/m_n_nik/avito-sdk)
+[![Conda-Forge](https://img.shields.io/conda/vn/conda-forge/avito-sdk.svg?style=flat&logo=condaforge)](https://anaconda.org/conda-forge/avito-sdk)
 [![eminsk PPA](https://img.shields.io/badge/APT%20PPA-python3--avito--sdk-blueviolet.svg)](https://eminsk.github.io/ppa/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/avito-sdk.svg)](https://pypi.org/project/avito-sdk/)
 [![Free-Threaded No-GIL](https://img.shields.io/badge/No--GIL-3.13t%20--%203.16t-brightgreen)](https://peps.python.org/pep-0703/)
 [![MCP Server](https://img.shields.io/badge/MCP-Native_Stdio_Server-00a67e.svg)](#native-mcp-model-context-protocol-server)
 [![CI](https://github.com/eminsk/avito-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/eminsk/avito-sdk/actions)
-[![Donate USDT](https://img.shields.io/badge/Donate-USDT-26A17B?logo=tether&logoColor=white)](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P)
+[![GitHub Stars](https://img.shields.io/github/stars/eminsk/avito-sdk?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/stargazers)
+[![GitHub Issues](https://img.shields.io/github/issues/eminsk/avito-sdk?style=flat&color=red&logo=github)](https://github.com/eminsk/avito-sdk/issues)
+[![GitHub Discussions](https://img.shields.io/badge/Discussions-Join_Community-blue?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/discussions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Donate USDT](https://img.shields.io/badge/Donate-USDT_(TRC20)-26A17B?style=flat&logo=tether&logoColor=white)](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P)
 
 > **High-performance headless Avito scraping and data extraction SDK for Python.**  
 > Developed by core contributor to [`Duff89/parser_avito`](https://github.com/Duff89/parser_avito).
 
-> ⭐ **Enjoying avito-sdk?** Give it a star on GitHub to support development!  
-> ☕ **Want to support the author?** USDT (TRC-20): `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P` ([TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))
+> ### 🤝 Community, Issues & Support
+> - 🐛 **Found a bug or parser issue?** Please [Open an Issue](https://github.com/eminsk/avito-sdk/issues) — parser layout fixes and bug reports are prioritized!
+> - 💬 **Questions, proxy setups, or feature ideas?** Join our [GitHub Discussions](https://github.com/eminsk/avito-sdk/discussions).
+> - ⭐ **Find this SDK useful?** Give it a star on GitHub — it helps more developers discover the library!
+> - ☕ **Support development (USDT TRC-20):** `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P` ([Verify on TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))
 
 ---
 
