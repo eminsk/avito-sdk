@@ -1,6 +1,7 @@
 # avito-sdk
 
-[ 🇬🇧 English ] | [ 🇷🇺 Документация на русском ](README_RU.md)
+[ 🇬🇧 English ] | [ 🇷🇺 Документация на русском ](https://github.com/eminsk/avito-sdk/blob/main/README_RU.md)
+
 
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?color=blue)](https://pypi.org/project/avito-sdk/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/avito-sdk.svg)](https://pypi.org/project/avito-sdk/)
