@@ -295,7 +295,23 @@ avito-sdk drops --db prices.db
 
 ---
 
+## ☕ Поддержка, сообщество и донаты
+
+Если проект оказался для вас полезным и вы хотите поддержать его дальнейшее развитие:
+
+* ⭐ **Поставьте звезду репозиторию**: Это помогает развитию проекта и позволяет другим разработчикам быстрее находить SDK!
+* 💬 **Обсуждения (Discussions)**: Есть идеи, предложения или вопросы по парсерам? Присоединяйтесь к [GitHub Discussions](https://github.com/eminsk/avito-sdk/discussions)!
+* ☕ **Поддержать разработку (USDT TRC-20)**:  
+  `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P`  
+  *(Сеть: TRON / TRC-20 | [Проверить в TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))*
+
+[![GitHub Repo stars](https://img.shields.io/github/stars/eminsk/avito-sdk?style=social)](https://github.com/eminsk/avito-sdk)
+[![GitHub Discussions](https://img.shields.io/badge/Discussions-Join_Community-blue?logo=github&style=flat-square)](https://github.com/eminsk/avito-sdk/discussions)
+[![Donate USDT](https://img.shields.io/badge/Donate-USDT_(TRC20)-26A17B?style=flat-square&logo=tether&logoColor=white)](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P)
+
+---
+
 ## 📄 Лицензия
 
 Распространяется под свободной лицензией **MIT**.  
-Автор: **eminsk** ([M_N_N@tut.by](mailto:M_N_N@tut.by))
+Автор: **eminsk** ([M_N_Nik@yahoo.com](mailto:M_N_Nik@yahoo.com))

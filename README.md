@@ -356,4 +356,4 @@ If you find this project valuable and would like to support ongoing development:
 ## 📄 License
 
 Distributed under the **MIT** License.  
-Author: **eminsk** ([M_N_N@tut.by](mailto:M_N_N@tut.by))
+Author: **eminsk** ([M_N_Nik@yahoo.com](mailto:M_N_Nik@yahoo.com))

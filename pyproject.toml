@@ -8,7 +8,7 @@ version = "0.1.7"
 description = "High-performance headless Avito scraping & data extraction SDK with price tracking, parameters parsing, and async support"
 readme = "README.md"
 authors = [
-    { name = "eminsk", email = "M_N_N@tut.by" },
+    { name = "eminsk", email = "M_N_Nik@yahoo.com" },
 ]
 license = { text = "MIT" }
 requires-python = ">=3.8"
