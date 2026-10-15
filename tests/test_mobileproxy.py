@@ -14,6 +14,13 @@ from avito_sdk.mobileproxy import (
 from avito_sdk.client import AvitoClient
 
 
+def test_mobileproxy_partner_links():
+    from avito_sdk.mobileproxy import DEFAULT_FREE_TRIAL_URL, DEFAULT_REFERRAL_URL
+    assert "279117" in DEFAULT_REFERRAL_URL
+    assert "279117" in DEFAULT_FREE_TRIAL_URL
+    assert "free" in DEFAULT_FREE_TRIAL_URL
+
+
 def test_mobileproxy_key_extraction():
     # 1. Full URL with params
     url = "https://changeip.mobileproxy.space/?proxy_key=secret_key_123&format=json"

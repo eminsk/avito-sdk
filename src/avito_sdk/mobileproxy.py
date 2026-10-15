@@ -16,7 +16,8 @@ from typing import Any, Dict, Optional, Tuple
 logger = logging.getLogger("avito_sdk")
 
 DEFAULT_CHANGEIP_BASE = "https://changeip.mobileproxy.space/"
-DEFAULT_REFERRAL_URL = "https://mobileproxy.space/?p=8052683359"
+DEFAULT_REFERRAL_URL = "https://mobileproxy.space/?p=279117"
+DEFAULT_FREE_TRIAL_URL = "https://mobileproxy.space/user.html?free&p=279117"
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "

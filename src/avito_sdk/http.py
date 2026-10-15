@@ -210,11 +210,11 @@ class SyncHttpTransport:
                         except Exception as pw_err:
                             logger.warning(f"Playwright cookie refresh failed: {pw_err}")
                     elif not self.proxy_change_url:
-                        from avito_sdk.mobileproxy import DEFAULT_REFERRAL_URL
+                        from avito_sdk.mobileproxy import DEFAULT_FREE_TRIAL_URL
                         delay = 1.5 * attempt + random.uniform(0.5, 1.5)
                         logger.warning(
                             f"Rate limited ({resp.status_code}) on {url}. "
-                            f"Tip: Use real 4G/LTE mobile proxies from MobileProxy.space ({DEFAULT_REFERRAL_URL}) "
+                            f"Tip: Use real 4G/LTE mobile proxies from MobileProxy.space (Free 3h trial: {DEFAULT_FREE_TRIAL_URL}) "
                             f"to avoid IP bans. Retrying in {delay:.1f}s"
                         )
                         time.sleep(delay)
@@ -376,11 +376,11 @@ class AsyncHttpTransport:
                         except Exception as pw_err:
                             logger.warning(f"Playwright async cookie refresh failed: {pw_err}")
                     elif not self.proxy_change_url:
-                        from avito_sdk.mobileproxy import DEFAULT_REFERRAL_URL
+                        from avito_sdk.mobileproxy import DEFAULT_FREE_TRIAL_URL
                         delay = 1.5 * attempt + random.uniform(0.5, 1.5)
                         logger.warning(
                             f"Async request rate limited ({resp.status_code}) on {url}. "
-                            f"Tip: Use real 4G/LTE mobile proxies from MobileProxy.space ({DEFAULT_REFERRAL_URL}) "
+                            f"Tip: Use real 4G/LTE mobile proxies from MobileProxy.space (Free 3h trial: {DEFAULT_FREE_TRIAL_URL}) "
                             f"to avoid IP bans. Retrying in {delay:.1f}s"
                         )
                         await asyncio.sleep(delay)

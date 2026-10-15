@@ -175,7 +175,7 @@ print(df[["id", "title", "price", "seller_name"]].head())
 > **Using a Mobile Proxy (`proxy` + `proxy_change_url` / `mobileproxy_key`) is mandatory when running multithreaded (`max_workers > 1`), high-concurrency async, or deep card scraping (`enrich_details=True`)!**  
 > Avito's anti-fraud firewall aggressively rate-limits (`429`) and bans (`403`) standard server/datacenter IP addresses under parallel load. Real 4G/LTE SIM cards share IP pools with millions of cellular subscribers, making them immune to subnet-level bans.
 
-> 📱 **Recommended Provider**: [MobileProxy.space](https://mobileproxy.space/?p=8052683359)  
+> 📱 **Recommended Provider**: [MobileProxy.space](https://mobileproxy.space/?p=279117) *(Get a [Free 3-Hour Trial](https://mobileproxy.space/user.html?free&p=279117))*  
 > Dedicated 4G/LTE mobile proxies across real SIM carriers (MTS, Megafon, Beeline, Tele2) with instant URL/API IP rotation.
 
 #### Option A: One-line setup via `mobileproxy_key`

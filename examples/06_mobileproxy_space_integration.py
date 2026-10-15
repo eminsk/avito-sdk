@@ -6,14 +6,16 @@ because cellular carriers (MTS, Megafon, Beeline, Tele2) share millions of users
 over dynamic NAT IP pools. Avito cannot ban entire mobile subnets.
 
 Get your high-speed mobile proxy and rotation key at:
-https://mobileproxy.space/?p=8052683359
+https://mobileproxy.space/?p=279117
+Free 3-hour test for new clients:
+https://mobileproxy.space/user.html?free&p=279117
 """
 
 import os
 from avito_sdk import AvitoClient, MobileProxySpace
 
 # 1. Direct rotation via MobileProxySpace helper
-# In your dashboard: https://mobileproxy.space/
+# In your dashboard: https://mobileproxy.space/?p=279117
 # Copy your proxy credentials and unique rotation key from "My Proxies":
 PROXY_URL = os.getenv("AVITO_PROXY", "http://login:password@proxy-domain.space:port")
 MOBILEPROXY_KEY = os.getenv("MOBILEPROXY_KEY", "your_proxy_key_here")
@@ -24,7 +26,8 @@ mps = MobileProxySpace(
     reconnect_delay=4.0,  # recommended 3-5s for mobile tower reconnection
 )
 
-print(f"[*] Referral / partner portal: https://mobileproxy.space/?p=8052683359")
+print(f"[*] Referral portal: https://mobileproxy.space/?p=279117")
+print(f"[*] Free 3h test: https://mobileproxy.space/user.html?free&p=279117")
 print(f"[*] Rotation URL: {mps.change_url}")
 
 # 2. Trigger programmatic IP rotation
