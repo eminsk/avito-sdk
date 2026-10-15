@@ -38,4 +38,15 @@ jobs:
         env:
           ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_API_TOKEN }}
         run: |
-          anaconda --token "$ANACONDA_API_TOKEN" upload --user m_n_nik dist/conda/noarch/*.conda --skip-existing
+          if [ -n "$ANACONDA_API_TOKEN" ]; then
+            anaconda --token "$ANACONDA_API_TOKEN" upload --user m_n_nik dist/conda/noarch/*.conda --skip-existing
+          else
+            echo "ANACONDA_API_TOKEN secret is not set. Skipping personal channel upload."
+            echo "Note: The package is officially built and distributed via conda-forge/avito-sdk-feedstock."
+          fi
+
+      - name: Upload Conda Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: conda-package
+          path: dist/conda/noarch/*.conda
