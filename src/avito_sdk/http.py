@@ -20,21 +20,47 @@ DEFAULT_USER_AGENT = (
     "Chrome/131.0.0.0 Safari/537.36"
 )
 
-MOBILE_USER_AGENT = (
-    "Mozilla/5.0 (Linux; Android 14; Pixel 8) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/131.0.0.0 Mobile Safari/537.36"
-)
+# Realistic modern Android profiles for seamless rotation without TLS fingerprint mismatch
+MOBILE_PROFILES = [
+    ("Android 14; Pixel 8", "131.0.6778.200", "131"),
+    ("Android 14; Pixel 8 Pro", "131.0.6778.200", "131"),
+    ("Android 14; SM-S918B", "131.0.6778.260", "131"),  # Samsung Galaxy S23 Ultra
+    ("Android 14; SM-S928B", "131.0.6778.260", "131"),  # Samsung Galaxy S24 Ultra
+    ("Android 13; 2210132G", "131.0.6778.135", "131"),  # Xiaomi 13
+    ("Android 14; 23127PN0CG", "131.0.6778.200", "131"),  # Xiaomi 14
+    ("Android 14; CPH2551", "131.0.6778.200", "131"),   # OnePlus Open
+]
 
-CARD_API_HEADERS = {
-    "accept": "application/json, text/plain, */*",
-    "accept-language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
-    "referer": "https://m.avito.ru/",
-    "sec-ch-ua": '"Chromium";v="131", "Not_A Brand";v="24"',
-    "sec-ch-ua-mobile": "?1",
-    "sec-ch-ua-platform": '"Android"',
-    "user-agent": MOBILE_USER_AGENT,
-}
+
+def get_random_mobile_headers(accept_html: bool = False) -> Dict[str, str]:
+    """
+    Generate realistic mobile headers with synchronized Android User-Agent and Client Hints.
+    Strictly aligns with curl_cffi Chrome 131 TLS fingerprint to prevent Avito WAF blocks.
+    """
+    device, chrome_ver, major = random.choice(MOBILE_PROFILES)
+    ua = (
+        f"Mozilla/5.0 (Linux; {device}) "
+        f"AppleWebKit/537.36 (KHTML, like Gecko) "
+        f"Chrome/{chrome_ver} Mobile Safari/537.36"
+    )
+    accept = (
+        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        if accept_html
+        else "application/json, text/plain, */*"
+    )
+    return {
+        "accept": accept,
+        "accept-language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+        "referer": "https://m.avito.ru/",
+        "sec-ch-ua": f'"Chromium";v="{major}", "Not_A Brand";v="24"',
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": '"Android"',
+        "user-agent": ua,
+    }
+
+
+CARD_API_HEADERS = get_random_mobile_headers(accept_html=False)
+MOBILE_SEARCH_HEADERS = get_random_mobile_headers(accept_html=True)
 
 WEB_HEADERS = {
     "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -160,6 +186,7 @@ class SyncHttpTransport:
             if self._last_rotation_ts > 0 and (now - self._last_rotation_ts) < 2.0:
                 return True
 
+            rotated = False
             if "mobileproxy.space" in self.proxy_change_url:
                 try:
                     from avito_sdk.mobileproxy import MobileProxySpace
@@ -168,27 +195,45 @@ class SyncHttpTransport:
                     if res.get("success"):
                         self.ip_rotations += 1
                         self._last_rotation_ts = time.monotonic()
-                        return True
+                        rotated = True
                 except Exception as err:
                     logger.warning(f"[MobileProxy.space] IP rotation failed: {err}")
                     return False
+            else:
+                try:
+                    import urllib.request
+                    logger.info("Rotating mobile proxy IP via proxy_change_url...")
+                    req = urllib.request.Request(
+                        self.proxy_change_url,
+                        headers={"User-Agent": DEFAULT_USER_AGENT},
+                    )
+                    with urllib.request.urlopen(req, timeout=15) as resp:
+                        logger.debug(f"Mobile proxy rotation status: {resp.status}")
+                    self.ip_rotations += 1
+                    self._last_rotation_ts = time.monotonic()
+                    time.sleep(3.5)
+                    rotated = True
+                except Exception as err:
+                    logger.warning(f"Failed to rotate mobile proxy IP: {err}")
+                    return False
 
-            try:
-                import urllib.request
-                logger.info("Rotating mobile proxy IP via proxy_change_url...")
-                req = urllib.request.Request(
-                    self.proxy_change_url,
-                    headers={"User-Agent": DEFAULT_USER_AGENT},
-                )
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    logger.debug(f"Mobile proxy rotation status: {resp.status}")
-                self.ip_rotations += 1
-                self._last_rotation_ts = time.monotonic()
-                time.sleep(2.5)
+            if rotated:
+                # Drop stale connection pool so curl_cffi creates fresh TCP handshake with new IP
+                if hasattr(self._session, "close"):
+                    try:
+                        self._session.close()
+                    except Exception:
+                        pass
+                self._session = self._create_session()
+                sess = getattr(self._thread_local, "session", None)
+                if sess and hasattr(sess, "close"):
+                    try:
+                        sess.close()
+                    except Exception:
+                        pass
+                self._thread_local.session = None
                 return True
-            except Exception as err:
-                logger.warning(f"Failed to rotate mobile proxy IP: {err}")
-                return False
+            return False
 
     def request(
         self,
@@ -199,10 +244,10 @@ class SyncHttpTransport:
         **kwargs,
     ) -> Any:
         last_error = None
-        session = self._get_thread_session()
-        if self.cookies and hasattr(session, "cookies"):
-            session.cookies.update(self.cookies)
         for attempt in range(1, self.max_retries + 1):
+            session = self._get_thread_session()
+            if self.cookies and hasattr(session, "cookies"):
+                session.cookies.update(self.cookies)
             try:
                 resp = session.request(
                     method=method,
@@ -220,6 +265,7 @@ class SyncHttpTransport:
                     logger.warning(f"Avito security challenge/block detected (status {resp.status_code}) on {url}")
                     if self.proxy_change_url:
                         self.rotate_proxy_ip()
+                        time.sleep(3.5)
                     if self.use_playwright_cookies:
                         try:
                             self.refresh_cookies(target_url=url, force_refresh=True)
@@ -240,6 +286,19 @@ class SyncHttpTransport:
                 return resp
             except Exception as e:
                 last_error = e
+                # Clean up broken session so next attempt opens a brand new socket
+                sess = getattr(self._thread_local, "session", None)
+                if sess and hasattr(sess, "close"):
+                    try:
+                        sess.close()
+                    except Exception:
+                        pass
+                self._thread_local.session = None
+
+                if attempt >= 2 and self.proxy_change_url:
+                    logger.info(f"Connection issue on attempt {attempt} ({e}). Rotating mobile proxy IP...")
+                    self.rotate_proxy_ip()
+
                 delay = 1.0 * attempt + random.uniform(0.2, 0.8)
                 time.sleep(delay)
 
@@ -248,15 +307,33 @@ class SyncHttpTransport:
     def fetch_item_card(self, item_id: int) -> dict:
         """Fetch mobile JSON card for an item."""
         url = f"https://m.avito.ru/api/1/card/items/{item_id}"
-        resp = self.request("GET", url, headers=CARD_API_HEADERS.copy())
+        headers = get_random_mobile_headers(accept_html=False)
+        resp = self.request("GET", url, headers=headers)
         data = resp.json()
         if isinstance(data, dict):
             return data
         return {}
 
     def fetch_html(self, url: str) -> str:
-        """Fetch raw HTML for an Avito page."""
-        resp = self.request("GET", url, headers=WEB_HEADERS.copy())
+        """Fetch raw HTML for an Avito page with automatic mobile routing and sort cleaning."""
+        target_url = url
+        headers = WEB_HEADERS.copy()
+        if "avito.ru" in url:
+            if "m.avito.ru" not in url:
+                target_url = url.replace("https://www.avito.ru", "https://m.avito.ru").replace("http://www.avito.ru", "https://m.avito.ru")
+                if "https://avito.ru" in target_url:
+                    target_url = target_url.replace("https://avito.ru", "https://m.avito.ru")
+                elif "http://avito.ru" in target_url:
+                    target_url = target_url.replace("http://avito.ru", "https://m.avito.ru")
+            # Convert desktop delivery param cd=1 -> mobile d=1
+            import re
+            target_url = re.sub(r'([?&])cd=1(?=&|$)', r'\1d=1', target_url)
+            # Strip bot-flagging sort params (&s=104 and &s=101) which trigger 429 WAF blocks on mobile
+            target_url = re.sub(r'[?&]s=(101|104)(?=&|$)', '', target_url)
+            if "?" not in target_url and "&" in target_url:
+                target_url = target_url.replace("&", "?", 1)
+            headers = get_random_mobile_headers(accept_html=True)
+        resp = self.request("GET", target_url, headers=headers)
         return resp.text
 
     def close(self) -> None:
@@ -341,6 +418,12 @@ class AsyncHttpTransport:
                 res = await asyncio.to_thread(mps.rotate_ip, True)
                 if res.get("success"):
                     self.ip_rotations += 1
+                    if self._session and hasattr(self._session, "close"):
+                        try:
+                            await self._session.close()
+                        except Exception:
+                            pass
+                    self._session = None
                     return True
             except Exception as err:
                 logger.warning(f"[MobileProxy.space] Async IP rotation failed: {err}")
@@ -355,7 +438,13 @@ class AsyncHttpTransport:
             )
             await asyncio.to_thread(urllib.request.urlopen, req, timeout=15)
             self.ip_rotations += 1
-            await asyncio.sleep(2.5)
+            await asyncio.sleep(3.5)
+            if self._session and hasattr(self._session, "close"):
+                try:
+                    await self._session.close()
+                except Exception:
+                    pass
+            self._session = None
             return True
         except Exception as err:
             logger.warning(f"Failed to rotate mobile proxy IP: {err}")
@@ -370,10 +459,12 @@ class AsyncHttpTransport:
         **kwargs,
     ) -> Any:
         import asyncio
-        session = await self._get_session()
         last_error = None
 
         for attempt in range(1, self.max_retries + 1):
+            session = await self._get_session()
+            if self.cookies and hasattr(session, "cookies"):
+                session.cookies.update(self.cookies)
             try:
                 resp = await session.request(
                     method=method,
@@ -391,6 +482,7 @@ class AsyncHttpTransport:
                     logger.warning(f"Async Avito security challenge/block detected (status {resp.status_code}) on {url}")
                     if self.proxy_change_url:
                         await self.rotate_proxy_ip()
+                        await asyncio.sleep(3.5)
                     if self.use_playwright_cookies:
                         try:
                             await self.refresh_cookies(target_url=url)
@@ -411,20 +503,46 @@ class AsyncHttpTransport:
                 return resp
             except Exception as e:
                 last_error = e
+                if self._session and hasattr(self._session, "close"):
+                    try:
+                        await self._session.close()
+                    except Exception:
+                        pass
+                self._session = None
+                if attempt >= 2 and self.proxy_change_url:
+                    logger.info(f"Async connection issue on attempt {attempt} ({e}). Rotating mobile proxy IP...")
+                    await self.rotate_proxy_ip()
                 await asyncio.sleep(1.0 * attempt + random.uniform(0.2, 0.8))
 
         raise RuntimeError(f"Async HTTP request failed after {self.max_retries} attempts: {url}") from last_error
 
     async def fetch_item_card(self, item_id: int) -> dict:
         url = f"https://m.avito.ru/api/1/card/items/{item_id}"
-        resp = await self.request("GET", url, headers=CARD_API_HEADERS.copy())
+        headers = get_random_mobile_headers(accept_html=False)
+        resp = await self.request("GET", url, headers=headers)
         data = resp.json()
         if isinstance(data, dict):
             return data
         return {}
 
     async def fetch_html(self, url: str) -> str:
-        resp = await self.request("GET", url, headers=WEB_HEADERS.copy())
+        """Fetch raw HTML for an Avito page with automatic mobile routing and sort cleaning."""
+        target_url = url
+        headers = WEB_HEADERS.copy()
+        if "avito.ru" in url:
+            if "m.avito.ru" not in url:
+                target_url = url.replace("https://www.avito.ru", "https://m.avito.ru").replace("http://www.avito.ru", "https://m.avito.ru")
+                if "https://avito.ru" in target_url:
+                    target_url = target_url.replace("https://avito.ru", "https://m.avito.ru")
+                elif "http://avito.ru" in target_url:
+                    target_url = target_url.replace("http://avito.ru", "https://m.avito.ru")
+            import re
+            target_url = re.sub(r'([?&])cd=1(?=&|$)', r'\1d=1', target_url)
+            target_url = re.sub(r'[?&]s=(101|104)(?=&|$)', '', target_url)
+            if "?" not in target_url and "&" in target_url:
+                target_url = target_url.replace("&", "?", 1)
+            headers = get_random_mobile_headers(accept_html=True)
+        resp = await self.request("GET", target_url, headers=headers)
         return resp.text
 
     async def close(self) -> None:

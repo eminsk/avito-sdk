@@ -3,19 +3,21 @@
 [ 🇬🇧 English Documentation ](https://github.com/eminsk/avito-sdk/blob/main/README.md) | [ 🇷🇺 Документация на русском ]
 
 
-[![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?color=blue)](https://pypi.org/project/avito-sdk/)
+[![Release Version](https://img.shields.io/badge/релиз-v0.2.0-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.2.0)
+[![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/avito-sdk/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/avito-sdk.svg?style=flat&logo=pypi)](https://pypi.org/project/avito-sdk/)
-[![Conda-Forge](https://img.shields.io/conda/vn/conda-forge/avito-sdk.svg?style=flat&logo=condaforge)](https://anaconda.org/conda-forge/avito-sdk)
-[![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/avito-sdk.svg?style=flat&logo=condaforge)](https://anaconda.org/conda-forge/avito-sdk)
-[![eminsk PPA](https://img.shields.io/badge/APT%20PPA-python3--avito--sdk-blueviolet.svg)](https://eminsk.github.io/ppa/)
-[![Python Versions](https://img.shields.io/pypi/pyversions/avito-sdk.svg)](https://pypi.org/project/avito-sdk/)
-[![Free-Threaded No-GIL](https://img.shields.io/badge/No--GIL-3.13t%20--%203.16t-brightgreen)](https://peps.python.org/pep-0703/)
-[![MCP Server](https://img.shields.io/badge/MCP-Native_Stdio_Server-00a67e.svg)](#встроенный-mcp-сервер-model-context-protocol)
+[![Python Versions](https://img.shields.io/badge/python-3.8_--_3.16+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://pypi.org/project/avito-sdk/)
+[![Free-Threaded No-GIL](https://img.shields.io/badge/No--GIL-3.13t%20--%203.16t-brightgreen?style=flat)](https://peps.python.org/pep-0703/)
+[![Tests](https://img.shields.io/badge/тесты-63%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/avito-sdk)
+[![Telegram Bot](https://img.shields.io/badge/Telegram_Бот-@eminsk__avito__bot-2CA5E0?style=flat&logo=telegram&logoColor=white)](https://t.me/eminsk_avito_bot)
+[![Mobile Proxy](https://img.shields.io/badge/Мобильный_Прокси-Auto--Failover-ff6b6b.svg?style=flat)](https://mobileproxy.space/)
+[![MCP Server](https://img.shields.io/badge/MCP-Встроенный_Сервер-00a67e.svg?style=flat)](#встроенный-mcp-сервер-model-context-protocol)
+[![Excel Export](https://img.shields.io/badge/Экспорт-.xlsx_Гиперссылки-217346?style=flat&logo=microsoftexcel&logoColor=white)](https://github.com/eminsk/avito-sdk)
 [![CI](https://github.com/eminsk/avito-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/eminsk/avito-sdk/actions)
+[![Conda-Forge](https://img.shields.io/conda/vn/conda-forge/avito-sdk.svg?style=flat&logo=condaforge)](https://anaconda.org/conda-forge/avito-sdk)
+[![eminsk PPA](https://img.shields.io/badge/APT%20PPA-python3--avito--sdk-blueviolet.svg?style=flat)](https://eminsk.github.io/ppa/)
 [![GitHub Stars](https://img.shields.io/github/stars/eminsk/avito-sdk?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/stargazers)
-[![GitHub Issues](https://img.shields.io/github/issues/eminsk/avito-sdk?style=flat&color=red&logo=github)](https://github.com/eminsk/avito-sdk/issues)
-[![GitHub Discussions](https://img.shields.io/badge/Discussions-Join_Community-blue?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/discussions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
 [![Donate USDT](https://img.shields.io/badge/Donate-USDT_(TRC20)-26A17B?style=flat&logo=tether&logoColor=white)](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P)
 
 > **Высокопроизводительная библиотека и SDK для работы с Avito без GUI.**  
@@ -70,21 +72,51 @@ conda install -c conda-forge avito-sdk
 
 ---
 
-## ⚡ Быстрый старт
+## 🌟 Что нового в версии 0.2.0 (Release 0.2.0)
 
-### 1. Синхронный поиск объявлений
+- 🔄 **Автоматический обход блокировок (Auto-Failover):** При возникновении 429 Too Many Requests или капчи SDK автоматически производит ротацию IP через `MobileProxy.space`, очищает сокет и продолжает сбор со 100% успехом.
+- 📱 **Пул реалистичных Android User-Agent:** Динамическая ротация актуальных устройств (Pixel 8, Galaxy S23/S24, Xiaomi 13/14) с синхронизированными Client Hints (`sec-ch-ua`), совпадающими с TLS-отпечатком Chrome 131.
+- 🔗 **Прямой поиск по ссылкам каталога:** Метод `client.search()` теперь напрямую принимает ссылки на каталог Авито (включая фильтры доставки и города).
+- 📊 **Кликабельные ссылки в Excel:** В выгрузке `.xlsx` ссылки на объявления оформлены кликабельными гиперссылками `https://www.avito.ru/...`.
+- 🤖 **Интерактивный Telegram-бот:** Команда `/code` и кнопка в меню `@eminsk_avito_bot` для мгновенного получения готового скрипта.
+- 🧵 **Контроль безопасности модемов (Safe Concurrency):** Защита от бана — автоматическое ограничение до 2 потоков на 1 модем.
 
+---
+
+## ⚡ Быстрый старт (всего 3 строки кода, без лишнего boilerplate)
+
+### 1. Установка:
+```bash
+uv add avito-sdk
+# или: pip install avito-sdk
+```
+
+### 2. Сбор данных (без main-функций и без сложных обёрток):
 ```python
 from avito_sdk import AvitoClient
 
-client = AvitoClient()
+# Подключение (подставьте свои данные мобильного прокси)
+client = AvitoClient(
+    proxy="http://login:password@host:port",
+    proxy_change_url="https://changeip.mobileproxy.space/?proxy_key=...",
+    modems_count=1,
+)
 
-# Поиск ноутбуков в Москве до 80 000 ₽
-for item in client.search("ноутбук thinkpad", region="Москва", max_price=80000, limit=10):
-    print(f"[{item.id}] {item.title} — {item.price:,} ₽ | Продавец: {item.seller_name}")
-    if item.has_price_changed:
-        print(f"  🔥 Цена изменилась! Старая: {item.old_price:,} ₽ (Снижение: {item.price_drop:,} ₽)")
+# 1. Поиск по запросу (или прямой ссылке Авито)
+for item in client.search("RTX 4090", limit=10, show_progress=True):
+    print(f"{item.title} | {item.price:,} ₽ | {item.url}")
+    print(f"  Продавец: {item.seller_name} | Просмотров: {item.total_views}")
+
+# 2. Либо выгрузка по ссылке сразу в Excel (.xlsx) с кликабельными ссылками
+client.scrape_url(
+    url="https://www.avito.ru/moskva/noutbuki?cd=1",
+    limit=30,
+    enrich_details=True,
+    excel_path="noutbuki.xlsx",
+)
 ```
+
+---
 
 ---
 

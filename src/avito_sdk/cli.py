@@ -35,7 +35,7 @@ def main(argv=None) -> int:
     search_p.add_argument("--proxy-change-url", default=None, help="Mobile proxy IP rotation URL")
     search_p.add_argument("--mobileproxy-key", default=None, help="MobileProxy.space rotation key (auto-builds change URL)")
     search_p.add_argument("--playwright", action="store_true", help="Use Playwright Chromium to harvest session cookies ('ft')")
-    search_p.add_argument("--workers", type=int, default=1, help="Number of parallel threads for card enrichment (requires mobile proxy)")
+    search_p.add_argument("--workers", type=int, default=2, help="Number of parallel threads for card enrichment (max 2 for 1 modem)")
     search_p.add_argument("--tg-token", default=None, help="Telegram bot token for sending notifications & Excel report")
     search_p.add_argument("--tg-chat-id", default=None, help="Telegram channel (@channel or -100...) or chat ID")
 
@@ -48,7 +48,7 @@ def main(argv=None) -> int:
     bot_p.add_argument("--mobileproxy-key", default=None, help="MobileProxy.space rotation key")
     bot_p.add_argument("--playwright", action="store_true", default=True, help="Enable Playwright Chromium cookie harvesting (default: True)")
     bot_p.add_argument("--no-playwright", dest="playwright", action="store_false", help="Disable Playwright cookie harvesting")
-    bot_p.add_argument("--workers", type=int, default=4, help="Parallel worker threads for card enrichment")
+    bot_p.add_argument("--workers", type=int, default=2, help="Parallel worker threads for card enrichment (max 2 for 1 modem)")
     bot_p.add_argument("-n", "--limit", type=int, default=30, help="Default item limit per search")
 
     # Item command
@@ -76,7 +76,7 @@ def main(argv=None) -> int:
     mcp_p.add_argument("--db", default="avito_prices.db", help="Path to SQLite price database")
     mcp_p.add_argument("--tg-token", default=None, help="Telegram Bot Token")
     mcp_p.add_argument("--tg-chat-id", default=None, help="Telegram Channel/Chat ID")
-    mcp_p.add_argument("--workers", type=int, default=4, help="Parallel worker threads")
+    mcp_p.add_argument("--workers", type=int, default=2, help="Parallel worker threads (max 2 for 1 modem)")
 
     args = parser.parse_args(argv)
 

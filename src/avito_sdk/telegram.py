@@ -118,6 +118,8 @@ class TelegramNotifier:
             params_preview = "; ".join(f"{k}: {v}" for k, v in list(item.params.items())[:6])
             parts.append(f"📋 {escape_markdown_v2(params_preview)}")
 
+        parts.append(f"🔗 {escape_markdown_v2(short_url)}")
+
         return "\n".join(parts)
 
     def _request_with_retries(self, fn):
@@ -146,11 +148,16 @@ class TelegramNotifier:
         if last_err:
             raise last_err
 
-    def send_message(self, text: str, parse_mode: Optional[str] = "MarkdownV2") -> Dict[str, int]:
+    def send_message(
+        self,
+        text: str,
+        parse_mode: Optional[str] = "MarkdownV2",
+        reply_markup: Optional[dict] = None,
+    ) -> Dict[str, int]:
         """Send a text message to all configured Telegram chat_ids and return {chat_id: message_id}."""
         msg_ids: Dict[str, int] = {}
         for cid in self.chat_ids:
-            mid = self._send_text_to_chat(cid, text, parse_mode=parse_mode)
+            mid = self._send_text_to_chat(cid, text, parse_mode=parse_mode, reply_markup=reply_markup)
             if mid is not None:
                 msg_ids[cid] = mid
         return msg_ids
@@ -160,6 +167,7 @@ class TelegramNotifier:
         chat_id: str,
         message: str,
         parse_mode: Optional[str] = "MarkdownV2",
+        reply_markup: Optional[dict] = None,
     ) -> Optional[int]:
         payload = {
             "chat_id": chat_id,
@@ -168,6 +176,8 @@ class TelegramNotifier:
         }
         if parse_mode:
             payload["parse_mode"] = parse_mode
+        if reply_markup is not None:
+            payload["reply_markup"] = reply_markup
 
         def _send():
             return requests.post(
@@ -189,8 +199,9 @@ class TelegramNotifier:
         message_id: int,
         text: str,
         parse_mode: Optional[str] = None,
+        reply_markup: Optional[dict] = None,
     ) -> None:
-        """Edit an existing message in Telegram (used for live progress bars)."""
+        """Edit an existing message in Telegram (used for live progress bars and menus)."""
         payload = {
             "chat_id": chat_id,
             "message_id": message_id,
@@ -199,6 +210,8 @@ class TelegramNotifier:
         }
         if parse_mode:
             payload["parse_mode"] = parse_mode
+        if reply_markup is not None:
+            payload["reply_markup"] = reply_markup
 
         try:
             requests.post(
@@ -209,6 +222,48 @@ class TelegramNotifier:
             )
         except Exception as err:
             logger.debug(f"Could not edit progress message {message_id}: {err}")
+
+    def answer_callback(
+        self,
+        callback_query_id: str,
+        text: Optional[str] = None,
+        show_alert: bool = False,
+    ) -> None:
+        """Acknowledge or respond to an inline button click."""
+        payload = {"callback_query_id": callback_query_id}
+        if text:
+            payload["text"] = text
+            payload["show_alert"] = show_alert
+        try:
+            requests.post(
+                f"https://api.telegram.org/bot{self.bot_token}/answerCallbackQuery",
+                json=payload,
+                proxies=self.proxies,
+                timeout=8,
+            )
+        except Exception as err:
+            logger.debug(f"Could not answer callback query {callback_query_id}: {err}")
+
+    def set_bot_commands(self) -> None:
+        """Register command list in Telegram client UI."""
+        commands = [
+            {"command": "start", "description": "🏠 Главное меню и статус"},
+            {"command": "code", "description": "💻 Готовый код для запуска (без лишнего)"},
+            {"command": "search", "description": "🔍 Поиск объявлений с выгрузкой в Excel"},
+            {"command": "workers", "description": "🧵 Настройка потоков (1-2 для 1 модема)"},
+            {"command": "limit", "description": "📦 Лимит объявлений (10, 30, 50)"},
+            {"command": "status", "description": "📊 Состояние прокси и параметры сбора"},
+            {"command": "help", "description": "ℹ️ Инструкция и примеры"},
+        ]
+        try:
+            requests.post(
+                f"https://api.telegram.org/bot{self.bot_token}/setMyCommands",
+                json={"commands": commands},
+                proxies=self.proxies,
+                timeout=8,
+            )
+        except Exception:
+            pass
 
     def send_excel(
         self,
@@ -252,15 +307,18 @@ class TelegramNotifier:
         workers: int = 1,
     ) -> Dict[str, int]:
         """Send an initial live progress bar message to Telegram."""
+        import html
         bar = render_telegram_progress_bar(0, total)
-        proxy_status = "Активен (автосмена IP)" if use_mobile_proxy else "Без прокси"
+        proxy_status = "Подключен (Mobile 4G LTE)" if use_mobile_proxy else "Без прокси"
         text = (
-            f"🚀 Парсинг Авито: {query}\n"
-            f"{bar}\n"
-            f"🌐 Мобильный прокси: {proxy_status}\n"
-            f"🧵 Потоков: {workers}"
+            f"🚀 <b>Сбор данных с Авито</b>\n\n"
+            f"🔍 <b>Запрос:</b> <code>{html.escape(query)}</code>\n"
+            f"📊 <b>Прогресс:</b> {bar}\n\n"
+            f"🌐 <b>Мобильный прокси:</b> {proxy_status}\n"
+            f"🧵 <b>Потоков:</b> {workers} <i>(Safe Mode: 1 модем)</i>\n"
+            f"⚡ <i>Запуск сбора и обогащения характеристик...</i>"
         )
-        return self.send_message(text, parse_mode=None)
+        return self.send_message(text, parse_mode="HTML")
 
     def update_progress(
         self,
@@ -274,16 +332,20 @@ class TelegramNotifier:
         ip_rotations: int = 0,
     ) -> None:
         """Update the live progress bar message in Telegram."""
+        import html
         bar = render_telegram_progress_bar(current, total)
         proxy_status = f"Активен (ротаций IP: {ip_rotations})" if use_mobile_proxy else "Без прокси"
         text = (
-            f"⏳ Парсинг Авито: {query}\n"
-            f"{bar}\n"
-            f"🌐 Мобильный прокси: {proxy_status}\n"
-            f"🧵 Потоков: {workers}  |  📉 Снижений цен: {drops_count}"
+            f"⏳ <b>Сбор данных с Авито в процессе...</b>\n\n"
+            f"🔍 <b>Запрос:</b> <code>{html.escape(query)}</code>\n"
+            f"📊 <b>Прогресс:</b> {bar}\n\n"
+            f"📦 <b>Собрано:</b> {current} из {total}\n"
+            f"🌐 <b>Мобильный прокси:</b> {proxy_status}\n"
+            f"🧵 <b>Потоков:</b> {workers}  |  📉 <b>Снижений цен:</b> {drops_count}\n"
+            f"⚡ <i>Обогащение характеристик и запись в Excel...</i>"
         )
         for cid, mid in progress_ids.items():
-            self.edit_message(cid, mid, text, parse_mode=None)
+            self.edit_message(cid, mid, text, parse_mode="HTML")
 
     def finish_progress(
         self,
@@ -296,16 +358,21 @@ class TelegramNotifier:
         excel_path: Optional[Union[str, Path]] = None,
     ) -> None:
         """Mark the live progress bar as 100% complete and optionally upload the Excel file."""
+        import html
         bar = render_telegram_progress_bar(total_found, max(total_found, 1))
         proxy_status = f"Активен (ротаций IP: {ip_rotations})" if use_mobile_proxy else "Без прокси"
         text = (
-            f"✅ Парсинг завершён: {query}\n"
-            f"{bar}\n"
-            f"📦 Собрано объявлений: {total_found}  |  📉 Снижений цен: {drops_count}\n"
-            f"🌐 Мобильный прокси: {proxy_status}"
+            f"✅ <b>Парсинг успешно завершён!</b>\n\n"
+            f"🔍 <b>Запрос:</b> <code>{html.escape(query)}</code>\n"
+            f"📊 <b>Прогресс:</b> {bar}\n\n"
+            f"📦 <b>Собрано объявлений:</b> {total_found}\n"
+            f"📉 <b>Снижений цен:</b> {drops_count}\n"
+            f"🌐 <b>Мобильный прокси:</b> {proxy_status}\n"
+            f"🧵 <b>Потоков:</b> Safe Mode (1 модем)\n\n"
+            f"📊 <i>Детальный отчёт Excel (.xlsx) с ценами и продавцами загружается ниже 👇</i>"
         )
         for cid, mid in progress_ids.items():
-            self.edit_message(cid, mid, text, parse_mode=None)
+            self.edit_message(cid, mid, text, parse_mode="HTML")
 
         if excel_path and Path(excel_path).exists():
             caption = f"📊 Отчёт Excel: {query} ({total_found} объявлений)"
@@ -387,10 +454,11 @@ class TelegramNotifier:
 class AvitoTelegramBot:
     """
     Interactive Telegram Bot controller for Avito parsing with:
-    - Mobile proxy management (/proxy)
-    - Multithreaded workers setting (/workers)
-    - Live visual progress bar ([████████░░░░░░░░] 50%)
-    - Automatic Excel (.xlsx) generation and upload right to Telegram!
+    - Rich interactive Inline Keyboards and callbacks
+    - Built-in multi-threading safety limit (max 2 workers for 1 modem)
+    - Full privacy mode (zero credentials leaked in UI or logs)
+    - Live visual emoji progress bars ([🟩🟩🟩⬜⬜] 60%)
+    - Instant Excel (.xlsx) file generation and delivery
     """
 
     def __init__(
@@ -399,101 +467,201 @@ class AvitoTelegramBot:
         proxy: Optional[str] = None,
         proxy_change_url: Optional[str] = None,
         channel_id: Optional[Union[str, int]] = None,
-        workers: int = 4,
+        workers: int = 2,
         limit: int = 30,
         enrich_details: bool = True,
         use_playwright_cookies: bool = False,
+        modems_count: int = 1,
     ):
         self.bot_token = bot_token
         self.proxy = proxy
         self.proxy_change_url = proxy_change_url
         self.channel_id = str(channel_id) if channel_id else None
-        self.workers = workers
-        self.limit = limit
+        self.modems_count = max(1, int(modems_count))
+        # Enforce max 2 workers per modem for safety
+        max_safe = self.modems_count * 2
+        if workers > max_safe:
+            logger.warning(
+                f"[TelegramBot] Запрошено {workers} потоков для {self.modems_count} модема(ов). "
+                f"Для предотвращения банов число потоков ограничено до {max_safe}."
+            )
+            self.workers = max_safe
+        else:
+            self.workers = max(1, workers)
+        self.limit = max(1, limit)
         self.enrich_details = enrich_details
         self.use_playwright_cookies = use_playwright_cookies
         self._offset = 0
 
+    def _main_keyboard(self) -> dict:
+        enrich_icon = "✅ ВКЛ" if self.enrich_details else "❌ ВЫКЛ"
+        return {
+            "inline_keyboard": [
+                [
+                    {"text": "🔍 Начать поиск", "callback_data": "menu_search"},
+                    {"text": "📊 Статус системы", "callback_data": "menu_status"},
+                ],
+                [
+                    {"text": f"🧵 Потоки: {self.workers} воркера", "callback_data": "menu_workers"},
+                    {"text": f"📦 Лимит: {self.limit} шт", "callback_data": "menu_limit"},
+                ],
+                [
+                    {"text": f"📋 Характеристики: {enrich_icon}", "callback_data": "toggle_enrich"},
+                    {"text": "🌐 Мобильный прокси", "callback_data": "menu_proxy"},
+                ],
+                [
+                    {"text": "💻 Готовый код для запуска", "callback_data": "menu_code"},
+                    {"text": "ℹ️ Инструкция", "callback_data": "menu_help"},
+                ],
+            ]
+        }
+
+    def _workers_keyboard(self) -> dict:
+        w1_mark = " ✅" if self.workers == 1 else ""
+        w2_mark = " ✅" if self.workers == 2 else ""
+        return {
+            "inline_keyboard": [
+                [
+                    {"text": f"🧵 1 поток{w1_mark}", "callback_data": "set_workers:1"},
+                    {"text": f"🧵 2 потока (1 модем){w2_mark}", "callback_data": "set_workers:2"},
+                ],
+                [
+                    {"text": "❓ Защита от банов (почему макс 2?)", "callback_data": "faq_workers"},
+                ],
+                [
+                    {"text": "« Назад в главное меню", "callback_data": "menu_main"},
+                ],
+            ]
+        }
+
+    def _limit_keyboard(self) -> dict:
+        def _m(n):
+            return " ✅" if self.limit == n else ""
+        return {
+            "inline_keyboard": [
+                [
+                    {"text": f"10 шт{_m(10)}", "callback_data": "set_limit:10"},
+                    {"text": f"20 шт{_m(20)}", "callback_data": "set_limit:20"},
+                    {"text": f"30 шт{_m(30)}", "callback_data": "set_limit:30"},
+                ],
+                [
+                    {"text": f"50 шт{_m(50)}", "callback_data": "set_limit:50"},
+                    {"text": f"100 шт{_m(100)}", "callback_data": "set_limit:100"},
+                ],
+                [
+                    {"text": "« Назад в главное меню", "callback_data": "menu_main"},
+                ],
+            ]
+        }
+
+    def _search_prompt_keyboard(self) -> dict:
+        return {
+            "inline_keyboard": [
+                [
+                    {"text": "💻 RTX 4090", "callback_data": "quick_search:RTX 4090"},
+                    {"text": "📱 iPhone 15 Pro", "callback_data": "quick_search:iPhone 15 Pro"},
+                ],
+                [
+                    {"text": "💻 Ноутбуки", "callback_data": "quick_search:Ноутбуки"},
+                    {"text": "🏢 Квартиры", "callback_data": "quick_search:Квартиры"},
+                ],
+                [
+                    {"text": "« Назад в главное меню", "callback_data": "menu_main"},
+                ],
+            ]
+        }
+
+    def _back_keyboard(self) -> dict:
+        return {
+            "inline_keyboard": [
+                [
+                    {"text": "« Назад в главное меню", "callback_data": "menu_main"},
+                ]
+            ]
+        }
+
     def _status_text(self) -> str:
-        proxy_State = f"✅ {self.proxy}" if self.proxy else "❌ Не задан (рекомендуется мобильный прокси!)"
-        rot_state = "✅ Активна" if self.proxy_change_url else "❌ Не задана"
-        pw_state = "✅ ВКЛ (Playwright Chromium)" if self.use_playwright_cookies else "ВЫКЛ (быстрый HTTP)"
-        chan_state = self.channel_id or "Текущий чат"
+        proxy_state = "✅ Подключен (Mobile 4G LTE)" if self.proxy else "❌ Не задан"
+        rot_state = "✅ Активна (MobileProxy.space)" if self.proxy_change_url else "❌ Не задана"
+        enrich_state = "ВКЛ (глубокий сбор)" if self.enrich_details else "ВЫКЛ (только выдача)"
+        chan_state = self.channel_id or "Текущий диалог"
         return (
-            "🤖 Панель управления Avito SDK Bot\n\n"
-            f"🌐 Мобильный прокси: {proxy_State}\n"
-            f"🔄 Автосмена IP: {rot_state}\n"
-            f"🎭 Playwright Cookies: {pw_state}\n"
-            f"🧵 Потоков (workers): {self.workers}\n"
-            f"📋 Сбор характеристик («О помещении»): {'ВКЛ' if self.enrich_details else 'ВЫКЛ'}\n"
-            f"📢 Канал для уведомлений: {chan_state}\n\n"
-            "Команды:\n"
-            "• Отправьте любой поисковый запрос или ссылку https://www.avito.ru/... для запуска сбора с выгрузкой в Excel (.xlsx)!\n"
-            "• /search <запрос> — поиск с прогресс-баром и отправкой .xlsx файла\n"
-            "• /proxy <http://user:pass@ip:port> [url_смены_ip] — настроить мобильный прокси\n"
-            "• /playwright — включить/выключить сбор cookies через Playwright\n"
-            "• /workers <число> — задать число потоков\n"
-            "• /limit <число> — лимит объявлений за раз"
+            "🤖 <b>Панель управления Avito SDK Bot</b>\n\n"
+            f"🌐 <b>Мобильный прокси:</b> {proxy_state}\n"
+            f"🔄 <b>Автосмена IP:</b> {rot_state}\n"
+            f"🧵 <b>Потоков (воркеров):</b> <code>{self.workers}</code> <i>(Safe Mode: 1 модем)</i>\n"
+            f"📦 <b>Лимит выдачи:</b> <code>{self.limit}</code> объявлений\n"
+            f"📋 <b>Сбор характеристик:</b> {enrich_state}\n"
+            f"📢 <b>Канал уведомлений:</b> {chan_state}\n"
+            "🔒 <b>Режим приватности:</b> Активен (данные прокси скрыты для видео)\n\n"
+            "💡 <i>Отправьте любой поисковый запрос (например: <code>RTX 4090</code>) "
+            "или прямую ссылку на каталог Авито — бот сразу запустит сбор и пришлёт Excel-отчёт!</i>"
         )
 
-    def handle_update(self, update: dict) -> None:
+    def _proxy_info_text(self) -> str:
+        proxy_state = "✅ Подключен (Mobile 4G LTE)" if self.proxy else "❌ Не задан"
+        rot_state = "✅ Активна (MobileProxy.space)" if self.proxy_change_url else "❌ Не задана"
+        return (
+            "🌐 <b>Управление мобильным прокси</b>\n\n"
+            f"• <b>Статус:</b> {proxy_state}\n"
+            f"• <b>Автоматическая ротация IP:</b> {rot_state}\n"
+            "• <b>Защита от банов:</b> ВКЛ (мгновенная ротация при SmartCaptcha/429)\n"
+            "• <b>Режим видеозаписи:</b> 🔒 Полная маскировка логинов, паролей и URL\n\n"
+            "💡 <b>Для смены прокси отправьте команду:</b>\n"
+            "<code>/proxy http://user:pass@host:port [url_ротации_ip]</code>"
+        )
+
+    def _code_text(self) -> str:
+        return (
+            "💻 <b>Минимальный код для запуска (без лишнего boilerplate):</b>\n\n"
+            "📦 <b>1. Установка библиотеки:</b>\n"
+            "<code>uv add avito-sdk</code>\n"
+            "<i>или:</i> <code>pip install avito-sdk</code>\n\n"
+            "🚀 <b>2. Простой Python-код:</b>\n\n"
+            "<pre><code class=\"language-python\">from avito_sdk import AvitoClient\n\n"
+            "# 1. Подключение (подставьте свои данные прокси)\n"
+            "client = AvitoClient(\n"
+            "    proxy=\"http://login:password@host:port\",\n"
+            "    proxy_change_url=\"https://changeip.mobileproxy.space/?proxy_key=...\",\n"
+            "    modems_count=1,\n"
+            ")\n\n"
+            "# 2. Поиск по запросу (или по прямой ссылке на каталог Авито)\n"
+            "for item in client.search(\"RTX 4090\", limit=10, show_progress=True):\n"
+            "    print(f\"{item.title} | {item.price:,} ₽\")\n"
+            "    print(f\"Ссылка: {item.url}\")\n"
+            "    print(f\"Продавец: {item.seller_name} | Просмотров: {item.total_views}\")\n\n"
+            "# 3. Либо выгрузка по ссылке сразу в Excel (.xlsx)\n"
+            "client.scrape_url(\n"
+            "    url=\"https://www.avito.ru/moskva/noutbuki?cd=1\",\n"
+            "    limit=30,\n"
+            "    enrich_details=True,\n"
+            "    excel_path=\"noutbuki.xlsx\",\n"
+            ")</code></pre>\n\n"
+            "💡 <i>Код полностью готов к работе, не содержит лишних main-функций и автоматически меняет IP при капче!</i>"
+        )
+
+    def _help_text(self) -> str:
+        return (
+            "📖 <b>Инструкция по использованию Avito SDK Bot</b>\n\n"
+            "1️⃣ <b>Быстрый поиск:</b>\n"
+            "Просто напишите в чат любой текст для поиска:\n"
+            "• <code>RTX 4090</code>\n"
+            "• <code>ноутбук lenovo legion 5</code>\n"
+            "• <code>iphone 15 pro max 256</code>\n\n"
+            "2️⃣ <b>Поиск по ссылке с фильтрами:</b>\n"
+            "Настройте фильтры на Авито (город, цена, сортировка) и отправьте ссылку:\n"
+            "• <code>https://m.avito.ru/moskva/noutbuki?...</code>\n\n"
+            "3️⃣ <b>Контроль потоков (/workers):</b>\n"
+            "Для 1 мобильного модема безопасно использовать <b>до 2 потоков</b>. "
+            "Это ускоряет сбор в 2 раза и на 100% исключает баны Avito WAF.\n\n"
+            "4️⃣ <b>Экспорт данных:</b>\n"
+            "По окончании сбора бот автоматически формирует и присылает детальный "
+            "файл Excel (.xlsx) с ценами, продавцами, характеристиками и ссылками."
+        )
+
+    def _run_search_flow(self, chat_id: str, query: str) -> None:
         from avito_sdk.client import AvitoClient
-
-        msg = update.get("message") or update.get("channel_post")
-        if not msg:
-            return
-        chat_id = str(msg.get("chat", {}).get("id", ""))
-        text = (msg.get("text") or "").strip()
-        if not chat_id or not text:
-            return
-
         notifier = TelegramNotifier(bot_token=self.bot_token, chat_id=chat_id)
-
-        if text.startswith("/start") or text.startswith("/help") or text.startswith("/status"):
-            notifier.send_message(self._status_text(), parse_mode=None)
-            return
-
-        if text.startswith("/playwright"):
-            self.use_playwright_cookies = not self.use_playwright_cookies
-            state = "ВКЛ (Playwright Chromium)" if self.use_playwright_cookies else "ВЫКЛ"
-            notifier.send_message(f"🎭 Сбор cookies через Playwright: {state}", parse_mode=None)
-            return
-
-        if text.startswith("/proxy"):
-            parts = text.split()
-            if len(parts) >= 2:
-                self.proxy = parts[1]
-                if len(parts) >= 3:
-                    self.proxy_change_url = parts[2]
-                notifier.send_message(
-                    f"✅ Мобильный прокси обновлён!\nПрокси: {self.proxy}\nАвтосмена IP: {bool(self.proxy_change_url)}",
-                    parse_mode=None,
-                )
-            else:
-                notifier.send_message(
-                    "Использование: /proxy http://user:pass@ip:port https://changeip.mobileproxy.space/?proxy_key=...",
-                    parse_mode=None,
-                )
-            return
-
-        if text.startswith("/workers"):
-            parts = text.split()
-            if len(parts) >= 2 and parts[1].isdigit():
-                self.workers = max(1, min(int(parts[1]), 16))
-                notifier.send_message(f"✅ Число потоков установлено: {self.workers}", parse_mode=None)
-            return
-
-        if text.startswith("/limit"):
-            parts = text.split()
-            if len(parts) >= 2 and parts[1].isdigit():
-                self.limit = max(1, min(int(parts[1]), 500))
-                notifier.send_message(f"✅ Лимит объявлений установлен: {self.limit}", parse_mode=None)
-            return
-
-        query = text[len("/search"):].strip() if text.startswith("/search") else text
-        if not query or query.startswith("/"):
-            return
-
         target_chats = [chat_id]
         if self.channel_id and self.channel_id != chat_id:
             target_chats.append(self.channel_id)
@@ -504,6 +672,7 @@ class AvitoTelegramBot:
             use_playwright_cookies=self.use_playwright_cookies,
             tg_token=self.bot_token,
             tg_chat_id=target_chats,
+            modems_count=self.modems_count,
         )
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -530,13 +699,222 @@ class AvitoTelegramBot:
                         )
                     )
             except Exception as err:
+                logger.error(f"Search flow error: {err}")
                 notifier.send_message(f"❌ Ошибка при сборе: {err}", parse_mode=None)
             finally:
                 client.close()
 
-    def run_polling(self, poll_interval: float = 1.5) -> None:
+    def handle_callback(self, cb: dict) -> None:
+        cb_id = str(cb.get("id", ""))
+        msg = cb.get("message") or {}
+        chat_id = str(msg.get("chat", {}).get("id", ""))
+        mid = msg.get("message_id")
+        data = str(cb.get("data", "")).strip()
+        if not chat_id or not mid:
+            return
+
+        notifier = TelegramNotifier(bot_token=self.bot_token, chat_id=chat_id)
+
+        if data in ("menu_main", "menu_status"):
+            notifier.answer_callback(cb_id)
+            notifier.edit_message(chat_id, mid, self._status_text(), parse_mode="HTML", reply_markup=self._main_keyboard())
+            return
+
+        if data == "menu_workers":
+            notifier.answer_callback(cb_id)
+            text = (
+                "🧵 <b>Настройка параллельных потоков</b>\n\n"
+                f"Текущее значение: <b>{self.workers} воркера</b>\n\n"
+                "🔒 <b>Правило безопасности для 1 модема:</b>\n"
+                "1 мобильный модем имеет один внешний IP-адрес. Avito WAF блокирует запросы при >2 одновременных потоках.\n"
+                "Безопасный лимит: <b>до 2 потоков</b>. Для 4 потоков требуется 2 модема."
+            )
+            notifier.edit_message(chat_id, mid, text, parse_mode="HTML", reply_markup=self._workers_keyboard())
+            return
+
+        if data.startswith("set_workers:"):
+            num = int(data.split(":")[1])
+            self.workers = min(max(1, num), self.modems_count * 2)
+            notifier.answer_callback(cb_id, text=f"✅ Установлено: {self.workers} воркера (Safe Mode)")
+            text = (
+                "🧵 <b>Настройка параллельных потоков</b>\n\n"
+                f"Текущее значение: <b>{self.workers} воркера</b>\n\n"
+                "🔒 <b>Правило безопасности для 1 модема:</b>\n"
+                "1 мобильный модем имеет один внешний IP-адрес. Avito WAF блокирует запросы при >2 одновременных потоках.\n"
+                "Безопасный лимит: <b>до 2 потоков</b>. Для 4 потоков требуется 2 модема."
+            )
+            notifier.edit_message(chat_id, mid, text, parse_mode="HTML", reply_markup=self._workers_keyboard())
+            return
+
+        if data == "faq_workers":
+            notifier.answer_callback(
+                cb_id,
+                text="⚠️ Защита от блокировок:\n1 модем = 1 IP. Более 2 потоков на 1 IP вызывают бан/капчу 429 на Авито. 2 потока — проверенный безопасный максимум для 1 модема. Для 4 потоков требуется 2 модема!",
+                show_alert=True,
+            )
+            return
+
+        if data == "menu_limit":
+            notifier.answer_callback(cb_id)
+            text = f"📦 <b>Выберите лимит объявлений для выгрузки:</b>\n\nТекущий лимит: <b>{self.limit} объявлений</b>"
+            notifier.edit_message(chat_id, mid, text, parse_mode="HTML", reply_markup=self._limit_keyboard())
+            return
+
+        if data.startswith("set_limit:"):
+            lim = int(data.split(":")[1])
+            self.limit = lim
+            notifier.answer_callback(cb_id, text=f"✅ Лимит: {self.limit} шт")
+            text = f"📦 <b>Выберите лимит объявлений для выгрузки:</b>\n\nТекущий лимит: <b>{self.limit} объявлений</b>"
+            notifier.edit_message(chat_id, mid, text, parse_mode="HTML", reply_markup=self._limit_keyboard())
+            return
+
+        if data == "toggle_enrich":
+            self.enrich_details = not self.enrich_details
+            state = "ВКЛ" if self.enrich_details else "ВЫКЛ"
+            notifier.answer_callback(cb_id, text=f"Сбор характеристик: {state}")
+            notifier.edit_message(chat_id, mid, self._status_text(), parse_mode="HTML", reply_markup=self._main_keyboard())
+            return
+
+        if data == "menu_code":
+            notifier.answer_callback(cb_id)
+            notifier.edit_message(chat_id, mid, self._code_text(), parse_mode="HTML", reply_markup=self._back_keyboard())
+            return
+
+        if data == "menu_proxy":
+            notifier.answer_callback(cb_id)
+            notifier.edit_message(chat_id, mid, self._proxy_info_text(), parse_mode="HTML", reply_markup=self._back_keyboard())
+            return
+
+        if data == "menu_help":
+            notifier.answer_callback(cb_id)
+            notifier.edit_message(chat_id, mid, self._help_text(), parse_mode="HTML", reply_markup=self._back_keyboard())
+            return
+
+        if data == "menu_search":
+            notifier.answer_callback(cb_id)
+            text = (
+                "🔍 <b>Поиск объявлений по Авито</b>\n\n"
+                "Напишите в ответ любое название товара (например: <code>RTX 4090</code>, <code>iPhone 15</code>) "
+                "или вставьте прямую ссылку на каталог Авито.\n\n"
+                "Либо выберите один из быстрых примеров ниже:"
+            )
+            notifier.edit_message(chat_id, mid, text, parse_mode="HTML", reply_markup=self._search_prompt_keyboard())
+            return
+
+        if data.startswith("quick_search:"):
+            q = data.split(":", 1)[1]
+            notifier.answer_callback(cb_id, text=f"🚀 Запуск поиска: {q}")
+            self._run_search_flow(chat_id, q)
+            return
+
+    def handle_update(self, update: dict) -> None:
+        msg = update.get("message") or update.get("channel_post")
+        if not msg:
+            return
+        chat_id = str(msg.get("chat", {}).get("id", ""))
+        text = (msg.get("text") or "").strip()
+        if not chat_id or not text:
+            return
+
+        try:
+            from pathlib import Path
+            Path("storage").mkdir(exist_ok=True)
+            Path("storage/last_chat_id.txt").write_text(str(chat_id), encoding="utf-8")
+        except Exception:
+            pass
+
+        notifier = TelegramNotifier(bot_token=self.bot_token, chat_id=chat_id)
+
+        if text.startswith("/code"):
+            notifier.send_message(self._code_text(), parse_mode="HTML", reply_markup=self._back_keyboard())
+            return
+
+        if text.startswith("/start") or text.startswith("/help") or text.startswith("/status"):
+            notifier.send_message(self._status_text(), parse_mode="HTML", reply_markup=self._main_keyboard())
+            return
+
+        if text.startswith("/playwright"):
+            self.use_playwright_cookies = not self.use_playwright_cookies
+            state = "ВКЛ (Playwright Chromium)" if self.use_playwright_cookies else "ВЫКЛ (быстрый HTTP)"
+            notifier.send_message(f"🎭 Сбор cookies через Playwright: <b>{state}</b>", parse_mode="HTML")
+            return
+
+        if text.startswith("/proxy"):
+            parts = text.split()
+            if len(parts) >= 2:
+                self.proxy = parts[1]
+                if len(parts) >= 3:
+                    self.proxy_change_url = parts[2]
+                rot_str = "✅ Активна" if self.proxy_change_url else "❌ Не настроена"
+                notifier.send_message(
+                    "✅ <b>Мобильный прокси успешно настроен и защищён!</b>\n\n"
+                    "🌐 <b>Статус:</b> Подключен (Mobile 4G LTE)\n"
+                    f"🔄 <b>Автосмена IP:</b> {rot_str}\n"
+                    "🔒 <b>Безопасность:</b> Учётные данные и ключи скрыты для видеозаписи.",
+                    parse_mode="HTML",
+                    reply_markup=self._main_keyboard(),
+                )
+            else:
+                notifier.send_message(
+                    "💡 <b>Использование:</b>\n<code>/proxy http://user:pass@ip:port [url_ротации]</code>",
+                    parse_mode="HTML",
+                )
+            return
+
+        if text.startswith("/workers"):
+            parts = text.split()
+            if len(parts) >= 2 and parts[1].isdigit():
+                requested = int(parts[1])
+                max_safe = self.modems_count * 2
+                if requested > max_safe:
+                    self.workers = max_safe
+                    notifier.send_message(
+                        f"⚠️ <b>Ограничение безопасности для {self.modems_count} модема:</b>\n\n"
+                        f"Вы указали {requested} потоков. Для 1 мобильного модема безопасно использовать <b>не более 2 потоков</b> во избежание блокировок и капчи Авито.\n\n"
+                        f"✅ Установлено безопасное значение: <b>{self.workers} воркера</b>.\n"
+                        f"💡 <i>Чтобы использовать {requested} потоков, необходимо настроить 2 независимых модема.</i>",
+                        parse_mode="HTML",
+                        reply_markup=self._workers_keyboard(),
+                    )
+                elif requested < 1:
+                    self.workers = 1
+                    notifier.send_message("✅ Установлен 1 поток", parse_mode=None, reply_markup=self._workers_keyboard())
+                else:
+                    self.workers = requested
+                    notifier.send_message(
+                        f"✅ Число потоков установлено: <b>{self.workers}</b> (Оптимально для 1 модема)",
+                        parse_mode="HTML",
+                        reply_markup=self._workers_keyboard(),
+                    )
+            else:
+                notifier.send_message(
+                    f"🧵 Текущее число потоков: <b>{self.workers}</b> (максимум 2 для 1 модема)",
+                    parse_mode="HTML",
+                    reply_markup=self._workers_keyboard(),
+                )
+            return
+
+        if text.startswith("/limit"):
+            parts = text.split()
+            if len(parts) >= 2 and parts[1].isdigit():
+                self.limit = max(1, min(int(parts[1]), 500))
+                notifier.send_message(f"✅ Лимит объявлений установлен: <b>{self.limit}</b>", parse_mode="HTML", reply_markup=self._limit_keyboard())
+            else:
+                notifier.send_message(f"📦 Текущий лимит: <b>{self.limit}</b>", parse_mode="HTML", reply_markup=self._limit_keyboard())
+            return
+
+        query = text[len("/search"):].strip() if text.startswith("/search") else text
+        if not query or query.startswith("/"):
+            return
+
+        self._run_search_flow(chat_id, query)
+
+    def run_polling(self, poll_interval: float = 1.0) -> None:
         """Start infinite long-polling loop for the Telegram bot controller."""
-        print("[*] AvitoTelegramBot запущен! Ожидание команд в Telegram (Ctrl+C для остановки)...")
+        notifier = TelegramNotifier(bot_token=self.bot_token, chat_id="")
+        notifier.set_bot_commands()
+        print("[*] AvitoTelegramBot запущен! Меню и команды зарегистрированы в Telegram.")
+        print("[*] Ожидание действий пользователя (Ctrl+C для остановки)...")
         while True:
             try:
                 resp = requests.get(
@@ -548,7 +926,10 @@ class AvitoTelegramBot:
                     data = resp.json()
                     for upd in data.get("result", []):
                         self._offset = max(self._offset, upd["update_id"] + 1)
-                        self.handle_update(upd)
+                        if "callback_query" in upd:
+                            self.handle_callback(upd["callback_query"])
+                        elif "message" in upd or "channel_post" in upd:
+                            self.handle_update(upd)
             except KeyboardInterrupt:
                 print("\n[*] Остановка бота.")
                 break

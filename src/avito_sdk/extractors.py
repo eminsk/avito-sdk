@@ -293,6 +293,31 @@ def extract_embedded_state(soup: BeautifulSoup) -> Optional[Dict[str, Any]]:
                 return json.loads(html_lib.unescape(script.text))
     except Exception:
         pass
+
+    try:
+        for s in soup.find_all("script"):
+            text = s.string or s.text or ""
+            if "__initialData__" in text:
+                m = re.search(r'__initialData__\s*=\s*(["\'])(.*?)\1;', text, re.DOTALL)
+                if m:
+                    raw_val = m.group(2)
+                    try:
+                        decoded = json.loads(f'"{raw_val}"')
+                        data = json.loads(decoded) if isinstance(decoded, str) else decoded
+                        if isinstance(data, dict):
+                            return data
+                    except Exception:
+                        pass
+                m2 = re.search(r'__initialData__\s*=\s*({.+?});', text, re.DOTALL)
+                if m2:
+                    try:
+                        data = json.loads(m2.group(1))
+                        if isinstance(data, dict):
+                            return data
+                    except Exception:
+                        pass
+    except Exception:
+        pass
     return None
 
 
@@ -301,8 +326,16 @@ def parse_raw_item(raw: Dict[str, Any]) -> Optional[Item]:
     if not isinstance(raw, dict):
         return None
 
-    item_id = raw.get("id")
-    if not isinstance(item_id, int) or isinstance(item_id, bool):
+    # Handle mobile wrapper {"type": "item", "value": {...}}
+    if "value" in raw and isinstance(raw["value"], dict):
+        raw = raw["value"]
+
+    item_id_val = raw.get("id")
+    if isinstance(item_id_val, bool) or item_id_val is None:
+        return None
+    try:
+        item_id = int(item_id_val)
+    except (ValueError, TypeError):
         return None
 
     # Title & Price
@@ -313,12 +346,25 @@ def parse_raw_item(raw: Dict[str, Any]) -> Optional[Item]:
         price = price_detailed.get("value") or 0
     elif isinstance(raw.get("price"), (int, float)):
         price = int(raw["price"])
+    elif isinstance(raw.get("price"), dict):
+        cur = raw["price"].get("current") or raw["price"].get("value") or ""
+        digits = "".join(ch for ch in str(cur) if ch.isdigit())
+        price = int(digits) if digits else 0
 
-    price_str = price_detailed.get("string") if isinstance(price_detailed, dict) else None
+    price_str = price_detailed.get("string") if isinstance(price_detailed, dict) else (
+        raw.get("price", {}).get("current") if isinstance(raw.get("price"), dict) else None
+    )
 
-    # URL path
-    url_path = raw.get("urlPath") or ""
-    full_url = f"https://www.avito.ru{url_path}" if url_path and url_path.startswith("/") else url_path
+    # URL path (desktop urlPath or mobile uri) exactly as in parser_avito
+    url_path = raw.get("urlPath") or raw.get("uri") or ""
+    url_path_clean = url_path.split("?")[0].strip() if isinstance(url_path, str) else ""
+    if url_path_clean.startswith("http://") or url_path_clean.startswith("https://"):
+        full_url = url_path_clean
+    elif url_path_clean:
+        clean = url_path_clean.lstrip("/")
+        full_url = f"https://www.avito.ru/{clean}"
+    else:
+        full_url = f"https://www.avito.ru/{item_id}"
 
     # Category & Location
     cat = raw.get("category") or {}
@@ -336,13 +382,20 @@ def parse_raw_item(raw: Dict[str, Any]) -> Optional[Item]:
         else None
     )
 
-    # Images
+    # Images (desktop gallery/images or mobile galleryItems)
     images: List[str] = []
     gallery = raw.get("gallery") or {}
     if isinstance(gallery, dict):
         for img_url in (gallery.get("image_urls") or gallery.get("image_large_urls") or []):
             if isinstance(img_url, str):
                 images.append(img_url)
+    if not images and isinstance(raw.get("galleryItems"), list):
+        for g in raw["galleryItems"]:
+            val = g.get("value", {}) if isinstance(g, dict) else {}
+            if isinstance(val, dict):
+                best = val.get("678x678") or val.get("372x372") or next(iter(val.values()), None)
+                if isinstance(best, str):
+                    images.append(best)
     if not images and isinstance(raw.get("images"), list):
         def _calc_dim(k: str) -> int:
             parts = str(k).split("x")
@@ -374,8 +427,12 @@ def parse_raw_item(raw: Dict[str, Any]) -> Optional[Item]:
     contacts = raw.get("contacts")
     has_phone = bool(contacts.get("phone")) if isinstance(contacts, dict) else False
 
-    # Seller ID
-    seller_id = extract_seller_id(raw)
+    # Seller ID & Name (desktop or mobile sellerInfo)
+    seller_info = raw.get("sellerInfo") or raw.get("seller") or {}
+    seller_name = raw.get("sellerName") or (seller_info.get("name") if isinstance(seller_info, dict) else None)
+    seller_id = extract_seller_id(raw) or (
+        str(seller_info.get("userKey")) if isinstance(seller_info, dict) and seller_info.get("userKey") else None
+    )
 
     # Timestamp
     sort_ts = raw.get("sortTimeStamp")
@@ -392,7 +449,7 @@ def parse_raw_item(raw: Dict[str, Any]) -> Optional[Item]:
         price=price,
         price_string=price_str,
         seller_id=seller_id,
-        seller_name=raw.get("sellerName"),
+        seller_name=seller_name,
         url=full_url,
         description=raw.get("description"),
         params=raw.get("params") or {},
@@ -418,18 +475,27 @@ def extract_catalog_items(payload: Any) -> List[Item]:
         return []
 
     result = payload.get("result")
+    search_cand = payload.get("search") if isinstance(payload, dict) else None
     candidates = [
         payload.get("catalog"),
         result.get("catalog") if isinstance(result, dict) else None,
+        search_cand,
         result,
         payload,
     ]
 
     items_list: List[Any] = []
     for cand in candidates:
-        if isinstance(cand, dict) and isinstance(cand.get("items"), list):
-            items_list = cand["items"]
-            break
+        if isinstance(cand, dict):
+            if isinstance(cand.get("items"), list):
+                items_list = cand["items"]
+                break
+            if isinstance(cand.get("allItems"), dict):
+                items_list = list(cand["allItems"].values())
+                break
+            if isinstance(cand.get("allItems"), list):
+                items_list = cand["allItems"]
+                break
 
     parsed_items: List[Item] = []
     for raw in items_list:
@@ -439,3 +505,4 @@ def extract_catalog_items(payload: Any) -> List[Item]:
                 parsed_items.append(item)
 
     return parsed_items
+

@@ -93,7 +93,7 @@ class AvitoMCPServer:
         tracker_db: str = "avito_prices.db",
         tg_token: Optional[str] = None,
         tg_chat_id: Optional[str] = None,
-        workers: int = 4,
+        workers: int = 2,
         client: Optional[AvitoClient] = None,
     ):
         self.proxy = proxy or os.environ.get("AVITO_PROXY")

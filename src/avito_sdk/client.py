@@ -63,9 +63,11 @@ class AvitoClient:
         telegram_notifier: Optional[TelegramNotifier] = None,
         vk_token: Optional[str] = None,
         vk_user_id: Optional[Union[str, int, List[Union[str, int]]]] = None,
+        modems_count: int = 1,
     ):
         from avito_sdk.vk import VKNotifier
 
+        self.modems_count = max(1, int(modems_count))
         self.transport = SyncHttpTransport(
             proxy=proxy,
             proxy_change_url=proxy_change_url,
@@ -86,6 +88,35 @@ class AvitoClient:
         self.vk_notifier: Optional[VKNotifier] = (
             VKNotifier(vk_token=vk_token, user_id=vk_user_id) if (vk_token and vk_user_id) else None
         )
+
+    def sanitize_workers(self, requested_workers: int) -> int:
+        """
+        Enforce safe concurrency limits based on the number of configured modems.
+        Rule for 1 mobile modem:
+          - Max 2 concurrent workers. Higher concurrency from 1 mobile IP triggers
+            Avito WAF rate-limiting (429/SmartCaptcha) and modem reconnect storms.
+        Rule without proxy:
+          - Max 1 worker (direct IP scraping without proxy).
+        Rule for N modems:
+          - Max N * 2 workers.
+        """
+        if not self.transport.proxy:
+            if requested_workers > 1:
+                logger.warning(
+                    "[WorkersSafety] Мобильный прокси не настроен. Для предотвращения бана прямого IP число потоков ограничено до 1."
+                )
+                return 1
+            return max(1, requested_workers)
+
+        max_allowed = self.modems_count * 2
+        if requested_workers > max_allowed:
+            logger.warning(
+                f"[WorkersSafety] Запрошено {requested_workers} потоков для {self.modems_count} мобильного(ых) модема(ов). "
+                f"Безопасный лимит равен {max_allowed} (по 2 потока на 1 модем во избежание блокировок Avito WAF). "
+                f"Число воркеров скорректировано до {max_allowed}."
+            )
+            return max_allowed
+        return max(1, requested_workers)
 
     @classmethod
     def from_config(
@@ -127,7 +158,7 @@ class AvitoClient:
         region: Optional[str] = "rossiya",
         min_price: Optional[int] = None,
         max_price: Optional[int] = None,
-        sort: str = "date",
+        sort: str = "default",
         category: Optional[str] = None,
         with_delivery: bool = False,
         white_keywords: Optional[List[str]] = None,
@@ -157,6 +188,33 @@ class AvitoClient:
         from avito_sdk.filters import AdsFilter
         from avito_sdk.telegram import render_progress_bar
 
+        # If user passed a full Avito URL to search(), seamlessly delegate to scrape_url()
+        if query and ("avito.ru" in query or query.startswith(("http://", "https://"))):
+            for itm in self.scrape_url(
+                url=query,
+                max_pages=max_pages,
+                min_price=min_price,
+                max_price=max_price,
+                white_keywords=white_keywords,
+                black_keywords=black_keywords,
+                seller_blacklist=seller_blacklist,
+                geo=geo,
+                max_age=max_age,
+                ignore_reserved=ignore_reserved,
+                ignore_promotion=ignore_promotion,
+                only_new_or_changed=only_new_or_changed,
+                enrich_details=enrich_details,
+                max_workers=max_workers,
+                notify_telegram=notify_telegram,
+                notify_vk=notify_vk,
+                telegram_progress=telegram_progress,
+                show_progress=show_progress,
+                excel_path=excel_path,
+                limit=limit,
+            ):
+                yield itm
+            return
+
         search_filter = SearchFilter(
             query=query,
             region=region,
@@ -180,6 +238,7 @@ class AvitoClient:
             only_new_or_changed=only_new_or_changed,
         )
 
+        safe_workers = self.sanitize_workers(max_workers)
         collected_for_excel: List[Item] = []
         drops_count = 0
         yielded_count = 0
@@ -192,7 +251,7 @@ class AvitoClient:
                 query=query or region or "Avito",
                 total=total_expected,
                 use_mobile_proxy=use_mob_proxy,
-                workers=max_workers,
+                workers=safe_workers,
             )
 
         try:
@@ -210,9 +269,9 @@ class AvitoClient:
                     items = items[:remaining]
 
                 enriched_in_parallel = False
-                if enrich_details and max_workers > 1 and len(items) > 1:
+                if enrich_details and safe_workers > 1 and len(items) > 1:
                     from concurrent.futures import ThreadPoolExecutor
-                    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                    with ThreadPoolExecutor(max_workers=safe_workers) as pool:
                         list(pool.map(self.enrich_item, items))
                     enriched_in_parallel = True
 
@@ -255,7 +314,7 @@ class AvitoClient:
                             current=yielded_count,
                             total=limit or max(yielded_count, len(items)),
                             use_mobile_proxy=use_mob_proxy,
-                            workers=max_workers,
+                            workers=safe_workers,
                             drops_count=drops_count,
                             ip_rotations=self.transport.ip_rotations,
                         )
@@ -302,6 +361,7 @@ class AvitoClient:
         telegram_progress: bool = False,
         show_progress: bool = False,
         excel_path: Optional[Union[str, Path]] = None,
+        limit: Optional[int] = None,
     ) -> List[Item]:
         """Scrape items from an existing Avito search or catalog URL across multiple pages with full filtering."""
         from avito_sdk.filters import AdsFilter
@@ -320,30 +380,38 @@ class AvitoClient:
             only_new_or_changed=only_new_or_changed,
         )
 
+        safe_workers = self.sanitize_workers(max_workers)
         results: List[Item] = []
         drops_count = 0
         use_mob_proxy = bool(self.transport.proxy)
+        total_expected = limit or (max_pages * 50)
 
         progress_ids = {}
         if telegram_progress and self.notifier:
             progress_ids = self.notifier.start_progress(
                 query=url[:50],
-                total=max_pages * 50,
+                total=total_expected,
                 use_mobile_proxy=use_mob_proxy,
-                workers=max_workers,
+                workers=safe_workers,
             )
 
         try:
             for page in range(1, max_pages + 1):
+                if limit and len(results) >= limit:
+                    break
                 page_url = build_page_url(url, page)
                 page_items = self.scrape_page_items(page_url)
                 if not page_items:
                     break
 
+                if limit:
+                    remaining = limit - len(results)
+                    page_items = page_items[:remaining]
+
                 enriched_in_parallel = False
-                if enrich_details and max_workers > 1 and len(page_items) > 1:
+                if enrich_details and safe_workers > 1 and len(page_items) > 1:
                     from concurrent.futures import ThreadPoolExecutor
-                    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                    with ThreadPoolExecutor(max_workers=safe_workers) as pool:
                         list(pool.map(self.enrich_item, page_items))
                     enriched_in_parallel = True
 
@@ -369,17 +437,20 @@ class AvitoClient:
                     results.append(item)
 
                     if show_progress:
-                        bar = render_progress_bar(len(results), max(len(results), len(page_items) * max_pages))
+                        bar = render_progress_bar(len(results), limit or max(len(results), len(page_items) * max_pages))
                         print(f"\r[*] {bar} | Ротаций IP: {self.transport.ip_rotations}", end="", flush=True)
+
+                    if limit and len(results) >= limit:
+                        break
 
                 if progress_ids and self.notifier:
                     self.notifier.update_progress(
                         progress_ids=progress_ids,
                         query=url[:50],
                         current=len(results),
-                        total=max(len(results), len(page_items) * max_pages),
+                        total=limit or max(len(results), len(page_items) * max_pages),
                         use_mobile_proxy=use_mob_proxy,
-                        workers=max_workers,
+                        workers=safe_workers,
                         drops_count=drops_count,
                         ip_rotations=self.transport.ip_rotations,
                     )
@@ -500,8 +571,17 @@ class AvitoClient:
 
             url_el = el.select_one('a[data-marker="item-title"]') or el.select_one('a[itemprop="url"]')
             link = url_el.get("href") if url_el else ""
-            if link and link.startswith("/"):
-                link = f"https://www.avito.ru{link}"
+            if link:
+                if link.startswith("/"):
+                    link = f"https://www.avito.ru{link}"
+                elif not link.startswith("http"):
+                    link = f"https://www.avito.ru/{link}"
+                elif link.startswith("https://m.avito.ru/"):
+                    link = link.replace("https://m.avito.ru/", "https://www.avito.ru/")
+                elif link.startswith("http://m.avito.ru/"):
+                    link = link.replace("http://m.avito.ru/", "https://www.avito.ru/")
+            else:
+                link = build_item_web_url(item_id)
 
             seller_name = extract_seller_name({}, html_text=str(el))
 

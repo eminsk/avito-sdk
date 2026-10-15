@@ -202,6 +202,11 @@ def to_excel(
             _excel_safe(item.description or ""),
         ]
         ws.append(row)
+        # Add clickable hyperlink to URL cell like in parser_avito
+        if item.url and (item.url.startswith("http://") or item.url.startswith("https://")):
+            url_cell = ws.cell(row=ws.max_row, column=9)
+            url_cell.hyperlink = item.url
+            url_cell.font = Font(name="Calibri", size=11, color="0563C1", underline="single")
 
     # Auto-adjust column widths
     for col in ws.columns:

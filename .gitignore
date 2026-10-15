@@ -30,7 +30,13 @@ storage/
 logs/
 run_telegram_bot.py
 cookies.txt
-test_*.py
-inspect_*.py
+/test_*.py
+/inspect_*.py
+/benchmark_*.py
+/parse_*.py
+/save_*.py
+/summarize_*.py
+*.png
+*.html
 .DS_Store
 Thumbs.db

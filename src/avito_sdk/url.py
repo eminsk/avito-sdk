@@ -12,8 +12,6 @@ from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 from avito_sdk.models import SearchFilter
 
 SORT_MAP = {
-    "default": "101",
-    "date": "104",
     "price_asc": "1",
     "price_desc": "2",
 }

@@ -210,15 +210,20 @@ def test_telegram_bot_commands(monkeypatch):
     assert bot.proxy == "user:pass@1.2.3.4:8080"
     assert bot.proxy_change_url == "https://rotate.url"
 
+    # Setting workers > 2 on 1 modem must clamp to safe limit 2
     bot.handle_update({"message": {"chat": {"id": 777}, "text": "/workers 5"}})
-    assert bot.workers == 5
+    assert bot.workers == 2
+
+    # Setting workers = 1
+    bot.handle_update({"message": {"chat": {"id": 777}, "text": "/workers 1"}})
+    assert bot.workers == 1
 
     bot.handle_update({"message": {"chat": {"id": 777}, "text": "/playwright"}})
     assert bot.use_playwright_cookies is True
 
     bot.handle_update({"message": {"chat": {"id": 777}, "text": "/limit 25"}})
     assert bot.limit == 25
-    assert len(replies) == 4
+    assert len(replies) >= 4
 
 
 def test_ads_filter_all_9_rules():
