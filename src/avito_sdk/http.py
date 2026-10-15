@@ -77,8 +77,19 @@ class SyncHttpTransport:
         self.mobileproxy_key = mobileproxy_key
         self.cookies: Dict[str, str] = dict(cookies) if cookies else {}
         self.use_playwright_cookies = use_playwright_cookies
+        if use_playwright_cookies and not self.cookies:
+            from pathlib import Path
+            import json
+            cache_p = Path("storage/own_cookies.json")
+            if cache_p.exists():
+                try:
+                    cdata = json.loads(cache_p.read_text(encoding="utf-8"))
+                    if isinstance(cdata.get("cookies"), dict):
+                        self.cookies.update(cdata["cookies"])
+                except Exception:
+                    pass
         self.timeout = timeout
-        self.max_retries = max_retries
+        self.max_retries = max(max_retries, 5) if self.proxy_change_url else max_retries
         self.impersonate = impersonate
         self.ip_rotations = 0
         self._rotation_lock = threading.Lock()
@@ -201,12 +212,17 @@ class SyncHttpTransport:
                     timeout=self.timeout,
                     **kwargs,
                 )
-                if resp.status_code in (403, 429):
+                is_blocked = resp.status_code in (403, 429, 439) or (
+                    resp.status_code == 200
+                    and any(kw in resp.text.lower() for kw in ("проблема с ip", "доступ ограничен", "проверка безопасности"))
+                )
+                if is_blocked:
+                    logger.warning(f"Avito security challenge/block detected (status {resp.status_code}) on {url}")
                     if self.proxy_change_url:
                         self.rotate_proxy_ip()
                     if self.use_playwright_cookies:
                         try:
-                            self.refresh_cookies(target_url=url)
+                            self.refresh_cookies(target_url=url, force_refresh=True)
                         except Exception as pw_err:
                             logger.warning(f"Playwright cookie refresh failed: {pw_err}")
                     elif not self.proxy_change_url:
@@ -367,7 +383,12 @@ class AsyncHttpTransport:
                     timeout=self.timeout,
                     **kwargs,
                 )
-                if resp.status_code in (403, 429):
+                is_blocked = resp.status_code in (403, 429, 439) or (
+                    resp.status_code == 200
+                    and any(kw in resp.text.lower() for kw in ("проблема с ip", "доступ ограничен", "проверка безопасности"))
+                )
+                if is_blocked:
+                    logger.warning(f"Async Avito security challenge/block detected (status {resp.status_code}) on {url}")
                     if self.proxy_change_url:
                         await self.rotate_proxy_ip()
                     if self.use_playwright_cookies:

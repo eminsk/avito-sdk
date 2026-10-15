@@ -232,18 +232,19 @@ class PlaywrightCookieProvider:
 
             for _ in range(10):
                 title = (await page.title() or "").lower()
-                if BAD_IP_TITLE in title:
-                    logger.info("Avito IP block detected in Playwright; rotating mobile proxy IP...")
+                if BAD_IP_TITLE in title or "доступ ограничен" in title or "проверка безопасности" in title:
+                    logger.info(f"Avito IP block detected in Playwright ('{title}'); rotating mobile proxy IP...")
                     await context.clear_cookies()
                     await self.rotate_ip()
                     await page.reload(timeout=60_000)
+                    continue
 
                 raw_cookie = await page.evaluate("() => document.cookie")
                 cookie_dict = self.parse_cookie_string(raw_cookie)
-                if cookie_dict.get("ft"):
-                    logger.info("Avito session cookies ('ft') successfully obtained via Playwright!")
+                if cookie_dict.get("ft") or ("_adcc" in cookie_dict and "pow_challenge" in cookie_dict):
+                    logger.info("Avito session cookies successfully obtained via Playwright!")
                     return cookie_dict, self.user_agent
-                await asyncio.sleep(4.0)
+                await asyncio.sleep(3.0)
 
             # Fallback to context cookies if document.cookie didn't expose 'ft'
             ctx_cookies = await context.cookies()

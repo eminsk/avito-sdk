@@ -46,7 +46,8 @@ def main(argv=None) -> int:
     bot_p.add_argument("--proxy", default=None, help="Mobile proxy URL (e.g. http://user:pass@ip:port)")
     bot_p.add_argument("--proxy-change-url", default=None, help="Mobile proxy IP rotation URL")
     bot_p.add_argument("--mobileproxy-key", default=None, help="MobileProxy.space rotation key")
-    bot_p.add_argument("--playwright", action="store_true", help="Enable Playwright Chromium cookie harvesting")
+    bot_p.add_argument("--playwright", action="store_true", default=True, help="Enable Playwright Chromium cookie harvesting (default: True)")
+    bot_p.add_argument("--no-playwright", dest="playwright", action="store_false", help="Disable Playwright cookie harvesting")
     bot_p.add_argument("--workers", type=int, default=4, help="Parallel worker threads for card enrichment")
     bot_p.add_argument("-n", "--limit", type=int, default=30, help="Default item limit per search")
 

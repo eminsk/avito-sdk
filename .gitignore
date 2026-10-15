@@ -28,5 +28,9 @@ htmlcov/
 result/
 storage/
 logs/
+run_telegram_bot.py
+cookies.txt
+test_*.py
+inspect_*.py
 .DS_Store
 Thumbs.db
