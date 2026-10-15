@@ -17,6 +17,7 @@ class AvitoConfig:
     urls: List[str] = field(default_factory=list)
     proxy_string: Optional[str] = None
     proxy_change_url: Optional[str] = None
+    mobileproxy_key: Optional[str] = None
     keys_word_white_list: List[str] = field(default_factory=list)
     keys_word_black_list: List[str] = field(default_factory=list)
     seller_black_list: List[str] = field(default_factory=list)
@@ -87,10 +88,17 @@ def load_avito_config(path: Union[str, Path] = "config.toml") -> AvitoConfig:
     if isinstance(vk_users, (str, int)):
         vk_users = [str(vk_users)] if str(vk_users).strip() else []
 
+    mp_key = avito_sec.get("mobileproxy_key") or (data.get("mobileproxy_key") if isinstance(data, dict) else None)
+    change_url = avito_sec.get("proxy_change_url") or None
+    if mp_key and not change_url:
+        from avito_sdk.mobileproxy import MobileProxySpace
+        change_url = MobileProxySpace.build_change_url(str(mp_key))
+
     return AvitoConfig(
         urls=list(avito_sec.get("urls") or []),
         proxy_string=avito_sec.get("proxy_string") or None,
-        proxy_change_url=avito_sec.get("proxy_change_url") or None,
+        proxy_change_url=change_url,
+        mobileproxy_key=str(mp_key) if mp_key else None,
         keys_word_white_list=list(avito_sec.get("keys_word_white_list") or []),
         keys_word_black_list=list(avito_sec.get("keys_word_black_list") or []),
         seller_black_list=list(avito_sec.get("seller_black_list") or []),

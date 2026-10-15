@@ -33,6 +33,7 @@ def main(argv=None) -> int:
     search_p.add_argument("--enrich", action="store_true", help="Fetch detailed parameters and full descriptions")
     search_p.add_argument("--proxy", default=None, help="Mobile proxy URL (e.g. http://user:pass@ip:port)")
     search_p.add_argument("--proxy-change-url", default=None, help="Mobile proxy IP rotation URL")
+    search_p.add_argument("--mobileproxy-key", default=None, help="MobileProxy.space rotation key (auto-builds change URL)")
     search_p.add_argument("--playwright", action="store_true", help="Use Playwright Chromium to harvest session cookies ('ft')")
     search_p.add_argument("--workers", type=int, default=1, help="Number of parallel threads for card enrichment (requires mobile proxy)")
     search_p.add_argument("--tg-token", default=None, help="Telegram bot token for sending notifications & Excel report")
@@ -44,6 +45,7 @@ def main(argv=None) -> int:
     bot_p.add_argument("--channel-id", default=None, help="Target Telegram channel ID for forwarding listings")
     bot_p.add_argument("--proxy", default=None, help="Mobile proxy URL (e.g. http://user:pass@ip:port)")
     bot_p.add_argument("--proxy-change-url", default=None, help="Mobile proxy IP rotation URL")
+    bot_p.add_argument("--mobileproxy-key", default=None, help="MobileProxy.space rotation key")
     bot_p.add_argument("--playwright", action="store_true", help="Enable Playwright Chromium cookie harvesting")
     bot_p.add_argument("--workers", type=int, default=4, help="Parallel worker threads for card enrichment")
     bot_p.add_argument("-n", "--limit", type=int, default=30, help="Default item limit per search")
@@ -54,6 +56,7 @@ def main(argv=None) -> int:
     item_p.add_argument("-o", "--output", help="Save output to JSON file")
     item_p.add_argument("--proxy", default=None, help="Mobile proxy URL")
     item_p.add_argument("--proxy-change-url", default=None, help="Mobile proxy IP rotation URL")
+    item_p.add_argument("--mobileproxy-key", default=None, help="MobileProxy.space rotation key")
 
     # Drops command
     drops_p = subparsers.add_parser("drops", help="Show all tracked items whose price has dropped")
@@ -67,6 +70,7 @@ def main(argv=None) -> int:
     mcp_p = subparsers.add_parser("mcp", help="Start Model Context Protocol (MCP) Server over stdio for Claude/Cursor/Windsurf")
     mcp_p.add_argument("--proxy", default=None, help="Mobile proxy URL")
     mcp_p.add_argument("--proxy-change-url", default=None, help="Mobile proxy IP rotation URL")
+    mcp_p.add_argument("--mobileproxy-key", default=None, help="MobileProxy.space rotation key")
     mcp_p.add_argument("--playwright", action="store_true", help="Enable Playwright Chromium cookie harvesting")
     mcp_p.add_argument("--db", default="avito_prices.db", help="Path to SQLite price database")
     mcp_p.add_argument("--tg-token", default=None, help="Telegram Bot Token")
@@ -78,6 +82,10 @@ def main(argv=None) -> int:
     if not args.command:
         parser.print_help()
         return 0
+
+    if getattr(args, "mobileproxy_key", None) and not getattr(args, "proxy_change_url", None):
+        from avito_sdk.mobileproxy import MobileProxySpace
+        args.proxy_change_url = MobileProxySpace.build_change_url(args.mobileproxy_key)
 
     if args.command == "mcp":
         from avito_sdk.mcp_server import AvitoMCPServer

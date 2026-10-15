@@ -169,19 +169,23 @@ print(df[["id", "title", "price", "seller_name"]].head())
 
 ---
 
-### 6. 🌐 Mobile Proxies & Multithreading (Mandatory for High-Speed Scraping)
+### 6. 🌐 Mobile Proxies & Multithreading: MobileProxy.space Integration
 
 > [!IMPORTANT]
-> **Using a Mobile Proxy (`proxy` + `proxy_change_url`) is mandatory when running multithreaded (`max_workers > 1`), high-concurrency async, or deep card scraping (`enrich_details=True`)!**  
-> Avito's anti-fraud firewall aggressively rate-limits (`429`) and bans (`403`) standard server/datacenter IP addresses under parallel load. With a mobile proxy and IP rotation URL configured, `avito-sdk` automatically rotates the operator IP whenever a block is detected and continues scraping seamlessly without data loss.
+> **Using a Mobile Proxy (`proxy` + `proxy_change_url` / `mobileproxy_key`) is mandatory when running multithreaded (`max_workers > 1`), high-concurrency async, or deep card scraping (`enrich_details=True`)!**  
+> Avito's anti-fraud firewall aggressively rate-limits (`429`) and bans (`403`) standard server/datacenter IP addresses under parallel load. Real 4G/LTE SIM cards share IP pools with millions of cellular subscribers, making them immune to subnet-level bans.
 
+> 📱 **Recommended Provider**: [MobileProxy.space](https://mobileproxy.space/?p=8052683359)  
+> Dedicated 4G/LTE mobile proxies across real SIM carriers (MTS, Megafon, Beeline, Tele2) with instant URL/API IP rotation.
+
+#### Option A: One-line setup via `mobileproxy_key`
 ```python
 from avito_sdk import AvitoClient
 
-# Initialize client with Mobile Proxy and automatic IP rotation URL
+# Pass your proxy address and rotation key from the MobileProxy.space dashboard
 client = AvitoClient(
-    proxy="http://username:password@proxy.example.com:8000",
-    proxy_change_url="https://changeip.mobileproxy.space/?proxy_key=YOUR_KEY",
+    proxy="http://username:password@proxy-domain.space:8000",
+    mobileproxy_key="YOUR_ROTATION_KEY",  # avito-sdk builds changeip.mobileproxy.space automatically
 )
 
 # Run multithreaded card enrichment (8 parallel threads) safely via mobile proxy
@@ -194,6 +198,20 @@ items = list(
         limit=100,
     )
 )
+```
+
+#### Option B: Standalone IP rotation via `MobileProxySpace`
+```python
+from avito_sdk import MobileProxySpace
+
+mps = MobileProxySpace.from_key("YOUR_ROTATION_KEY")
+res = mps.rotate_ip(wait_reconnect=True)
+print("New public IP:", res.get("new_ip"))
+```
+
+#### Option C: From Terminal CLI
+```bash
+avito-sdk search "ноутбук" --proxy "http://user:pass@host:port" --mobileproxy-key "YOUR_KEY" --enrich --workers 4
 ```
 
 ---

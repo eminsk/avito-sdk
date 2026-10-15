@@ -168,19 +168,23 @@ print(df[["id", "title", "price", "seller_name"]].head())
 
 ---
 
-### 6. 🌐 Мобильные прокси и многопоточность (Обязательно при потоковом сборе)
+### 6. 🌐 Мобильные прокси и многопоточность: интеграция с MobileProxy.space
 
 > [!IMPORTANT]
-> **Использование мобильных прокси (`proxy` + `proxy_change_url`) обязательно при включении многопоточности (`max_workers > 1`), асинхронного режима (`concurrency > 1`) или глубокого сбора характеристик карточек (`enrich_details=True`)!**  
-> Антифрод-система Авито мгновенно банит (`403 Forbidden` / `429 Too Many Requests`) обычные серверные или домашние IP при частых параллельных запросах к карточкам. При передаче мобильного прокси и ссылки для смены IP (`proxy_change_url`) библиотека `avito-sdk` автоматически меняет IP-адрес оператора при любом ограничении и продолжает сбор без потери объявлений.
+> **Использование мобильных прокси (`proxy` + `proxy_change_url` / `mobileproxy_key`) обязательно при включении многопоточности (`max_workers > 1`), асинхронного режима (`concurrency > 1`) или глубокого сбора характеристик карточек (`enrich_details=True`)!**  
+> Антифрод-система Авито мгновенно блокирует (`403 Forbidden` / `429 Too Many Requests`) обычные серверные или датацентр-IP при частых запросах. Реальные 4G/LTE SIM-карты делят IP-адреса с миллионами мобильных абонентов, поэтому Авито не может забанить мобильную подсеть оператора.
 
+> 📱 **Рекомендуемый сервис**: [MobileProxy.space](https://mobileproxy.space/?p=8052683359)  
+> Быстрые приватные мобильные прокси на реальных SIM-картах (МТС, Мегафон, Билайн, Tele2) с мгновенной сменой IP по URL или API.
+
+#### Вариант А: Быстрое подключение по ключу `mobileproxy_key`
 ```python
 from avito_sdk import AvitoClient
 
-# Инициализация клиента с мобильным прокси и ссылкой автосмены IP
+# Достаточно указать прокси и ключ ротации из кабинета MobileProxy.space
 client = AvitoClient(
-    proxy="http://username:password@proxy.example.com:8000",
-    proxy_change_url="https://changeip.mobileproxy.space/?proxy_key=ВАШ_КЛЮЧ",
+    proxy="http://login:password@proxy-domain.space:port",
+    mobileproxy_key="ВАШ_КЛЮЧ_РОТАЦИИ",  # avito-sdk сам соберет changeip.mobileproxy.space
 )
 
 # Многопоточный сбор характеристик карточек (8 потоков параллельно)
@@ -193,6 +197,20 @@ items = list(
         limit=100,
     )
 )
+```
+
+#### Вариант Б: Прямое управление ротацией через `MobileProxySpace`
+```python
+from avito_sdk import MobileProxySpace
+
+mps = MobileProxySpace.from_key("ВАШ_КЛЮЧ_РОТАЦИИ")
+res = mps.rotate_ip(wait_reconnect=True)
+print("Новый внешний IP:", res.get("new_ip"))
+```
+
+#### Вариант В: Через CLI терминал
+```bash
+avito-sdk search "iPhone 15" --proxy "http://login:pass@host:port" --mobileproxy-key "ВАШ_КЛЮЧ" --enrich --workers 4
 ```
 
 ---

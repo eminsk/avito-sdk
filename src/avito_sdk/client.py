@@ -51,6 +51,7 @@ class AvitoClient:
         self,
         proxy: Optional[str] = None,
         proxy_change_url: Optional[str] = None,
+        mobileproxy_key: Optional[str] = None,
         cookies: Optional[dict] = None,
         use_playwright_cookies: bool = False,
         timeout: int = 25,
@@ -68,6 +69,7 @@ class AvitoClient:
         self.transport = SyncHttpTransport(
             proxy=proxy,
             proxy_change_url=proxy_change_url,
+            mobileproxy_key=mobileproxy_key,
             cookies=cookies,
             use_playwright_cookies=use_playwright_cookies,
             timeout=timeout,
@@ -100,6 +102,7 @@ class AvitoClient:
         client = cls(
             proxy=cfg.proxy_string,
             proxy_change_url=cfg.proxy_change_url,
+            mobileproxy_key=cfg.mobileproxy_key,
             use_playwright_cookies=cfg.use_webdriver,
             timeout=cfg.timeout,
             max_retries=cfg.max_count_of_retry,

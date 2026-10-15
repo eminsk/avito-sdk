@@ -61,6 +61,7 @@ class SyncHttpTransport:
         self,
         proxy: Optional[str] = None,
         proxy_change_url: Optional[str] = None,
+        mobileproxy_key: Optional[str] = None,
         cookies: Optional[Dict[str, str]] = None,
         use_playwright_cookies: bool = False,
         timeout: int = 25,
@@ -68,7 +69,12 @@ class SyncHttpTransport:
         impersonate: str = "chrome",
     ):
         self.proxy = normalize_proxy(proxy)
-        self.proxy_change_url = proxy_change_url
+        if mobileproxy_key and not proxy_change_url:
+            from avito_sdk.mobileproxy import MobileProxySpace
+            self.proxy_change_url = MobileProxySpace.build_change_url(mobileproxy_key)
+        else:
+            self.proxy_change_url = proxy_change_url
+        self.mobileproxy_key = mobileproxy_key
         self.cookies: Dict[str, str] = dict(cookies) if cookies else {}
         self.use_playwright_cookies = use_playwright_cookies
         self.timeout = timeout
@@ -142,6 +148,20 @@ class SyncHttpTransport:
             now = time.monotonic()
             if self._last_rotation_ts > 0 and (now - self._last_rotation_ts) < 2.0:
                 return True
+
+            if "mobileproxy.space" in self.proxy_change_url:
+                try:
+                    from avito_sdk.mobileproxy import MobileProxySpace
+                    mps = MobileProxySpace(change_url=self.proxy_change_url, reconnect_delay=3.5)
+                    res = mps.rotate_ip(wait_reconnect=True)
+                    if res.get("success"):
+                        self.ip_rotations += 1
+                        self._last_rotation_ts = time.monotonic()
+                        return True
+                except Exception as err:
+                    logger.warning(f"[MobileProxy.space] IP rotation failed: {err}")
+                    return False
+
             try:
                 import urllib.request
                 logger.info("Rotating mobile proxy IP via proxy_change_url...")
@@ -190,11 +210,12 @@ class SyncHttpTransport:
                         except Exception as pw_err:
                             logger.warning(f"Playwright cookie refresh failed: {pw_err}")
                     elif not self.proxy_change_url:
+                        from avito_sdk.mobileproxy import DEFAULT_REFERRAL_URL
                         delay = 1.5 * attempt + random.uniform(0.5, 1.5)
                         logger.warning(
                             f"Rate limited ({resp.status_code}) on {url}. "
-                            f"Tip: Configure a Mobile Proxy (proxy + proxy_change_url) to avoid IP bans. "
-                            f"Retrying in {delay:.1f}s"
+                            f"Tip: Use real 4G/LTE mobile proxies from MobileProxy.space ({DEFAULT_REFERRAL_URL}) "
+                            f"to avoid IP bans. Retrying in {delay:.1f}s"
                         )
                         time.sleep(delay)
                     continue
@@ -234,6 +255,7 @@ class AsyncHttpTransport:
         self,
         proxy: Optional[str] = None,
         proxy_change_url: Optional[str] = None,
+        mobileproxy_key: Optional[str] = None,
         cookies: Optional[Dict[str, str]] = None,
         use_playwright_cookies: bool = False,
         timeout: int = 25,
@@ -241,7 +263,12 @@ class AsyncHttpTransport:
         impersonate: str = "chrome",
     ):
         self.proxy = normalize_proxy(proxy)
-        self.proxy_change_url = proxy_change_url
+        if mobileproxy_key and not proxy_change_url:
+            from avito_sdk.mobileproxy import MobileProxySpace
+            self.proxy_change_url = MobileProxySpace.build_change_url(mobileproxy_key)
+        else:
+            self.proxy_change_url = proxy_change_url
+        self.mobileproxy_key = mobileproxy_key
         self.cookies: Dict[str, str] = dict(cookies) if cookies else {}
         self.use_playwright_cookies = use_playwright_cookies
         self.timeout = timeout
@@ -291,6 +318,18 @@ class AsyncHttpTransport:
         if not self.proxy_change_url:
             return False
         import asyncio
+        if "mobileproxy.space" in self.proxy_change_url:
+            try:
+                from avito_sdk.mobileproxy import MobileProxySpace
+                mps = MobileProxySpace(change_url=self.proxy_change_url, reconnect_delay=3.5)
+                res = await asyncio.to_thread(mps.rotate_ip, True)
+                if res.get("success"):
+                    self.ip_rotations += 1
+                    return True
+            except Exception as err:
+                logger.warning(f"[MobileProxy.space] Async IP rotation failed: {err}")
+                return False
+
         try:
             import urllib.request
             logger.info("Rotating mobile proxy IP via proxy_change_url...")
@@ -337,7 +376,13 @@ class AsyncHttpTransport:
                         except Exception as pw_err:
                             logger.warning(f"Playwright async cookie refresh failed: {pw_err}")
                     elif not self.proxy_change_url:
+                        from avito_sdk.mobileproxy import DEFAULT_REFERRAL_URL
                         delay = 1.5 * attempt + random.uniform(0.5, 1.5)
+                        logger.warning(
+                            f"Async request rate limited ({resp.status_code}) on {url}. "
+                            f"Tip: Use real 4G/LTE mobile proxies from MobileProxy.space ({DEFAULT_REFERRAL_URL}) "
+                            f"to avoid IP bans. Retrying in {delay:.1f}s"
+                        )
                         await asyncio.sleep(delay)
                     continue
 

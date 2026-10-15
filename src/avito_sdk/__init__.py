@@ -61,8 +61,9 @@ from avito_sdk.url import (
 )
 from avito_sdk.vk import VKNotifier
 from avito_sdk.mcp_server import AvitoMCPServer
+from avito_sdk.mobileproxy import MobileProxySpace
 
-__version__ = "0.1.7"
+__version__ = "0.1.8"
 __author__ = "eminsk"
 
 __all__ = [
@@ -71,6 +72,7 @@ __all__ = [
     "AsyncAvitoClient",
     "AvitoConfig",
     "load_avito_config",
+    "MobileProxySpace",
     "AdsFilter",
     "AvitoMCPServer",
     "TelegramNotifier",
