@@ -1,3 +1,13 @@
+python-avito-sdk (0.2.0-1) unstable; urgency=medium
+
+  * Release v0.2.0: Auto-failover on 429/SmartCaptcha with MobileProxy.space IP rotation.
+  * Synchronized realistic Android User-Agent pool (Chrome 131 TLS impersonation).
+  * Direct search by pasted Avito catalog/search URLs and clickable Excel hyperlinks.
+  * Interactive Telegram bot controller with /code command and inline button.
+  * Modem concurrency safety limiter enforcing max 2 workers per mobile modem.
+
+ -- eminsk <M_N_N@tut.by>  Wed, 15 Oct 2026 19:00:00 +0000
+
 python-avito-sdk (0.1.5-1) unstable; urgency=medium
 
   * Add native Model Context Protocol (MCP) Server (avito-mcp / avito-sdk mcp) for Claude Desktop, Cursor, Windsurf, and AI agents.
