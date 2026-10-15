@@ -167,8 +167,6 @@ class PlaywrightCookieProvider:
             Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
             Object.defineProperty(navigator, 'vendor', { get: () => 'Google Inc.' });
             window.chrome = { runtime: {} };
-            Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
-            Object.defineProperty(navigator, 'languages', { get: () => ['ru-RU', 'ru', 'en-US', 'en'] });
         """)
 
     async def fetch_cookies_async(self, target_url: Optional[str] = None) -> Tuple[Dict[str, str], str]:
@@ -232,19 +230,46 @@ class PlaywrightCookieProvider:
 
             for _ in range(10):
                 title = (await page.title() or "").lower()
+
+                # Check if "Продолжить" button is present on Avito challenge page
+                try:
+                    continue_btn = page.locator("button:has-text('Продолжить'), button[type='submit']")
+                    if await continue_btn.count() > 0:
+                        logger.info("Avito challenge page with 'Продолжить' button found. Clicking...")
+                        await continue_btn.first.click()
+                        try:
+                            await page.wait_for_load_state("domcontentloaded", timeout=20_000)
+                        except Exception:
+                            pass
+                        await asyncio.sleep(4.0)
+                        title = (await page.title() or "").lower()
+                except Exception as click_err:
+                    logger.debug(f"Challenge button click check failed: {click_err}")
+
                 if BAD_IP_TITLE in title or "доступ ограничен" in title or "проверка безопасности" in title:
                     logger.info(f"Avito IP block detected in Playwright ('{title}'); rotating mobile proxy IP...")
                     await context.clear_cookies()
                     await self.rotate_ip()
-                    await page.reload(timeout=60_000)
+                    try:
+                        await page.reload(timeout=35_000, wait_until="domcontentloaded")
+                    except Exception as reload_err:
+                        logger.debug(f"Playwright reload error after IP rotation: {reload_err}")
                     continue
 
-                raw_cookie = await page.evaluate("() => document.cookie")
-                cookie_dict = self.parse_cookie_string(raw_cookie)
-                if cookie_dict.get("ft") or ("_adcc" in cookie_dict and "pow_challenge" in cookie_dict):
+                try:
+                    raw_cookie = await page.evaluate("() => document.cookie")
+                    cookie_dict = self.parse_cookie_string(raw_cookie)
+                except Exception:
+                    cookie_dict = {}
+
+                ctx_cookies = await context.cookies()
+                ctx_dict = {c["name"]: c["value"] for c in ctx_cookies if "name" in c and "value" in c}
+
+                combined = {**ctx_dict, **cookie_dict}
+                if combined.get("ft") or combined.get("captcha_solved") or ("_adcc" in combined and "pow_challenge" in combined):
                     logger.info("Avito session cookies successfully obtained via Playwright!")
-                    return cookie_dict, self.user_agent
-                await asyncio.sleep(3.0)
+                    return combined, self.user_agent
+                await asyncio.sleep(2.5)
 
             # Fallback to context cookies if document.cookie didn't expose 'ft'
             ctx_cookies = await context.cookies()
