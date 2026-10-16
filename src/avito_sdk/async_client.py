@@ -136,7 +136,7 @@ class AsyncAvitoClient:
         """Fetch and extract items from a single page URL asynchronously."""
         html_text = await self.transport.fetch_html(url)
         if "такой страницы не существует" in html_text.lower() or "страница не найдена" in html_text.lower():
-            logger.warning(f"Async: Страница не найдена на Авито (404 Not Found): {url}")
+            logger.warning(f"Async: Avito page not found (404 Not Found): {url}")
             return []
 
         soup = BeautifulSoup(html_text, "html.parser")

@@ -94,26 +94,25 @@ class AvitoClient:
 
     def _masked_proxy(self) -> str:
         if not self.transport.proxy:
-            return "НЕ ПОДКЛЮЧЕН (прямой IP)"
+            return "NOT CONNECTED (direct IP)"
         import re
         return re.sub(r'://([^:\s]{1,3})[^:\s]*:([^@\s]+)@', r'://\1***:***@', self.transport.proxy)
 
     def _audit_proxy_status(self) -> None:
         if self.transport.proxy and self.transport.proxy_change_url:
             logger.info(
-                f"[ProxyAudit] ✅ КУПЛЕННЫЙ МОБИЛЬНЫЙ ПРОКСИ: ПОДКЛЮЧЕН И АКТИВЕН "
-                f"({self._masked_proxy()}, ротация IP настроена). Гарантия от банов активна."
+                f"[ProxyAudit] [OK] Mobile proxy connected and active "
+                f"({self._masked_proxy()}, IP rotation configured)."
             )
         elif self.transport.proxy:
             logger.warning(
-                f"[ProxyAudit] ⚠️ ПРОКСИ ПОДКЛЮЧЕН БЕЗ РОТАЦИИ IP ({self._masked_proxy()})! "
-                "Внимание: без автоматической смены IP претензии по блокировкам WAF (429/439) НЕ РАССМАТРИВАЮТСЯ!"
+                f"[ProxyAudit] [WARN] Proxy connected without IP rotation ({self._masked_proxy()})! "
+                "Warning: Automatic IP change is required to prevent WAF rate-limiting."
             )
         else:
             logger.warning(
-                "[ProxyAudit] ❌ КУПЛЕННЫЙ МОБИЛЬНЫЙ ПРОКСИ НЕ ПОДКЛЮЧЕН (прямой IP)! "
-                "Внимание: Авито блокирует прямые серверные/домашние IP. "
-                "БЕЗ КУПЛЕННОГО МОБИЛЬНОГО ПРОКСИ ПРОБЛЕМЫ С БЛОКИРОВКАМИ И КАПЧЕЙ НЕ РАССМАТРИВАЮТСЯ!"
+                "[ProxyAudit] [WARN] Mobile proxy not connected (direct IP)! "
+                "Warning: Direct datacenter or residential IPs may be rate-limited by Avito."
             )
 
     def sanitize_workers(self, requested_workers: int) -> int:
@@ -130,7 +129,7 @@ class AvitoClient:
         if not self.transport.proxy:
             if requested_workers > 1:
                 logger.warning(
-                    "[WorkersSafety] Мобильный прокси не настроен. Для предотвращения бана прямого IP число потоков ограничено до 1."
+                    "[WorkersSafety] Mobile proxy not configured. Limiting concurrency to 1 to protect direct IP."
                 )
                 return 1
             return max(1, requested_workers)
@@ -138,8 +137,8 @@ class AvitoClient:
         safe_threshold = self.modems_count * 2
         if requested_workers > safe_threshold:
             logger.info(
-                f"[TurboMode] Запущено {requested_workers} параллельных воркеров (Safe threshold: {safe_threshold}). "
-                f"Включен режим адаптивного микро-сглаживания задержек."
+                f"[TurboMode] Running {requested_workers} parallel workers (Safe threshold: {safe_threshold}). "
+                "Adaptive micro-pacing active."
             )
         return min(max(1, requested_workers), 16)
 
@@ -631,7 +630,7 @@ class AvitoClient:
         """Fetch and extract items from a single page URL."""
         html_text = self.transport.fetch_html(url)
         if "такой страницы не существует" in html_text.lower() or "страница не найдена" in html_text.lower():
-            logger.warning(f"Страница не найдена на Авито (404 Not Found): {url}")
+            logger.warning(f"Avito page not found (404 Not Found): {url}")
             return []
 
         soup = BeautifulSoup(html_text, "html.parser")

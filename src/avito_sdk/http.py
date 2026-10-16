@@ -280,8 +280,8 @@ class SyncHttpTransport:
                     if self.proxy_change_url and allow_rotation:
                         self.rotate_proxy_ip()
                         logger.info(
-                            f"[ProxyAudit] 🔄 Ротация IP купленного мобильного прокси выполнена (причина: WAF {resp.status_code}). "
-                            f"Всего ротаций в сессии: {self.ip_rotations}."
+                            f"[ProxyAudit] [OK] Mobile proxy IP rotated successfully (cause: WAF {resp.status_code}). "
+                            f"Total rotations in session: {self.ip_rotations}."
                         )
                         time.sleep(3.5)
                     elif not allow_rotation:
@@ -295,10 +295,9 @@ class SyncHttpTransport:
                         from avito_sdk.mobileproxy import DEFAULT_FREE_TRIAL_URL
                         delay = 1.5 * attempt + random.uniform(0.5, 1.5)
                         logger.warning(
-                            f"[ProxyAudit] ⛔ Блокировка Avito WAF ({resp.status_code}) на {url}. "
-                            f"ВНИМАНИЕ: Запрос выполнен БЕЗ купленного мобильного 4G-прокси с ротацией IP! "
-                            f"Согласно регламенту, проблемы с блокировками без купленного мобильного прокси НЕ РАССМАТРИВАЮТСЯ. "
-                            f"Для стабильной работы подключите MobileProxy.space (триал: {DEFAULT_FREE_TRIAL_URL})."
+                            f"[ProxyAudit] [WARN] Avito WAF block ({resp.status_code}) on {url}. "
+                            "Request made without mobile proxy IP rotation. "
+                            f"For reliable high-volume scraping, connect MobileProxy.space (trial: {DEFAULT_FREE_TRIAL_URL})."
                         )
                         time.sleep(delay)
                     continue

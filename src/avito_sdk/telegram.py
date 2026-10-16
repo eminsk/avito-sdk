@@ -482,8 +482,8 @@ class AvitoTelegramBot:
         self.workers = min(max(1, int(workers)), 16)
         if self.workers > self.modems_count * 2:
             logger.info(
-                f"[TelegramBot] Запущено {self.workers} потоков (Fast/Turbo Mode) "
-                f"с адаптивным микро-сглаживанием запросов."
+                f"[TelegramBot] Running {self.workers} worker threads (Fast/Turbo Mode) "
+                f"with adaptive micro-pacing."
             )
         self.limit = max(1, limit)
         self.enrich_details = enrich_details
@@ -501,26 +501,25 @@ class AvitoTelegramBot:
 
     def _masked_proxy(self) -> str:
         if not self.proxy:
-            return "НЕ ПОДКЛЮЧЕН (прямой IP)"
+            return "NOT CONNECTED (direct IP)"
         import re
         return re.sub(r'://([^:\s]{1,3})[^:\s]*:([^@\s]+)@', r'://\1***:***@', self.proxy)
 
     def _audit_proxy_status(self) -> None:
         if self.proxy and self.proxy_change_url:
             logger.info(
-                f"[ProxyAudit] ✅ КУПЛЕННЫЙ МОБИЛЬНЫЙ ПРОКСИ: ПОДКЛЮЧЕН И АКТИВЕН "
-                f"({self._masked_proxy()}, ротация IP настроена). Гарантия от банов активна."
+                f"[ProxyAudit] [OK] Mobile proxy connected and active "
+                f"({self._masked_proxy()}, IP rotation configured)."
             )
         elif self.proxy:
             logger.warning(
-                f"[ProxyAudit] ⚠️ ПРОКСИ ПОДКЛЮЧЕН БЕЗ РОТАЦИИ IP ({self._masked_proxy()})! "
-                "Внимание: без автоматической смены IP претензии по блокировкам WAF (429/439) НЕ РАССМАТРИВАЮТСЯ!"
+                f"[ProxyAudit] [WARN] Proxy connected without IP rotation ({self._masked_proxy()})! "
+                "Warning: Automatic IP change is required to prevent WAF rate-limiting."
             )
         else:
             logger.warning(
-                "[ProxyAudit] ❌ КУПЛЕННЫЙ МОБИЛЬНЫЙ ПРОКСИ НЕ ПОДКЛЮЧЕН (прямой IP)! "
-                "Внимание: Авито блокирует прямые серверные/домашние IP. "
-                "БЕЗ КУПЛЕННОГО МОБИЛЬНОГО ПРОКСИ ПРОБЛЕМЫ С БЛОКИРОВКАМИ И КАПЧЕЙ НЕ РАССМАТРИВАЮТСЯ!"
+                "[ProxyAudit] [WARN] Mobile proxy not connected (direct IP)! "
+                "Warning: Direct datacenter or residential IPs may be rate-limited by Avito."
             )
 
     def _main_keyboard(self) -> dict:
@@ -1173,8 +1172,8 @@ class AvitoTelegramBot:
         """Start infinite long-polling loop for the Telegram bot controller."""
         notifier = TelegramNotifier(bot_token=self.bot_token, chat_id="")
         notifier.set_bot_commands()
-        print("[*] AvitoTelegramBot запущен! Меню и команды зарегистрированы в Telegram.")
-        print("[*] Ожидание действий пользователя (Ctrl+C для остановки)...")
+        print("[*] AvitoTelegramBot is running! Menu and commands registered in Telegram.")
+        print("[*] Waiting for user commands (Ctrl+C to stop)...")
         while True:
             try:
                 resp = requests.get(
@@ -1191,7 +1190,7 @@ class AvitoTelegramBot:
                         elif "message" in upd or "channel_post" in upd:
                             self.handle_update(upd)
             except KeyboardInterrupt:
-                print("\n[*] Остановка бота.")
+                print("\n[*] Stopping bot.")
                 break
             except Exception as err:
                 logger.warning(f"Polling error: {err}")
