@@ -491,6 +491,11 @@ class AvitoTelegramBot:
         self._offset = 0
         self._is_scraping = False
         self._current_task_info = ""
+        self._current_link_idx = 0
+        self._total_links = 0
+        self._current_url = ""
+        self._current_collected = 0
+        self._current_limit = 0
         self._scrape_lock = threading.Lock()
         self._audit_proxy_status()
 
@@ -617,7 +622,17 @@ class AvitoTelegramBot:
         chan_state = self.channel_id or "Текущий диалог"
         import html
         if self._is_scraping:
-            task_state = f"⏳ <b>Фоновый сбор:</b> <code>{html.escape(self._current_task_info)}</code>\n\n"
+            bar = render_telegram_progress_bar(self._current_collected, self._current_limit or self.limit)
+            pct = int(round((self._current_collected / max(1, self._current_limit or self.limit)) * 100))
+            if self._total_links > 1:
+                link_desc = f"🔗 <b>Ссылка {self._current_link_idx}/{self._total_links}:</b> <code>{html.escape(self._current_url[:45])}...</code>\n"
+            else:
+                link_desc = f"🔍 <b>Запрос:</b> <code>{html.escape(self._current_task_info[:45])}</code>\n"
+            task_state = (
+                f"⏳ <b>Фоновый сбор данных в процессе:</b>\n"
+                f"{link_desc}"
+                f"📊 <b>Прогресс:</b> {bar} <b>{pct}%</b> ({self._current_collected}/{self._current_limit or self.limit})\n\n"
+            )
         else:
             task_state = "💤 <b>Статус:</b> Ожидание команд (готов к поиску)\n\n"
         return (
@@ -717,6 +732,10 @@ class AvitoTelegramBot:
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         excel_path = reports_dir / f"avito_results_{timestamp}.xlsx"
 
+        def _on_prog(current, total):
+            self._current_collected = current
+            self._current_limit = total
+
         try:
             pages_needed = max(1, (self.limit + 29) // 30)
             if query.startswith("http://") or query.startswith("https://"):
@@ -728,6 +747,7 @@ class AvitoTelegramBot:
                     max_workers=self.workers,
                     telegram_progress=True,
                     excel_path=excel_path,
+                    progress_callback=_on_prog,
                 )
                 if not items:
                     notifier.send_message(
@@ -991,19 +1011,33 @@ class AvitoTelegramBot:
         if len(urls) > 1:
             with self._scrape_lock:
                 if self._is_scraping:
+                    bar = render_telegram_progress_bar(self._current_collected, self._current_limit or self.limit)
+                    pct = int(round((self._current_collected / max(1, self._current_limit or self.limit)) * 100))
+                    if self._total_links > 1:
+                        link_info = f"🔗 <b>Текущая ссылка ({self._current_link_idx}/{self._total_links}):</b>\n<code>{html.escape(self._current_url[:50])}...</code>\n\n"
+                    else:
+                        link_info = f"🔍 <b>Запрос:</b> <code>{html.escape(self._current_task_info[:50])}</code>\n\n"
                     notifier.send_message(
-                        f"⏳ <b>Бот уже выполняет сбор данных в фоне!</b>\n\n"
-                        f"Текущая задача: <code>{html.escape(self._current_task_info)}</code>\n\n"
-                        f"💡 <i>Пожалуйста, дождитесь завершения или отслеживайте прогресс в сообщении выше.</i>",
+                        f"⏳ <b>Сбор данных выполняется прямо сейчас:</b>\n\n"
+                        f"{link_info}"
+                        f"📊 <b>Прогресс:</b> {bar} <b>{pct}%</b>\n"
+                        f"📦 <b>Собрано объявлений:</b> {self._current_collected} из {self._current_limit or self.limit}\n"
+                        f"🧵 <b>Воркеров:</b> {self.workers}  |  🌐 <b>4G LTE:</b> активен\n\n"
+                        f"💡 <i>Сбор продолжается в фоне. По завершению каждой ссылки бот сразу пришлёт Excel-отчёт сюда в чат!</i>",
                         parse_mode="HTML",
                     )
                     return
                 self._is_scraping = True
                 self._current_task_info = f"Сбор {len(urls)} ссылок (по {self.limit} шт, {self.workers} воркеров)"
+                self._total_links = len(urls)
+                self._current_link_idx = 1
+                self._current_url = urls[0]
+                self._current_collected = 0
+                self._current_limit = self.limit
 
             notifier.send_message(
                 f"🔗 <b>Обнаружено {len(urls)} ссылки для сбора данных!</b>\n\n"
-                f"Запускаю фоновый сбор каждой ссылки (лимит: <b>{self.limit}</b> на ссылку, воркеров: <b>{self.workers}</b>)...",
+                f"Запускаю последовательный сбор каждой ссылки (лимит: <b>{self.limit}</b> на ссылку, воркеров: <b>{self.workers}</b>)...",
                 parse_mode="HTML",
             )
 
@@ -1012,11 +1046,25 @@ class AvitoTelegramBot:
                     success_count = 0
                     total_items = 0
                     for idx, u in enumerate(urls, 1):
-                        notifier.send_message(f"⏳ <i>[Ссылка {idx}/{len(urls)}] Обработка:</i> <code>{u[:50]}...</code>", parse_mode="HTML")
+                        self._current_link_idx = idx
+                        self._current_url = u
+                        self._current_collected = 0
+                        self._current_limit = self.limit
+                        notifier.send_message(
+                            f"🚀 <b>[Ссылка {idx}/{len(urls)}] Начинаю сбор данных:</b>\n"
+                            f"<code>{u}</code>\n\n"
+                            f"📦 <i>Лимит: {self.limit} объявлений, воркеров: {self.workers}</i>",
+                            parse_mode="HTML",
+                        )
                         cnt = self._run_search_flow(chat_id, u) or 0
                         if cnt > 0:
                             success_count += 1
                             total_items += cnt
+                            notifier.send_message(
+                                f"✅ <b>[Ссылка {idx}/{len(urls)}] Сбор завершён!</b> Собрано: {cnt} объявлений.\n"
+                                f"📊 <i>Файл Excel загружен выше. Перехожу к следующей ссылке...</i>",
+                                parse_mode="HTML",
+                            )
 
                     if success_count == len(urls):
                         notifier.send_message(f"🎉 <b>Все {len(urls)} ссылки успешно выгружены в Excel!</b> (Всего собрано: {total_items} объявл.)", parse_mode="HTML")
@@ -1030,21 +1078,40 @@ class AvitoTelegramBot:
                     with self._scrape_lock:
                         self._is_scraping = False
                         self._current_task_info = ""
+                        self._current_link_idx = 0
+                        self._total_links = 0
+                        self._current_url = ""
+                        self._current_collected = 0
+                        self._current_limit = 0
 
             threading.Thread(target=_bg_multi_worker, daemon=True).start()
             return
 
         with self._scrape_lock:
             if self._is_scraping:
+                bar = render_telegram_progress_bar(self._current_collected, self._current_limit or self.limit)
+                pct = int(round((self._current_collected / max(1, self._current_limit or self.limit)) * 100))
+                if self._total_links > 1:
+                    link_info = f"🔗 <b>Текущая ссылка ({self._current_link_idx}/{self._total_links}):</b>\n<code>{html.escape(self._current_url[:50])}...</code>\n\n"
+                else:
+                    link_info = f"🔍 <b>Запрос:</b> <code>{html.escape(self._current_task_info[:50])}</code>\n\n"
                 notifier.send_message(
-                    f"⏳ <b>Бот уже выполняет сбор данных в фоне!</b>\n\n"
-                    f"Текущая задача: <code>{html.escape(self._current_task_info)}</code>\n\n"
-                    f"💡 <i>Пожалуйста, дождитесь завершения или отслеживайте прогресс в сообщении выше.</i>",
+                    f"⏳ <b>Сбор данных выполняется прямо сейчас:</b>\n\n"
+                    f"{link_info}"
+                    f"📊 <b>Прогресс:</b> {bar} <b>{pct}%</b>\n"
+                    f"📦 <b>Собрано объявлений:</b> {self._current_collected} из {self._current_limit or self.limit}\n"
+                    f"🧵 <b>Воркеров:</b> {self.workers}  |  🌐 <b>4G LTE:</b> активен\n\n"
+                    f"💡 <i>Сбор продолжается в фоне. По завершению бот сразу пришлёт Excel-отчёт сюда в чат!</i>",
                     parse_mode="HTML",
                 )
                 return
             self._is_scraping = True
             self._current_task_info = query[:60]
+            self._total_links = 1
+            self._current_link_idx = 1
+            self._current_url = query
+            self._current_collected = 0
+            self._current_limit = self.limit
 
         def _bg_single_worker():
             try:
@@ -1053,6 +1120,11 @@ class AvitoTelegramBot:
                 with self._scrape_lock:
                     self._is_scraping = False
                     self._current_task_info = ""
+                    self._current_link_idx = 0
+                    self._total_links = 0
+                    self._current_url = ""
+                    self._current_collected = 0
+                    self._current_limit = 0
 
         threading.Thread(target=_bg_single_worker, daemon=True).start()
 

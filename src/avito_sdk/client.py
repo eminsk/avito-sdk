@@ -413,6 +413,7 @@ class AvitoClient:
         show_progress: bool = False,
         excel_path: Optional[Union[str, Path]] = None,
         limit: Optional[int] = None,
+        progress_callback: Optional[Any] = None,
     ) -> List[Item]:
         """Scrape items from an existing Avito search or catalog URL across multiple pages with full filtering."""
         from avito_sdk.filters import AdsFilter
@@ -532,6 +533,11 @@ class AvitoClient:
                         drops_count=drops_count,
                         ip_rotations=self.transport.ip_rotations,
                     )
+                if progress_callback:
+                    try:
+                        progress_callback(len(results), limit or total_expected)
+                    except Exception:
+                        pass
         finally:
             if show_progress and results:
                 print()
@@ -547,6 +553,11 @@ class AvitoClient:
                     ip_rotations=self.transport.ip_rotations,
                     excel_path=excel_path if results else None,
                 )
+            if progress_callback:
+                try:
+                    progress_callback(len(results), limit or total_expected)
+                except Exception:
+                    pass
 
         return results
 

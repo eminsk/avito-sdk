@@ -121,6 +121,7 @@ class SyncHttpTransport:
         self._rotation_lock = threading.Lock()
         self._last_rotation_ts = 0.0
         self._session_generation = 0
+        self._pacing_delay = 0.35 if self.proxy else 0.0
         self._thread_local = threading.local()
         self._session = self._create_session()
 
@@ -266,11 +267,14 @@ class SyncHttpTransport:
                     timeout=self.timeout,
                     **kwargs,
                 )
-                is_blocked = resp.status_code in (403, 429, 439) or (
+                is_waf_challenge = resp.status_code in (429, 439) or (
                     resp.status_code == 200
                     and any(kw in resp.text.lower() for kw in ("проблема с ip", "доступ ограничен", "проверка безопасности"))
+                ) or (
+                    resp.status_code == 403
+                    and (attempt >= 2 or any(kw in resp.text.lower() for kw in ("доступ ограничен", "проверка безопасности", "smartcaptcha")))
                 )
-                if is_blocked:
+                if is_waf_challenge:
                     logger.warning(f"Avito security challenge/block detected (status {resp.status_code}) on {url}")
                     if self.proxy_change_url:
                         self.rotate_proxy_ip()
@@ -294,6 +298,11 @@ class SyncHttpTransport:
                             f"Для стабильной работы подключите MobileProxy.space (триал: {DEFAULT_FREE_TRIAL_URL})."
                         )
                         time.sleep(delay)
+                    continue
+                elif resp.status_code == 403:
+                    # Transient 403 rate burst: pause briefly and retry without rotating mobile proxy
+                    delay = 0.8 + random.uniform(0.2, 0.5)
+                    time.sleep(delay)
                     continue
 
                 if resp.status_code == 404:
@@ -322,6 +331,8 @@ class SyncHttpTransport:
 
     def fetch_item_card(self, item_id: int) -> dict:
         """Fetch mobile JSON card for an item."""
+        if getattr(self, "_pacing_delay", 0) > 0:
+            time.sleep(random.uniform(0.15, self._pacing_delay))
         url = f"https://m.avito.ru/api/1/card/items/{item_id}"
         headers = get_random_mobile_headers(accept_html=False)
         resp = self.request("GET", url, headers=headers)
