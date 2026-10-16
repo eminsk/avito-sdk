@@ -756,7 +756,7 @@ class AvitoClient:
             logger.debug(f"API card fetch failed for item {item.id}, attempting HTML fallback: {err}")
             try:
                 web_url = item.url or build_item_web_url(item.id)
-                html_text = self.transport.fetch_html(web_url)
+                html_text = self.transport.fetch_html(web_url, allow_rotation=False)
                 if not item.seller_name:
                     item.seller_name = extract_seller_name({}, html_text=html_text)
                 if not item.description:

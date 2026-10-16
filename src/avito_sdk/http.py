@@ -251,6 +251,7 @@ class SyncHttpTransport:
         url: str,
         headers: Optional[Dict[str, str]] = None,
         params: Optional[Dict[str, Any]] = None,
+        allow_rotation: bool = True,
         **kwargs,
     ) -> Any:
         last_error = None
@@ -272,17 +273,19 @@ class SyncHttpTransport:
                     and any(kw in resp.text.lower() for kw in ("проблема с ip", "доступ ограничен", "проверка безопасности"))
                 ) or (
                     resp.status_code == 403
-                    and (attempt >= 2 or any(kw in resp.text.lower() for kw in ("доступ ограничен", "проверка безопасности", "smartcaptcha")))
+                    and any(kw in resp.text.lower() for kw in ("доступ ограничен", "проверка безопасности", "smartcaptcha"))
                 )
                 if is_waf_challenge:
                     logger.warning(f"Avito security challenge/block detected (status {resp.status_code}) on {url}")
-                    if self.proxy_change_url:
+                    if self.proxy_change_url and allow_rotation:
                         self.rotate_proxy_ip()
                         logger.info(
                             f"[ProxyAudit] 🔄 Ротация IP купленного мобильного прокси выполнена (причина: WAF {resp.status_code}). "
                             f"Всего ротаций в сессии: {self.ip_rotations}."
                         )
                         time.sleep(3.5)
+                    elif not allow_rotation:
+                        return resp
                     if self.use_playwright_cookies:
                         try:
                             self.refresh_cookies(target_url=url, force_refresh=True)
@@ -300,6 +303,8 @@ class SyncHttpTransport:
                         time.sleep(delay)
                     continue
                 elif resp.status_code == 403:
+                    if not allow_rotation:
+                        return resp
                     # Transient 403 rate burst: pause briefly and retry without rotating mobile proxy
                     delay = 0.8 + random.uniform(0.2, 0.5)
                     time.sleep(delay)
@@ -320,7 +325,7 @@ class SyncHttpTransport:
                         pass
                 self._thread_local.session = None
 
-                if attempt >= 2 and self.proxy_change_url:
+                if attempt >= 2 and self.proxy_change_url and allow_rotation:
                     logger.info(f"Connection issue on attempt {attempt} ({e}). Rotating mobile proxy IP...")
                     self.rotate_proxy_ip()
 
@@ -330,18 +335,22 @@ class SyncHttpTransport:
         raise RuntimeError(f"HTTP request failed after {self.max_retries} attempts: {url}") from last_error
 
     def fetch_item_card(self, item_id: int) -> dict:
-        """Fetch mobile JSON card for an item."""
+        """Fetch mobile JSON card for an item without causing unnecessary IP rotations."""
         if getattr(self, "_pacing_delay", 0) > 0:
             time.sleep(random.uniform(0.15, self._pacing_delay))
         url = f"https://m.avito.ru/api/1/card/items/{item_id}"
         headers = get_random_mobile_headers(accept_html=False)
-        resp = self.request("GET", url, headers=headers)
-        data = resp.json()
-        if isinstance(data, dict):
-            return data
+        try:
+            resp = self.request("GET", url, headers=headers, allow_rotation=False)
+            if resp.status_code == 200:
+                data = resp.json()
+                if isinstance(data, dict):
+                    return data
+        except Exception as e:
+            logger.debug(f"Card {item_id} fetch failed ({e}), skipping enrichment.")
         return {}
 
-    def fetch_html(self, url: str) -> str:
+    def fetch_html(self, url: str, allow_rotation: bool = True) -> str:
         """Fetch raw HTML for an Avito page with automatic mobile routing and sort cleaning."""
         target_url = url
         headers = WEB_HEADERS.copy()
@@ -360,7 +369,7 @@ class SyncHttpTransport:
             if "?" not in target_url and "&" in target_url:
                 target_url = target_url.replace("&", "?", 1)
             headers = get_random_mobile_headers(accept_html=True)
-        resp = self.request("GET", target_url, headers=headers)
+        resp = self.request("GET", target_url, headers=headers, allow_rotation=allow_rotation)
         return resp.text
 
     def close(self) -> None:
