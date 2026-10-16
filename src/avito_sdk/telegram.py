@@ -541,12 +541,13 @@ class AvitoTelegramBot:
             "inline_keyboard": [
                 [
                     {"text": f"10 шт{_m(10)}", "callback_data": "set_limit:10"},
-                    {"text": f"20 шт{_m(20)}", "callback_data": "set_limit:20"},
                     {"text": f"30 шт{_m(30)}", "callback_data": "set_limit:30"},
+                    {"text": f"50 шт{_m(50)}", "callback_data": "set_limit:50"},
                 ],
                 [
-                    {"text": f"50 шт{_m(50)}", "callback_data": "set_limit:50"},
                     {"text": f"100 шт{_m(100)}", "callback_data": "set_limit:100"},
+                    {"text": f"200 шт{_m(200)}", "callback_data": "set_limit:200"},
+                    {"text": f"500 шт{_m(500)}", "callback_data": "set_limit:500"},
                 ],
                 [
                     {"text": "« Назад в главное меню", "callback_data": "menu_main"},
@@ -758,7 +759,11 @@ class AvitoTelegramBot:
 
         if data == "menu_limit":
             notifier.answer_callback(cb_id)
-            text = f"📦 <b>Выберите лимит объявлений для выгрузки:</b>\n\nТекущий лимит: <b>{self.limit} объявлений</b>"
+            text = (
+                f"📦 <b>Выберите лимит объявлений для выгрузки:</b>\n\n"
+                f"Текущий лимит: <b>{self.limit} объявлений</b>\n\n"
+                f"💡 <i>Вы также можете задать любое своё число командой:</i> <code>/limit 300</code>"
+            )
             notifier.edit_message(chat_id, mid, text, parse_mode="HTML", reply_markup=self._limit_keyboard())
             return
 
@@ -766,7 +771,11 @@ class AvitoTelegramBot:
             lim = int(data.split(":")[1])
             self.limit = lim
             notifier.answer_callback(cb_id, text=f"✅ Лимит: {self.limit} шт")
-            text = f"📦 <b>Выберите лимит объявлений для выгрузки:</b>\n\nТекущий лимит: <b>{self.limit} объявлений</b>"
+            text = (
+                f"📦 <b>Выберите лимит объявлений для выгрузки:</b>\n\n"
+                f"Текущий лимит: <b>{self.limit} объявлений</b>\n\n"
+                f"💡 <i>Вы также можете задать любое своё число командой:</i> <code>/limit 300</code>"
+            )
             notifier.edit_message(chat_id, mid, text, parse_mode="HTML", reply_markup=self._limit_keyboard())
             return
 
@@ -899,7 +908,7 @@ class AvitoTelegramBot:
         if text.startswith("/limit"):
             parts = text.split()
             if len(parts) >= 2 and parts[1].isdigit():
-                self.limit = max(1, min(int(parts[1]), 500))
+                self.limit = max(1, min(int(parts[1]), 2000))
                 notifier.send_message(f"✅ Лимит объявлений установлен: <b>{self.limit}</b>", parse_mode="HTML", reply_markup=self._limit_keyboard())
             else:
                 notifier.send_message(f"📦 Текущий лимит: <b>{self.limit}</b>", parse_mode="HTML", reply_markup=self._limit_keyboard())
