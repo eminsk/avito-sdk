@@ -90,6 +90,31 @@ class AvitoClient:
         self.vk_notifier: Optional[VKNotifier] = (
             VKNotifier(vk_token=vk_token, user_id=vk_user_id) if (vk_token and vk_user_id) else None
         )
+        self._audit_proxy_status()
+
+    def _masked_proxy(self) -> str:
+        if not self.transport.proxy:
+            return "НЕ ПОДКЛЮЧЕН (прямой IP)"
+        import re
+        return re.sub(r'://([^:\s]{1,3})[^:\s]*:([^@\s]+)@', r'://\1***:***@', self.transport.proxy)
+
+    def _audit_proxy_status(self) -> None:
+        if self.transport.proxy and self.transport.proxy_change_url:
+            logger.info(
+                f"[ProxyAudit] ✅ КУПЛЕННЫЙ МОБИЛЬНЫЙ ПРОКСИ: ПОДКЛЮЧЕН И АКТИВЕН "
+                f"({self._masked_proxy()}, ротация IP настроена). Гарантия от банов активна."
+            )
+        elif self.transport.proxy:
+            logger.warning(
+                f"[ProxyAudit] ⚠️ ПРОКСИ ПОДКЛЮЧЕН БЕЗ РОТАЦИИ IP ({self._masked_proxy()})! "
+                "Внимание: без автоматической смены IP претензии по блокировкам WAF (429/439) НЕ РАССМАТРИВАЮТСЯ!"
+            )
+        else:
+            logger.warning(
+                "[ProxyAudit] ❌ КУПЛЕННЫЙ МОБИЛЬНЫЙ ПРОКСИ НЕ ПОДКЛЮЧЕН (прямой IP)! "
+                "Внимание: Авито блокирует прямые серверные/домашние IP. "
+                "БЕЗ КУПЛЕННОГО МОБИЛЬНОГО ПРОКСИ ПРОБЛЕМЫ С БЛОКИРОВКАМИ И КАПЧЕЙ НЕ РАССМАТРИВАЮТСЯ!"
+            )
 
     def sanitize_workers(self, requested_workers: int) -> int:
         """

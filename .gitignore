@@ -28,6 +28,7 @@ htmlcov/
 result/
 storage/
 logs/
+*.log
 run_telegram_bot.py
 cookies.txt
 /test_*.py

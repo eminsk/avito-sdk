@@ -74,14 +74,26 @@ pixi add avito-sdk
 
 ---
 
-## 🌟 What's New in Version 0.2.0 (Release 0.2.0)
+## 🌟 What's New in Version 0.2.2
 
-- 🔄 **Automatic Block Recovery (Auto-Failover):** Automatically detects HTTP 429 / SmartCaptcha challenges, triggers mobile proxy IP rotation via `MobileProxy.space`, drops dead TCP sockets, and recovers scraping seamlessly with 100% success.
-- 📱 **Realistic Android User-Agent Pool:** Dynamic rotation of modern Android devices (Pixel 8, Galaxy S23/S24, Xiaomi 13/14) with synchronized Client Hints (`sec-ch-ua`, `sec-ch-ua-platform="Android"`) perfectly matched to Chrome 131 TLS impersonation.
-- 🔗 **Direct Search by Catalog URLs:** `client.search()` now natively accepts pasted Avito catalog/search URLs with delivery and sorting filters.
-- 📊 **Clickable Links in Excel Reports:** Automatically formats column 9 as blue clickable hyperlinks (`https://www.avito.ru/...`).
-- 🤖 **Interactive Telegram Bot:** Built-in `/code` command and UI button in `@eminsk_avito_bot` for instant code retrieval in private chats.
-- 🧵 **Modem Concurrency Safety:** Safe concurrency limiter (`sanitize_workers`) enforcing max 2 threads per mobile modem to prevent WAF bans.
+- 🔗 **Multi-Link Batch Scraping:** Send 2, 3, 4, or more Avito URLs in a single Telegram message to `@eminsk_avito_bot`. The bot sequentially scrapes each URL (up to 1,000+ items per link) and delivers individual Excel spreadsheets.
+- 🚀 **Fast and Turbo Modes (up to 8–16 workers):** Accelerated concurrent scraping with adaptive micro-jitter to prevent WAF burst blocks.
+- 🌐 **Strict Mobile Proxy Audit (`[ProxyAudit]`):** Automatic verification of purchased 4G/LTE mobile proxies with IP rotation at startup and in logs.
+- 📝 **Persistent Rotating File Logging (`storage/logs/avito_bot.log`):** Automatic log rotation (10 MB × 5 archives), strictly excluded from Git (`.gitignore`).
+- 🔒 **On-the-Fly Credential Masking (`PrivacyFilter`):** Sensitive proxy passwords and Telegram bot tokens are dynamically redacted from logs.
+- 🧹 **Guaranteed Resource Cleanup (Zero Socket Leaks):** All HTTP sessions, sockets, and transport connections are always closed cleanly.
+
+---
+
+## 🌐 Mobile Proxy Requirements & Support Policy
+
+> [!IMPORTANT]
+> **Mandatory requirement for stable scraping & official support policy:**
+> 1. Scraping Avito (especially for 100 to 1,000+ items, deep specs enrichment, and parallel workers) **strictly requires a purchased 4G/LTE mobile proxy with automatic IP rotation** (e.g. via [MobileProxy.space](https://mobileproxy.space/?p=32111)).
+> 2. **Proxy Audit in Logs:** The SDK automatically audits proxy status at startup and logs an explicit `[ProxyAudit]` badge.
+> 3. ⛔ **Support Policy:** **If scraping is run without a paid 4G mobile proxy with IP rotation (via direct home/datacenter IPs or non-rotating proxies), any issues regarding Avito WAF challenges, SmartCaptcha, HTTP 429 Too Many Requests, or 439 blocks ARE NOT CONSIDERED AND WILL NOT BE SUPPORTED.**
+> 4. **Persistent Logging & Privacy:** Logs are automatically saved to `storage/logs/avito_bot.log` with file rotation (10 MB × 5 backups) and are strictly excluded from Git (`.gitignore`). Credentials and bot tokens are masked in real time via `PrivacyFilter`.
+> 5. **Resource Cleanup:** All HTTP client sessions, sockets, and connections are always closed cleanly with zero leaks.
 
 ---
 

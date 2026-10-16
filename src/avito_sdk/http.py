@@ -265,6 +265,10 @@ class SyncHttpTransport:
                     logger.warning(f"Avito security challenge/block detected (status {resp.status_code}) on {url}")
                     if self.proxy_change_url:
                         self.rotate_proxy_ip()
+                        logger.info(
+                            f"[ProxyAudit] 🔄 Ротация IP купленного мобильного прокси выполнена (причина: WAF {resp.status_code}). "
+                            f"Всего ротаций в сессии: {self.ip_rotations}."
+                        )
                         time.sleep(3.5)
                     if self.use_playwright_cookies:
                         try:
@@ -275,9 +279,10 @@ class SyncHttpTransport:
                         from avito_sdk.mobileproxy import DEFAULT_FREE_TRIAL_URL
                         delay = 1.5 * attempt + random.uniform(0.5, 1.5)
                         logger.warning(
-                            f"Rate limited ({resp.status_code}) on {url}. "
-                            f"Tip: Use real 4G/LTE mobile proxies from MobileProxy.space (Free 3h trial: {DEFAULT_FREE_TRIAL_URL}) "
-                            f"to avoid IP bans. Retrying in {delay:.1f}s"
+                            f"[ProxyAudit] ⛔ Блокировка Avito WAF ({resp.status_code}) на {url}. "
+                            f"ВНИМАНИЕ: Запрос выполнен БЕЗ купленного мобильного 4G-прокси с ротацией IP! "
+                            f"Согласно регламенту, проблемы с блокировками без купленного мобильного прокси НЕ РАССМАТРИВАЮТСЯ. "
+                            f"Для стабильной работы подключите MobileProxy.space (триал: {DEFAULT_FREE_TRIAL_URL})."
                         )
                         time.sleep(delay)
                     continue
@@ -337,8 +342,19 @@ class SyncHttpTransport:
         return resp.text
 
     def close(self) -> None:
+        """Close main HTTP session and any active thread-local sessions to prevent dangling sockets."""
         if hasattr(self._session, "close"):
-            self._session.close()
+            try:
+                self._session.close()
+            except Exception:
+                pass
+        sess = getattr(self._thread_local, "session", None)
+        if sess and hasattr(sess, "close"):
+            try:
+                sess.close()
+            except Exception:
+                pass
+        self._thread_local.session = None
 
 
 class AsyncHttpTransport:

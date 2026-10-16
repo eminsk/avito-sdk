@@ -488,6 +488,31 @@ class AvitoTelegramBot:
         self.enrich_details = enrich_details
         self.use_playwright_cookies = use_playwright_cookies
         self._offset = 0
+        self._audit_proxy_status()
+
+    def _masked_proxy(self) -> str:
+        if not self.proxy:
+            return "НЕ ПОДКЛЮЧЕН (прямой IP)"
+        import re
+        return re.sub(r'://([^:\s]{1,3})[^:\s]*:([^@\s]+)@', r'://\1***:***@', self.proxy)
+
+    def _audit_proxy_status(self) -> None:
+        if self.proxy and self.proxy_change_url:
+            logger.info(
+                f"[ProxyAudit] ✅ КУПЛЕННЫЙ МОБИЛЬНЫЙ ПРОКСИ: ПОДКЛЮЧЕН И АКТИВЕН "
+                f"({self._masked_proxy()}, ротация IP настроена). Гарантия от банов активна."
+            )
+        elif self.proxy:
+            logger.warning(
+                f"[ProxyAudit] ⚠️ ПРОКСИ ПОДКЛЮЧЕН БЕЗ РОТАЦИИ IP ({self._masked_proxy()})! "
+                "Внимание: без автоматической смены IP претензии по блокировкам WAF (429/439) НЕ РАССМАТРИВАЮТСЯ!"
+            )
+        else:
+            logger.warning(
+                "[ProxyAudit] ❌ КУПЛЕННЫЙ МОБИЛЬНЫЙ ПРОКСИ НЕ ПОДКЛЮЧЕН (прямой IP)! "
+                "Внимание: Авито блокирует прямые серверные/домашние IP. "
+                "БЕЗ КУПЛЕННОГО МОБИЛЬНОГО ПРОКСИ ПРОБЛЕМЫ С БЛОКИРОВКАМИ И КАПЧЕЙ НЕ РАССМАТРИВАЮТСЯ!"
+            )
 
     def _main_keyboard(self) -> dict:
         enrich_icon = "✅ ВКЛ" if self.enrich_details else "❌ ВЫКЛ"

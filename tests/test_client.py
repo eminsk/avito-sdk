@@ -411,4 +411,20 @@ def test_extract_params_flat_and_groups_unpacking():
     assert seller_id == "abcdef1234567890"
 
 
+def test_logging_setup_and_privacy_filter(tmp_path):
+    from avito_sdk.logging_utils import setup_logging
+    import logging
+
+    log_file = tmp_path / "test_avito.log"
+    logger = setup_logging(log_file=log_file, level=logging.INFO, enable_console=False)
+
+    logger.info("Connecting via http://secret_user:secret_pass@1.2.3.4:8080/api")
+    logger.info("Calling Telegram api: https://api.telegram.org/bot1234567890:AAHabcdefghij123456789/getMe")
+
+    content = log_file.read_text(encoding="utf-8")
+    assert "secret_pass" not in content
+    assert "AAHabcdefghij123456789" not in content
+    assert "***:***" in content
+
+
 
