@@ -5,37 +5,46 @@
 """
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
-# Путь к скомпилированному MCP серверу
+# Read proxy settings from environment variables (or client configuration)
+PROXY = os.environ.get("AVITO_PROXY")
+CHANGE_URL = os.environ.get("AVITO_PROXY_CHANGE_URL")
+
+# Path to the compiled MCP server
 EXE_PATH = Path(sys.prefix) / "Scripts" / "avito-mcp.exe"
 if not EXE_PATH.exists():
     EXE_PATH = Path(r"C:\proekts\avito-sdk\.venv\Scripts\avito-mcp.exe")
-
-PROXY = "http://UZ5beb:Yk9uK3AR5uSk@mproxy.site:12411"
-CHANGE_URL = "https://changeip.mobileproxy.space/?proxy_key=41e8d9bc9c9a784102c33bf2db28bedb&format=json"
 
 def main():
     print("=" * 65)
     print("       ПРОВЕРКА РАБОТЫ AVITO MCP СЕРВЕРА В АНТИГРАВИТИ")
     print("=" * 65)
     print(f"[*] Исполняемый файл MCP: {EXE_PATH}")
+    if PROXY:
+        masked_host = PROXY.split("@")[-1] if "@" in PROXY else "configured"
+        print(f"[*] Прокси:               Подключен ({masked_host})")
+    else:
+        print("[*] Прокси:               Не задан (прямое подключение)")
+        print("    (Для защиты от лимитов Авито задайте переменную AVITO_PROXY)")
+
     
     if not EXE_PATH.exists():
         print(f"[!] Ошибка: файл {EXE_PATH} не найден!")
         return 1
 
     print("[*] Запуск процесса avito-mcp.exe через stdio...")
+    cmd = [str(EXE_PATH), "--db", "avito_prices.db", "--workers", "2"]
+    if PROXY:
+        cmd.extend(["--proxy", PROXY])
+    if CHANGE_URL:
+        cmd.extend(["--proxy-change-url", CHANGE_URL])
+
     proc = subprocess.Popen(
-        [
-            str(EXE_PATH),
-            "--proxy", PROXY,
-            "--proxy-change-url", CHANGE_URL,
-            "--db", "avito_prices.db",
-            "--workers", "2",
-        ],
+        cmd,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
