@@ -106,8 +106,35 @@ def extract_params(payload: Any) -> Dict[str, str]:
                             if desc is not None and str(desc).strip():
                                 params_dict[title.strip()] = str(desc).strip()
             elif isinstance(container, dict):
+                # Unpack flat items list: e.g. parameters['flat']
+                flat_list = container.get("flat")
+                if isinstance(flat_list, list):
+                    for item in flat_list:
+                        if isinstance(item, dict):
+                            title = item.get("title") or item.get("name") or item.get("label")
+                            desc = item.get("description") or item.get("value") or item.get("text")
+                            if isinstance(title, str) and title.strip():
+                                if desc is not None and str(desc).strip():
+                                    params_dict[title.strip()] = str(desc).strip()
+
+                # Unpack grouped items: e.g. parameters['groups']
+                groups_list = container.get("groups")
+                if isinstance(groups_list, list):
+                    for grp in groups_list:
+                        if isinstance(grp, dict) and isinstance(grp.get("items"), list):
+                            for item in grp["items"]:
+                                if isinstance(item, dict):
+                                    title = item.get("title") or item.get("name") or item.get("label")
+                                    desc = item.get("description") or item.get("value") or item.get("text")
+                                    if isinstance(title, str) and title.strip():
+                                        if desc is not None and str(desc).strip():
+                                            params_dict[title.strip()] = str(desc).strip()
+
+                # Other scalar key-values, skipping UI metadata containers
                 for k, v in container.items():
-                    if isinstance(k, str) and k.strip() and v is not None and str(v).strip():
+                    if k in ("flat", "groups", "expandButton", "flatTitle"):
+                        continue
+                    if isinstance(k, str) and k.strip() and isinstance(v, (str, int, float, bool)):
                         params_dict[k.strip()] = str(v).strip()
 
     return params_dict
@@ -181,16 +208,34 @@ def extract_seller_name(payload: Any, html_text: Optional[str] = None) -> Option
 
 
 def extract_seller_id(payload_or_link: Any) -> Optional[str]:
-    """Extract seller ID or public slug from userLogo or URL."""
+    """Extract seller ID, user hash, or public slug from userLogo, seller info, or URL."""
     if not payload_or_link:
         return None
 
     if isinstance(payload_or_link, dict):
-        link = nested_get(payload_or_link, "userLogo", "link") or payload_or_link.get("sellerId")
+        seller = (
+            nested_get(payload_or_link, "success", "mobile", "seller")
+            or nested_get(payload_or_link, "success", "mobile", "sellerInfo")
+            or payload_or_link.get("seller")
+            or payload_or_link.get("sellerInfo")
+            or payload_or_link
+        )
+        if isinstance(seller, dict):
+            h = seller.get("userHash") or seller.get("userHashId") or seller.get("sellerId")
+            if h and isinstance(h, str):
+                return h.strip()
+        link = (
+            nested_get(payload_or_link, "userLogo", "link")
+            or (seller.get("link") if isinstance(seller, dict) else None)
+            or payload_or_link.get("sellerId")
+        )
     else:
         link = str(payload_or_link)
 
     if link:
+        match = re.search(r"userKey=([a-zA-Z0-9_\-]+)", str(link))
+        if match:
+            return match.group(1)
         match = re.search(r"/(?:brands|user)/([^/?#'\"\s]+)", str(link))
         if match:
             return match.group(1).rstrip("/")

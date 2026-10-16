@@ -676,38 +676,41 @@ class AvitoTelegramBot:
             modems_count=self.modems_count,
         )
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            excel_path = Path(tmpdir) / "avito_results.xlsx"
-            try:
-                if query.startswith("http://") or query.startswith("https://"):
-                    pages_needed = max(1, (self.limit + 49) // 50)
-                    client.scrape_url(
-                        url=query,
+        reports_dir = Path("storage/reports")
+        reports_dir.mkdir(parents=True, exist_ok=True)
+        import time
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        excel_path = reports_dir / f"avito_results_{timestamp}.xlsx"
+
+        try:
+            pages_needed = max(1, (self.limit + 29) // 30)
+            if query.startswith("http://") or query.startswith("https://"):
+                client.scrape_url(
+                    url=query,
+                    max_pages=pages_needed,
+                    limit=self.limit,
+                    enrich_details=self.enrich_details,
+                    max_workers=self.workers,
+                    telegram_progress=True,
+                    excel_path=excel_path,
+                )
+            else:
+                list(
+                    client.search(
+                        query=query,
                         max_pages=pages_needed,
-                        limit=self.limit,
                         enrich_details=self.enrich_details,
                         max_workers=self.workers,
+                        limit=self.limit,
                         telegram_progress=True,
                         excel_path=excel_path,
                     )
-                else:
-                    pages_needed = max(1, (self.limit + 49) // 50)
-                    list(
-                        client.search(
-                            query=query,
-                            max_pages=pages_needed,
-                            enrich_details=self.enrich_details,
-                            max_workers=self.workers,
-                            limit=self.limit,
-                            telegram_progress=True,
-                            excel_path=excel_path,
-                        )
-                    )
-            except Exception as err:
-                logger.error(f"Search flow error: {err}")
-                notifier.send_message(f"❌ Ошибка при сборе: {err}", parse_mode=None)
-            finally:
-                client.close()
+                )
+        except Exception as err:
+            logger.error(f"Search flow error: {err}")
+            notifier.send_message(f"❌ Ошибка при сборе: {err}", parse_mode=None)
+        finally:
+            client.close()
 
     def handle_callback(self, cb: dict) -> None:
         cb_id = str(cb.get("id", ""))

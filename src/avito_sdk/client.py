@@ -190,7 +190,7 @@ class AvitoClient:
         from avito_sdk.telegram import render_progress_bar
 
         if limit:
-            needed_pages = max(1, (limit + 49) // 50)
+            needed_pages = max(1, (limit + 29) // 30)
             if max_pages == 5 or max_pages < needed_pages:
                 max_pages = needed_pages
 
@@ -248,7 +248,7 @@ class AvitoClient:
         collected_for_excel: List[Item] = []
         drops_count = 0
         yielded_count = 0
-        total_expected = limit or (max_pages * 50)
+        total_expected = limit or (max_pages * 30)
         use_mob_proxy = bool(self.transport.proxy)
 
         progress_ids = {}
@@ -390,7 +390,13 @@ class AvitoClient:
         results: List[Item] = []
         drops_count = 0
         use_mob_proxy = bool(self.transport.proxy)
-        total_expected = limit or (max_pages * 50)
+
+        if limit:
+            needed_pages = max(1, (limit + 29) // 30)
+            if max_pages == 5 or max_pages < needed_pages:
+                max_pages = needed_pages
+
+        total_expected = limit or (max_pages * 30)
 
         progress_ids = {}
         if telegram_progress and self.notifier:
@@ -637,6 +643,34 @@ class AvitoClient:
                     item.total_views = total_views
                 if today_views is not None:
                     item.today_views = today_views
+
+                # Deep card metadata: address, location, coords, category, publication timestamp
+                mobile = payload.get("success", {}).get("mobile", {}) if isinstance(payload, dict) else {}
+                if isinstance(mobile, dict):
+                    if not item.address and mobile.get("address"):
+                        item.address = str(mobile["address"]).strip()
+                    if not item.location_name:
+                        if item.address:
+                            item.location_name = item.address.split(",")[0].strip()
+                        elif mobile.get("breadcrumbs") and isinstance(mobile["breadcrumbs"], list) and mobile["breadcrumbs"]:
+                            loc_title = mobile["breadcrumbs"][0].get("title", "")
+                            if " в " in loc_title:
+                                item.location_name = loc_title.split(" в ")[-1].strip()
+                    if not item.coords and mobile.get("coords") and isinstance(mobile["coords"], dict):
+                        item.coords = mobile["coords"]
+                    if not item.category_name and mobile.get("breadcrumbs"):
+                        b = mobile["breadcrumbs"]
+                        if isinstance(b, list) and b and isinstance(b[0], dict):
+                            item.category_name = b[0].get("name") or b[0].get("title")
+                    if not item.published_at and mobile.get("time"):
+                        from datetime import datetime, timezone
+                        from avito_sdk.extractors import safe_int
+                        ts = safe_int(mobile["time"])
+                        if ts > 0:
+                            try:
+                                item.published_at = datetime.fromtimestamp(ts, timezone.utc)
+                            except Exception:
+                                pass
         except Exception as err:
             logger.debug(f"API card fetch failed for item {item.id}, attempting HTML fallback: {err}")
             try:

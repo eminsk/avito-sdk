@@ -342,10 +342,51 @@ def test_search_max_pages_auto_scaling(monkeypatch, tmp_path):
 
     monkeypatch.setattr(client.transport, "fetch_html", mock_fetch)
 
-    # limit=120 requires (120+49)//50 = 3 pages even if default max_pages=5
+    # limit=120 requires (120+29)//30 = 4 pages even if default max_pages=1
     items = list(client.search("macbook", limit=120, max_pages=1))
-    assert len(fetched_urls) == 3
+    assert len(fetched_urls) == 4
     client.close()
+
+
+def test_extract_params_flat_and_groups_unpacking():
+    from avito_sdk.extractors import extract_params, extract_seller_id
+
+    payload = {
+        "success": {
+            "mobile": {
+                "parameters": {
+                    "expandButton": {"limit": 5, "title": "Показать все"},
+                    "flatTitle": {"text": "О помещении"},
+                    "flat": [
+                        {"title": "Общая площадь", "description": "133.8 м²"},
+                        {"title": "Этаж", "description": "2"},
+                    ],
+                    "groups": [
+                        {
+                            "title": "Здание",
+                            "items": [
+                                {"title": "Класс здания", "description": "B+"},
+                            ],
+                        }
+                    ],
+                },
+                "seller": {
+                    "name": "Тестовый продавец",
+                    "userHash": "abcdef1234567890",
+                },
+            }
+        }
+    }
+
+    params = extract_params(payload)
+    assert params["Общая площадь"] == "133.8 м²"
+    assert params["Этаж"] == "2"
+    assert params["Класс здания"] == "B+"
+    assert "expandButton" not in params
+    assert "flatTitle" not in params
+
+    seller_id = extract_seller_id(payload)
+    assert seller_id == "abcdef1234567890"
 
 
 
