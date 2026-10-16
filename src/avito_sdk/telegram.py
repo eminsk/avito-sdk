@@ -689,7 +689,7 @@ class AvitoTelegramBot:
         try:
             pages_needed = max(1, (self.limit + 29) // 30)
             if query.startswith("http://") or query.startswith("https://"):
-                client.scrape_url(
+                items = client.scrape_url(
                     url=query,
                     max_pages=pages_needed,
                     limit=self.limit,
@@ -698,8 +698,15 @@ class AvitoTelegramBot:
                     telegram_progress=True,
                     excel_path=excel_path,
                 )
+                if not items:
+                    notifier.send_message(
+                        "ℹ️ По данной ссылке не найдено активных объявлений.\n"
+                        "💡 <i>Проверьте ссылку в браузере: возможно, в адресе опечатка или страница не существует на Авито.</i>",
+                        parse_mode="HTML",
+                    )
+                return len(items)
             else:
-                list(
+                items = list(
                     client.search(
                         query=query,
                         max_pages=pages_needed,
@@ -710,9 +717,16 @@ class AvitoTelegramBot:
                         excel_path=excel_path,
                     )
                 )
+                if not items:
+                    notifier.send_message(
+                        f"ℹ️ По запросу «{query}» не найдено объявлений.",
+                        parse_mode=None,
+                    )
+                return len(items)
         except Exception as err:
             logger.error(f"Search flow error: {err}")
             notifier.send_message(f"❌ Ошибка при сборе: {err}", parse_mode=None)
+            return 0
         finally:
             client.close()
 
@@ -928,10 +942,23 @@ class AvitoTelegramBot:
                 f"Запускаю последовательный сбор каждой ссылки (лимит: <b>{self.limit}</b> на ссылку, воркеров: <b>{self.workers}</b>)...",
                 parse_mode="HTML",
             )
+            success_count = 0
+            total_items = 0
             for idx, u in enumerate(urls, 1):
                 notifier.send_message(f"⏳ <i>[Ссылка {idx}/{len(urls)}] Обработка:</i> <code>{u[:50]}...</code>", parse_mode="HTML")
-                self._run_search_flow(chat_id, u)
-            notifier.send_message(f"🎉 <b>Все {len(urls)} ссылки успешно выгружены в Excel!</b>", parse_mode="HTML")
+                cnt = self._run_search_flow(chat_id, u) or 0
+                if cnt > 0:
+                    success_count += 1
+                    total_items += cnt
+
+            if success_count == len(urls):
+                notifier.send_message(f"🎉 <b>Все {len(urls)} ссылки успешно выгружены в Excel!</b> (Всего собрано: {total_items} объявл.)", parse_mode="HTML")
+            else:
+                notifier.send_message(
+                    f"🏁 <b>Сбор завершён:</b> обработано ссылок: {len(urls)}, успешно: {success_count}, собрано объявлений: {total_items}.\n"
+                    f"💡 <i>Если по какой-то ссылке найдено 0 объявлений — проверьте её открытие в браузере.</i>",
+                    parse_mode="HTML",
+                )
             return
 
         self._run_search_flow(chat_id, query)

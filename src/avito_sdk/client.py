@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+import time
 from typing import Generator, Iterable, List, Optional, Union
 
 from bs4 import BeautifulSoup
@@ -280,7 +281,11 @@ class AvitoClient:
 
                 if not items:
                     consecutive_empty += 1
-                    if consecutive_empty >= 2:
+                    if consecutive_empty >= 2 or page_num == 1:
+                        if page_num == 1:
+                            logger.info(f"Page 1 returned 0 items for query: {query}")
+                        else:
+                            logger.info(f"End of search results at page {page_num}.")
                         break
                     continue
                 consecutive_empty = 0
@@ -443,8 +448,11 @@ class AvitoClient:
 
                 if not page_items:
                     consecutive_empty += 1
-                    if consecutive_empty >= 2:
-                        logger.info(f"End of catalog reached at page {page} (2 consecutive empty pages).")
+                    if consecutive_empty >= 2 or page == 1:
+                        if page == 1:
+                            logger.info(f"Page 1 returned 0 items. URL may be invalid or category empty: {url}")
+                        else:
+                            logger.info(f"End of catalog reached at page {page} (2 consecutive empty pages).")
                         break
                     continue
                 consecutive_empty = 0
@@ -586,6 +594,10 @@ class AvitoClient:
     def scrape_page_items(self, url: str) -> List[Item]:
         """Fetch and extract items from a single page URL."""
         html_text = self.transport.fetch_html(url)
+        if "такой страницы не существует" in html_text.lower() or "страница не найдена" in html_text.lower():
+            logger.warning(f"Страница не найдена на Авито (404 Not Found): {url}")
+            return []
+
         soup = BeautifulSoup(html_text, "html.parser")
         embedded = extract_embedded_state(soup)
 
