@@ -710,7 +710,13 @@ class AvitoTelegramBot:
             "файл Excel (.xlsx) с ценами, продавцами, характеристиками и ссылками."
         )
 
-    def _run_search_flow(self, chat_id: str, query: str) -> None:
+    def _run_search_flow(
+        self,
+        chat_id: str,
+        query: str,
+        on_progress: Optional[Any] = None,
+        suppress_individual_progress: bool = False,
+    ) -> int:
         from avito_sdk.client import AvitoClient
         notifier = TelegramNotifier(bot_token=self.bot_token, chat_id=chat_id)
         target_chats = [chat_id]
@@ -735,6 +741,11 @@ class AvitoTelegramBot:
         def _on_prog(current, total):
             self._current_collected = current
             self._current_limit = total
+            if on_progress:
+                try:
+                    on_progress(current, total, getattr(client.transport, "ip_rotations", 0))
+                except Exception:
+                    pass
 
         try:
             pages_needed = max(1, (self.limit + 29) // 30)
@@ -745,7 +756,7 @@ class AvitoTelegramBot:
                     limit=self.limit,
                     enrich_details=self.enrich_details,
                     max_workers=self.workers,
-                    telegram_progress=True,
+                    telegram_progress=not suppress_individual_progress,
                     excel_path=excel_path,
                     progress_callback=_on_prog,
                 )
@@ -1035,11 +1046,22 @@ class AvitoTelegramBot:
                 self._current_collected = 0
                 self._current_limit = self.limit
 
-            notifier.send_message(
-                f"🔗 <b>Обнаружено {len(urls)} ссылки для сбора данных!</b>\n\n"
-                f"Запускаю последовательный сбор каждой ссылки (лимит: <b>{self.limit}</b> на ссылку, воркеров: <b>{self.workers}</b>)...",
-                parse_mode="HTML",
+            grand_total = len(urls) * self.limit
+            master_bar = render_telegram_progress_bar(0, grand_total)
+            link_bar = render_telegram_progress_bar(0, self.limit)
+            initial_master_text = (
+                f"🚀 <b>Пакетный сбор данных с Авито ({len(urls)} ссылки)</b>\n\n"
+                f"📊 <b>1. Общий прогресс ({len(urls)} ссылок):</b>\n"
+                f"{master_bar} <b>0%</b> (0 / {grand_total} объявл.)\n\n"
+                f"🔗 <b>2. Текущая ссылка [1/{len(urls)}]:</b>\n"
+                f"<code>{html.escape(urls[0][:50])}...</code>\n"
+                f"{link_bar} <b>0%</b> (0 / {self.limit} объявл.)\n\n"
+                f"🌐 <b>Мобильный прокси:</b> Подключен (4G LTE)\n"
+                f"🧵 <b>Потоков:</b> {self.workers} воркеров (Turbo Mode, No-GIL)\n\n"
+                f"⚡ <i>После каждой ссылки бот сразу прикрепит файл Excel ниже 👇</i>"
             )
+            msg_res = notifier.send_message(initial_master_text, parse_mode="HTML")
+            master_mid = msg_res.get(chat_id)
 
             def _bg_multi_worker():
                 try:
@@ -1050,30 +1072,47 @@ class AvitoTelegramBot:
                         self._current_url = u
                         self._current_collected = 0
                         self._current_limit = self.limit
-                        notifier.send_message(
-                            f"🚀 <b>[Ссылка {idx}/{len(urls)}] Начинаю сбор данных:</b>\n"
-                            f"<code>{u}</code>\n\n"
-                            f"📦 <i>Лимит: {self.limit} объявлений, воркеров: {self.workers}</i>",
-                            parse_mode="HTML",
-                        )
-                        cnt = self._run_search_flow(chat_id, u) or 0
+
+                        def _batch_progress(curr, tot, rots=0):
+                            if not master_mid:
+                                return
+                            overall = total_items + curr
+                            m_b = render_telegram_progress_bar(overall, grand_total)
+                            m_p = int(round((overall / max(1, grand_total)) * 100))
+                            l_b = render_telegram_progress_bar(curr, tot or self.limit)
+                            l_p = int(round((curr / max(1, tot or self.limit)) * 100))
+                            upd_txt = (
+                                f"🚀 <b>Пакетный сбор данных с Авито ({len(urls)} ссылки)</b>\n\n"
+                                f"📊 <b>1. Общий прогресс ({len(urls)} ссылок):</b>\n"
+                                f"{m_b} <b>{m_p}%</b> ({overall} / {grand_total} объявл.)\n\n"
+                                f"🔗 <b>2. Текущая ссылка [{idx}/{len(urls)}]:</b>\n"
+                                f"<code>{html.escape(u[:50])}...</code>\n"
+                                f"{l_b} <b>{l_p}%</b> ({curr} / {tot or self.limit} объявл.)\n\n"
+                                f"🌐 <b>Мобильный прокси:</b> ротаций {rots}\n"
+                                f"🧵 <b>Потоков:</b> {self.workers} воркеров (Turbo Mode, No-GIL)\n\n"
+                                f"⚡ <i>После каждой ссылки бот сразу прикрепит файл Excel ниже 👇</i>"
+                            )
+                            notifier.edit_message(chat_id, master_mid, upd_txt, parse_mode="HTML")
+
+                        try:
+                            cnt = self._run_search_flow(chat_id, u, on_progress=_batch_progress, suppress_individual_progress=True) or 0
+                        except TypeError:
+                            cnt = self._run_search_flow(chat_id, u) or 0
                         if cnt > 0:
                             success_count += 1
                             total_items += cnt
-                            notifier.send_message(
-                                f"✅ <b>[Ссылка {idx}/{len(urls)}] Сбор завершён!</b> Собрано: {cnt} объявлений.\n"
-                                f"📊 <i>Файл Excel загружен выше. Перехожу к следующей ссылке...</i>",
-                                parse_mode="HTML",
-                            )
 
-                    if success_count == len(urls):
-                        notifier.send_message(f"🎉 <b>Все {len(urls)} ссылки успешно выгружены в Excel!</b> (Всего собрано: {total_items} объявл.)", parse_mode="HTML")
+                    fin_b = render_telegram_progress_bar(total_items, max(1, grand_total))
+                    fin_p = int(round((total_items / max(1, grand_total)) * 100))
+                    fin_txt = (
+                        f"🎉 <b>Пакетный сбор по {len(urls)} ссылкам завершён!</b>\n\n"
+                        f"📊 <b>Итого собрано:</b> {fin_b} <b>{fin_p}%</b> ({total_items} / {grand_total} объявл.)\n"
+                        f"📁 <i>Все сформированные файлы Excel (.xlsx) загружены выше в диалог 👆</i>"
+                    )
+                    if master_mid:
+                        notifier.edit_message(chat_id, master_mid, fin_txt, parse_mode="HTML")
                     else:
-                        notifier.send_message(
-                            f"🏁 <b>Сбор завершён:</b> обработано ссылок: {len(urls)}, успешно: {success_count}, собрано объявлений: {total_items}.\n"
-                            f"💡 <i>Если по какой-то ссылке найдено 0 объявлений — проверьте её открытие в браузере.</i>",
-                            parse_mode="HTML",
-                        )
+                        notifier.send_message(fin_txt, parse_mode="HTML")
                 finally:
                     with self._scrape_lock:
                         self._is_scraping = False
@@ -1084,7 +1123,9 @@ class AvitoTelegramBot:
                         self._current_collected = 0
                         self._current_limit = 0
 
-            threading.Thread(target=_bg_multi_worker, daemon=True).start()
+            t = threading.Thread(target=_bg_multi_worker, daemon=True)
+            self._last_worker_thread = t
+            t.start()
             return
 
         with self._scrape_lock:

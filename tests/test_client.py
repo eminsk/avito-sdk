@@ -233,6 +233,8 @@ def test_telegram_bot_commands(monkeypatch):
     monkeypatch.setattr(bot, "_run_search_flow", lambda cid, q: flow_calls.append(q))
     multi_url_msg = "https://m.avito.ru/moskva/telefony\nhttps://m.avito.ru/moskva/noutbuki"
     bot.handle_update({"message": {"chat": {"id": 777}, "text": multi_url_msg}})
+    if hasattr(bot, "_last_worker_thread") and bot._last_worker_thread:
+        bot._last_worker_thread.join(timeout=2.0)
     assert len(flow_calls) == 2
     assert "telefony" in flow_calls[0]
     assert "noutbuki" in flow_calls[1]
