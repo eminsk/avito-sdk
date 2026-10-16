@@ -206,3 +206,31 @@ def test_extract_catalog_items():
     assert items[0].seller_id == "computershop"
     assert items[1].id == 333444
     assert items[1].price == 40000
+
+
+def test_safe_int_unicode_superscripts():
+    """Verify that unicode superscripts like ² and ³ do not break integer parsing."""
+    from avito_sdk.extractors import safe_int
+
+    assert safe_int("2466²") == 2466
+    assert safe_int("2 466 ₽ за м²") == 2466
+    assert safe_int("150 000 ₽ / м³") == 150000
+    assert safe_int("¹²³⁴⁵⁶⁷⁸⁹") == 0  # no standard ASCII 0-9 digits
+    assert safe_int(None) == 0
+    assert safe_int(False) == 0
+    assert safe_int(999) == 999
+
+
+def test_commercial_realty_price_parsing():
+    """Verify that commercial real estate price strings with м² are parsed cleanly."""
+    raw_item = {
+        "id": "3854129841",
+        "title": "Склад 500 м²",
+        "priceDetailed": {"value": "2466²", "string": "2 466 ₽ за м²"},
+        "urlPath": "/moskva/kommercheskaya_nedvizhimost/sklad_3854129841",
+    }
+    item = parse_raw_item(raw_item)
+    assert item is not None
+    assert item.id == 3854129841
+    assert item.price == 2466
+

@@ -26,6 +26,26 @@ def nested_get(data: Any, *keys: str) -> Any:
     return current
 
 
+def safe_int(val: Any, default: int = 0) -> int:
+    """
+    Safely extract ASCII decimal digits (0-9) and convert to int.
+    Filters out unicode superscripts (e.g. '²' in '2466²' or 'м²') that cause int() to raise ValueError.
+    """
+    if val is None or isinstance(val, bool):
+        return default
+    if isinstance(val, (int, float)):
+        return int(val)
+    # Only keep ASCII decimal digits '0'..'9'
+    digits = "".join(ch for ch in str(val) if "0" <= ch <= "9")
+    if not digits:
+        return default
+    try:
+        return int(digits)
+    except (ValueError, TypeError):
+        return default
+
+
+
 def extract_params(payload: Any) -> Dict[str, str]:
     """
     Extract item parameters and characteristics (e.g. «О помещении», авто, электроника).
@@ -244,12 +264,8 @@ def extract_views(payload: Any, html_text: Optional[str] = None) -> Tuple[Option
     def parse_count(val: Any) -> Optional[int]:
         if isinstance(val, bool) or val is None:
             return None
-        if isinstance(val, int):
-            return val
-        if isinstance(val, str):
-            digits = "".join(ch for ch in val if ch.isdigit())
-            return int(digits) if digits else None
-        return None
+        res = safe_int(val, default=-1)
+        return res if res >= 0 else None
 
     # 1. From payload
     if isinstance(payload, dict):
@@ -333,9 +349,8 @@ def parse_raw_item(raw: Dict[str, Any]) -> Optional[Item]:
     item_id_val = raw.get("id")
     if isinstance(item_id_val, bool) or item_id_val is None:
         return None
-    try:
-        item_id = int(item_id_val)
-    except (ValueError, TypeError):
+    item_id = safe_int(item_id_val, default=0)
+    if not item_id:
         return None
 
     # Title & Price
@@ -343,13 +358,12 @@ def parse_raw_item(raw: Dict[str, Any]) -> Optional[Item]:
     price_detailed = raw.get("priceDetailed") or {}
     price = 0
     if isinstance(price_detailed, dict) and price_detailed.get("value") is not None:
-        price = price_detailed.get("value") or 0
-    elif isinstance(raw.get("price"), (int, float)):
-        price = int(raw["price"])
+        price = safe_int(price_detailed.get("value"), default=0)
+    elif isinstance(raw.get("price"), (int, float, str)):
+        price = safe_int(raw["price"], default=0)
     elif isinstance(raw.get("price"), dict):
         cur = raw["price"].get("current") or raw["price"].get("value") or ""
-        digits = "".join(ch for ch in str(cur) if ch.isdigit())
-        price = int(digits) if digits else 0
+        price = safe_int(cur, default=0)
 
     price_str = price_detailed.get("string") if isinstance(price_detailed, dict) else (
         raw.get("price", {}).get("current") if isinstance(raw.get("price"), dict) else None

@@ -19,6 +19,7 @@ from avito_sdk.extractors import (
     extract_seller_id,
     extract_seller_name,
     extract_views,
+    safe_int,
 )
 from avito_sdk.http import AsyncHttpTransport
 from avito_sdk.models import Item, SearchFilter
@@ -143,19 +144,15 @@ class AsyncAvitoClient:
             item_id_str = el.get("data-item-id") or el.get("id")
             if not item_id_str:
                 continue
-            digits = "".join(filter(str.isdigit, str(item_id_str)))
-            if not digits:
+            item_id = safe_int(item_id_str, default=0)
+            if not item_id:
                 continue
-            item_id = int(digits)
 
             title_el = el.select_one('[data-marker="item-title"]') or el.select_one("h3")
             title = title_el.get_text(strip=True) if title_el else ""
 
             price_el = el.select_one('[data-marker="item-price"]') or el.select_one('[itemprop="price"]')
-            price = 0
-            if price_el:
-                price_digits = "".join(filter(str.isdigit, price_el.get_text()))
-                price = int(price_digits) if price_digits else 0
+            price = safe_int(price_el.get_text(), default=0) if price_el else 0
 
             url_el = el.select_one('a[data-marker="item-title"]') or el.select_one('a[itemprop="url"]')
             link = url_el.get("href") if url_el else ""

@@ -679,9 +679,11 @@ class AvitoTelegramBot:
             excel_path = Path(tmpdir) / "avito_results.xlsx"
             try:
                 if query.startswith("http://") or query.startswith("https://"):
+                    pages_needed = max(1, (self.limit + 49) // 50)
                     client.scrape_url(
                         url=query,
-                        max_pages=2,
+                        max_pages=pages_needed,
+                        limit=self.limit,
                         enrich_details=self.enrich_details,
                         max_workers=self.workers,
                         telegram_progress=True,
