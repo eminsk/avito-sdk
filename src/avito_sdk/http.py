@@ -120,14 +120,22 @@ class SyncHttpTransport:
         self.ip_rotations = 0
         self._rotation_lock = threading.Lock()
         self._last_rotation_ts = 0.0
+        self._session_generation = 0
         self._thread_local = threading.local()
         self._session = self._create_session()
 
     def _get_thread_session(self):
+        gen = getattr(self._thread_local, "generation", -1)
         sess = getattr(self._thread_local, "session", None)
-        if sess is None:
+        if sess is None or gen != self._session_generation:
+            if sess is not None and hasattr(sess, "close"):
+                try:
+                    sess.close()
+                except Exception:
+                    pass
             sess = self._create_session()
             self._thread_local.session = sess
+            self._thread_local.generation = self._session_generation
         return sess
 
     def _create_session(self):
@@ -183,7 +191,7 @@ class SyncHttpTransport:
             return False
         with self._rotation_lock:
             now = time.monotonic()
-            if self._last_rotation_ts > 0 and (now - self._last_rotation_ts) < 2.0:
+            if self._last_rotation_ts > 0 and (now - self._last_rotation_ts) < 4.0:
                 return True
 
             rotated = False
@@ -218,7 +226,8 @@ class SyncHttpTransport:
                     return False
 
             if rotated:
-                # Drop stale connection pool so curl_cffi creates fresh TCP handshake with new IP
+                # Advance session generation so ALL threads discard stale sockets and connect fresh
+                self._session_generation += 1
                 if hasattr(self._session, "close"):
                     try:
                         self._session.close()
@@ -287,6 +296,8 @@ class SyncHttpTransport:
                         time.sleep(delay)
                     continue
 
+                if resp.status_code == 404:
+                    return resp
                 resp.raise_for_status()
                 return resp
             except Exception as e:

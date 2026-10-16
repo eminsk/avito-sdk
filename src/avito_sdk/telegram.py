@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import tempfile
+import threading
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Union
@@ -488,6 +489,9 @@ class AvitoTelegramBot:
         self.enrich_details = enrich_details
         self.use_playwright_cookies = use_playwright_cookies
         self._offset = 0
+        self._is_scraping = False
+        self._current_task_info = ""
+        self._scrape_lock = threading.Lock()
         self._audit_proxy_status()
 
     def _masked_proxy(self) -> str:
@@ -611,8 +615,14 @@ class AvitoTelegramBot:
         rot_state = "✅ Активна (MobileProxy.space)" if self.proxy_change_url else "❌ Не задана"
         enrich_state = "ВКЛ (глубокий сбор)" if self.enrich_details else "ВЫКЛ (только выдача)"
         chan_state = self.channel_id or "Текущий диалог"
+        import html
+        if self._is_scraping:
+            task_state = f"⏳ <b>Фоновый сбор:</b> <code>{html.escape(self._current_task_info)}</code>\n\n"
+        else:
+            task_state = "💤 <b>Статус:</b> Ожидание команд (готов к поиску)\n\n"
         return (
             "🤖 <b>Панель управления Avito SDK Bot</b>\n\n"
+            f"{task_state}"
             f"🌐 <b>Мобильный прокси:</b> {proxy_state}\n"
             f"🔄 <b>Автосмена IP:</b> {rot_state}\n"
             f"🧵 <b>Потоков (воркеров):</b> <code>{self.workers}</code> <i>(Safe Mode: 1 модем)</i>\n"
@@ -862,8 +872,28 @@ class AvitoTelegramBot:
 
         if data.startswith("quick_search:"):
             q = data.split(":", 1)[1]
+            with self._scrape_lock:
+                if self._is_scraping:
+                    notifier.answer_callback(
+                        cb_id,
+                        text=f"⏳ Уже выполняется сбор: {self._current_task_info[:35]}...",
+                        show_alert=True,
+                    )
+                    return
+                self._is_scraping = True
+                self._current_task_info = q
+
             notifier.answer_callback(cb_id, text=f"🚀 Запуск поиска: {q}")
-            self._run_search_flow(chat_id, q)
+
+            def _bg_quick_worker():
+                try:
+                    self._run_search_flow(chat_id, q)
+                finally:
+                    with self._scrape_lock:
+                        self._is_scraping = False
+                        self._current_task_info = ""
+
+            threading.Thread(target=_bg_quick_worker, daemon=True).start()
             return
 
     def handle_update(self, update: dict) -> None:
@@ -956,33 +986,75 @@ class AvitoTelegramBot:
             return
 
         import re
+        import html
         urls = re.findall(r'https?://[^\s]+', query)
         if len(urls) > 1:
+            with self._scrape_lock:
+                if self._is_scraping:
+                    notifier.send_message(
+                        f"⏳ <b>Бот уже выполняет сбор данных в фоне!</b>\n\n"
+                        f"Текущая задача: <code>{html.escape(self._current_task_info)}</code>\n\n"
+                        f"💡 <i>Пожалуйста, дождитесь завершения или отслеживайте прогресс в сообщении выше.</i>",
+                        parse_mode="HTML",
+                    )
+                    return
+                self._is_scraping = True
+                self._current_task_info = f"Сбор {len(urls)} ссылок (по {self.limit} шт, {self.workers} воркеров)"
+
             notifier.send_message(
                 f"🔗 <b>Обнаружено {len(urls)} ссылки для сбора данных!</b>\n\n"
-                f"Запускаю последовательный сбор каждой ссылки (лимит: <b>{self.limit}</b> на ссылку, воркеров: <b>{self.workers}</b>)...",
+                f"Запускаю фоновый сбор каждой ссылки (лимит: <b>{self.limit}</b> на ссылку, воркеров: <b>{self.workers}</b>)...",
                 parse_mode="HTML",
             )
-            success_count = 0
-            total_items = 0
-            for idx, u in enumerate(urls, 1):
-                notifier.send_message(f"⏳ <i>[Ссылка {idx}/{len(urls)}] Обработка:</i> <code>{u[:50]}...</code>", parse_mode="HTML")
-                cnt = self._run_search_flow(chat_id, u) or 0
-                if cnt > 0:
-                    success_count += 1
-                    total_items += cnt
 
-            if success_count == len(urls):
-                notifier.send_message(f"🎉 <b>Все {len(urls)} ссылки успешно выгружены в Excel!</b> (Всего собрано: {total_items} объявл.)", parse_mode="HTML")
-            else:
-                notifier.send_message(
-                    f"🏁 <b>Сбор завершён:</b> обработано ссылок: {len(urls)}, успешно: {success_count}, собрано объявлений: {total_items}.\n"
-                    f"💡 <i>Если по какой-то ссылке найдено 0 объявлений — проверьте её открытие в браузере.</i>",
-                    parse_mode="HTML",
-                )
+            def _bg_multi_worker():
+                try:
+                    success_count = 0
+                    total_items = 0
+                    for idx, u in enumerate(urls, 1):
+                        notifier.send_message(f"⏳ <i>[Ссылка {idx}/{len(urls)}] Обработка:</i> <code>{u[:50]}...</code>", parse_mode="HTML")
+                        cnt = self._run_search_flow(chat_id, u) or 0
+                        if cnt > 0:
+                            success_count += 1
+                            total_items += cnt
+
+                    if success_count == len(urls):
+                        notifier.send_message(f"🎉 <b>Все {len(urls)} ссылки успешно выгружены в Excel!</b> (Всего собрано: {total_items} объявл.)", parse_mode="HTML")
+                    else:
+                        notifier.send_message(
+                            f"🏁 <b>Сбор завершён:</b> обработано ссылок: {len(urls)}, успешно: {success_count}, собрано объявлений: {total_items}.\n"
+                            f"💡 <i>Если по какой-то ссылке найдено 0 объявлений — проверьте её открытие в браузере.</i>",
+                            parse_mode="HTML",
+                        )
+                finally:
+                    with self._scrape_lock:
+                        self._is_scraping = False
+                        self._current_task_info = ""
+
+            threading.Thread(target=_bg_multi_worker, daemon=True).start()
             return
 
-        self._run_search_flow(chat_id, query)
+        with self._scrape_lock:
+            if self._is_scraping:
+                notifier.send_message(
+                    f"⏳ <b>Бот уже выполняет сбор данных в фоне!</b>\n\n"
+                    f"Текущая задача: <code>{html.escape(self._current_task_info)}</code>\n\n"
+                    f"💡 <i>Пожалуйста, дождитесь завершения или отслеживайте прогресс в сообщении выше.</i>",
+                    parse_mode="HTML",
+                )
+                return
+            self._is_scraping = True
+            self._current_task_info = query[:60]
+
+        def _bg_single_worker():
+            try:
+                self._run_search_flow(chat_id, query)
+            finally:
+                with self._scrape_lock:
+                    self._is_scraping = False
+                    self._current_task_info = ""
+
+        threading.Thread(target=_bg_single_worker, daemon=True).start()
 
     def run_polling(self, poll_interval: float = 1.0) -> None:
         """Start infinite long-polling loop for the Telegram bot controller."""
