@@ -478,16 +478,12 @@ class AvitoTelegramBot:
         self.proxy_change_url = proxy_change_url
         self.channel_id = str(channel_id) if channel_id else None
         self.modems_count = max(1, int(modems_count))
-        # Enforce max 2 workers per modem for safety
-        max_safe = self.modems_count * 2
-        if workers > max_safe:
-            logger.warning(
-                f"[TelegramBot] Запрошено {workers} потоков для {self.modems_count} модема(ов). "
-                f"Для предотвращения банов число потоков ограничено до {max_safe}."
+        self.workers = min(max(1, int(workers)), 16)
+        if self.workers > self.modems_count * 2:
+            logger.info(
+                f"[TelegramBot] Запущено {self.workers} потоков (Fast/Turbo Mode) "
+                f"с адаптивным микро-сглаживанием запросов."
             )
-            self.workers = max_safe
-        else:
-            self.workers = max(1, workers)
         self.limit = max(1, limit)
         self.enrich_details = enrich_details
         self.use_playwright_cookies = use_playwright_cookies
