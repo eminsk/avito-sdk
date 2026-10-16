@@ -251,7 +251,7 @@ class TelegramNotifier:
             {"command": "code", "description": "💻 Готовый код для запуска (без лишнего)"},
             {"command": "search", "description": "🔍 Поиск объявлений с выгрузкой в Excel"},
             {"command": "workers", "description": "🧵 Настройка потоков (1-2 для 1 модема)"},
-            {"command": "limit", "description": "📦 Лимит объявлений (10, 30, 50)"},
+            {"command": "limit", "description": "📦 Лимит объявлений (10..1000 шт, до 5000)"},
             {"command": "status", "description": "📊 Состояние прокси и параметры сбора"},
             {"command": "help", "description": "ℹ️ Инструкция и примеры"},
         ]
@@ -541,13 +541,13 @@ class AvitoTelegramBot:
             "inline_keyboard": [
                 [
                     {"text": f"10 шт{_m(10)}", "callback_data": "set_limit:10"},
-                    {"text": f"30 шт{_m(30)}", "callback_data": "set_limit:30"},
                     {"text": f"50 шт{_m(50)}", "callback_data": "set_limit:50"},
+                    {"text": f"100 шт{_m(100)}", "callback_data": "set_limit:100"},
                 ],
                 [
-                    {"text": f"100 шт{_m(100)}", "callback_data": "set_limit:100"},
                     {"text": f"200 шт{_m(200)}", "callback_data": "set_limit:200"},
                     {"text": f"500 шт{_m(500)}", "callback_data": "set_limit:500"},
+                    {"text": f"1000 шт{_m(1000)}", "callback_data": "set_limit:1000"},
                 ],
                 [
                     {"text": "« Назад в главное меню", "callback_data": "menu_main"},
@@ -691,9 +691,11 @@ class AvitoTelegramBot:
                         excel_path=excel_path,
                     )
                 else:
+                    pages_needed = max(1, (self.limit + 49) // 50)
                     list(
                         client.search(
                             query=query,
+                            max_pages=pages_needed,
                             enrich_details=self.enrich_details,
                             max_workers=self.workers,
                             limit=self.limit,
@@ -762,7 +764,7 @@ class AvitoTelegramBot:
             text = (
                 f"📦 <b>Выберите лимит объявлений для выгрузки:</b>\n\n"
                 f"Текущий лимит: <b>{self.limit} объявлений</b>\n\n"
-                f"💡 <i>Вы также можете задать любое своё число командой:</i> <code>/limit 300</code>"
+                f"💡 <i>Вы также можете задать любое своё число командой:</i> <code>/limit 1000</code> <i>(до 5000)</i>"
             )
             notifier.edit_message(chat_id, mid, text, parse_mode="HTML", reply_markup=self._limit_keyboard())
             return
@@ -774,7 +776,7 @@ class AvitoTelegramBot:
             text = (
                 f"📦 <b>Выберите лимит объявлений для выгрузки:</b>\n\n"
                 f"Текущий лимит: <b>{self.limit} объявлений</b>\n\n"
-                f"💡 <i>Вы также можете задать любое своё число командой:</i> <code>/limit 300</code>"
+                f"💡 <i>Вы также можете задать любое своё число командой:</i> <code>/limit 1000</code> <i>(до 5000)</i>"
             )
             notifier.edit_message(chat_id, mid, text, parse_mode="HTML", reply_markup=self._limit_keyboard())
             return
@@ -908,7 +910,7 @@ class AvitoTelegramBot:
         if text.startswith("/limit"):
             parts = text.split()
             if len(parts) >= 2 and parts[1].isdigit():
-                self.limit = max(1, min(int(parts[1]), 2000))
+                self.limit = max(1, min(int(parts[1]), 5000))
                 notifier.send_message(f"✅ Лимит объявлений установлен: <b>{self.limit}</b>", parse_mode="HTML", reply_markup=self._limit_keyboard())
             else:
                 notifier.send_message(f"📦 Текущий лимит: <b>{self.limit}</b>", parse_mode="HTML", reply_markup=self._limit_keyboard())

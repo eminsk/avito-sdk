@@ -189,6 +189,11 @@ class AvitoClient:
         from avito_sdk.filters import AdsFilter
         from avito_sdk.telegram import render_progress_bar
 
+        if limit:
+            needed_pages = max(1, (limit + 49) // 50)
+            if max_pages == 5 or max_pages < needed_pages:
+                max_pages = needed_pages
+
         # If user passed a full Avito URL to search(), seamlessly delegate to scrape_url()
         if query and ("avito.ru" in query or query.startswith(("http://", "https://"))):
             for itm in self.scrape_url(

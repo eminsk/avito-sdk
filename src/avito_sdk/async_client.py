@@ -80,6 +80,11 @@ class AsyncAvitoClient:
         (proxy + proxy_change_url) is strongly recommended to prevent IP bans.
         """
         import asyncio
+        if limit:
+            needed_pages = max(1, (limit + 49) // 50)
+            if max_pages == 5 or max_pages < needed_pages:
+                max_pages = needed_pages
+
         search_filter = SearchFilter(
             query=query,
             region=region,

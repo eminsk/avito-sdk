@@ -301,3 +301,51 @@ def test_vk_notifier_and_config_toml(tmp_path):
     client.close()
 
 
+def test_telegram_limit_keyboard_and_command(monkeypatch):
+    from avito_sdk.telegram import AvitoTelegramBot, TelegramNotifier
+
+    monkeypatch.setattr(TelegramNotifier, "send_message", lambda self, *args, **kwargs: True)
+
+    bot = AvitoTelegramBot(bot_token="test_token", channel_id="12345")
+    kb = bot._limit_keyboard()
+    callback_values = [
+        btn["callback_data"]
+        for row in kb["inline_keyboard"]
+        for btn in row
+        if "callback_data" in btn
+    ]
+    assert "set_limit:10" in callback_values
+    assert "set_limit:50" in callback_values
+    assert "set_limit:100" in callback_values
+    assert "set_limit:200" in callback_values
+    assert "set_limit:500" in callback_values
+    assert "set_limit:1000" in callback_values
+
+    # Test /limit command handling up to 5000
+    bot.handle_update({"message": {"chat": {"id": 12345}, "text": "/limit 1000"}})
+    assert bot.limit == 1000
+
+    bot.handle_update({"message": {"chat": {"id": 12345}, "text": "/limit 3500"}})
+    assert bot.limit == 3500
+
+    bot.handle_update({"message": {"chat": {"id": 12345}, "text": "/limit 9999"}})
+    assert bot.limit == 5000  # Clamped to safe max 5000
+
+
+def test_search_max_pages_auto_scaling(monkeypatch, tmp_path):
+    client = AvitoClient(tracker_db=tmp_path / "test.db")
+    fetched_urls = []
+
+    def mock_fetch(url):
+        fetched_urls.append(url)
+        return MOCK_HTML_PAGE
+
+    monkeypatch.setattr(client.transport, "fetch_html", mock_fetch)
+
+    # limit=120 requires (120+49)//50 = 3 pages even if default max_pages=5
+    items = list(client.search("macbook", limit=120, max_pages=1))
+    assert len(fetched_urls) == 3
+    client.close()
+
+
+
