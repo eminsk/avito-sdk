@@ -517,16 +517,20 @@ class AvitoTelegramBot:
         }
 
     def _workers_keyboard(self) -> dict:
-        w1_mark = " ✅" if self.workers == 1 else ""
-        w2_mark = " ✅" if self.workers == 2 else ""
+        def _wm(n):
+            return " ✅" if self.workers == n else ""
         return {
             "inline_keyboard": [
                 [
-                    {"text": f"🧵 1 поток{w1_mark}", "callback_data": "set_workers:1"},
-                    {"text": f"🧵 2 потока (1 модем){w2_mark}", "callback_data": "set_workers:2"},
+                    {"text": f"🧵 1 поток{_wm(1)}", "callback_data": "set_workers:1"},
+                    {"text": f"🧵 2 потока (Safe){_wm(2)}", "callback_data": "set_workers:2"},
                 ],
                 [
-                    {"text": "❓ Защита от банов (почему макс 2?)", "callback_data": "faq_workers"},
+                    {"text": f"⚡ 4 потока (Fast){_wm(4)}", "callback_data": "set_workers:4"},
+                    {"text": f"🚀 8 потоков (Turbo){_wm(8)}", "callback_data": "set_workers:8"},
+                ],
+                [
+                    {"text": "❓ Подробнее о скорости и воркерах", "callback_data": "faq_workers"},
                 ],
                 [
                     {"text": "« Назад в главное меню", "callback_data": "menu_main"},
@@ -730,26 +734,30 @@ class AvitoTelegramBot:
 
         if data == "menu_workers":
             notifier.answer_callback(cb_id)
+            mode_desc = "Safe Mode" if self.workers <= 2 else ("Fast Mode ⚡" if self.workers <= 4 else "Turbo Mode 🚀")
             text = (
                 "🧵 <b>Настройка параллельных потоков</b>\n\n"
-                f"Текущее значение: <b>{self.workers} воркера</b>\n\n"
-                "🔒 <b>Правило безопасности для 1 модема:</b>\n"
-                "1 мобильный модем имеет один внешний IP-адрес. Avito WAF блокирует запросы при >2 одновременных потоках.\n"
-                "Безопасный лимит: <b>до 2 потоков</b>. Для 4 потоков требуется 2 модема."
+                f"Текущее значение: <b>{self.workers} воркеров</b> ({mode_desc})\n\n"
+                "• <b>1-2 потока (Safe Mode):</b> Идеальная стабильность для 1 мобильного модема.\n"
+                "• <b>4 потока (Fast Mode):</b> Ускорение сбора в 2 раза с адаптивным микро-сглаживанием.\n"
+                "• <b>8 потоков (Turbo Mode):</b> Максимальная скорость для быстрых 4G-каналов.\n\n"
+                "💡 <i>Также можно задать любое число командой:</i> <code>/workers 4</code>"
             )
             notifier.edit_message(chat_id, mid, text, parse_mode="HTML", reply_markup=self._workers_keyboard())
             return
 
         if data.startswith("set_workers:"):
             num = int(data.split(":")[1])
-            self.workers = min(max(1, num), self.modems_count * 2)
-            notifier.answer_callback(cb_id, text=f"✅ Установлено: {self.workers} воркера (Safe Mode)")
+            self.workers = min(max(1, num), 16)
+            mode_desc = "Safe Mode" if self.workers <= 2 else ("Fast Mode ⚡" if self.workers <= 4 else "Turbo Mode 🚀")
+            notifier.answer_callback(cb_id, text=f"✅ Установлено: {self.workers} воркеров ({mode_desc})")
             text = (
                 "🧵 <b>Настройка параллельных потоков</b>\n\n"
-                f"Текущее значение: <b>{self.workers} воркера</b>\n\n"
-                "🔒 <b>Правило безопасности для 1 модема:</b>\n"
-                "1 мобильный модем имеет один внешний IP-адрес. Avito WAF блокирует запросы при >2 одновременных потоках.\n"
-                "Безопасный лимит: <b>до 2 потоков</b>. Для 4 потоков требуется 2 модема."
+                f"Текущее значение: <b>{self.workers} воркеров</b> ({mode_desc})\n\n"
+                "• <b>1-2 потока (Safe Mode):</b> Идеальная стабильность для 1 мобильного модема.\n"
+                "• <b>4 потока (Fast Mode):</b> Ускорение сбора в 2 раза с адаптивным микро-сглаживанием.\n"
+                "• <b>8 потоков (Turbo Mode):</b> Максимальная скорость для быстрых 4G-каналов.\n\n"
+                "💡 <i>Также можно задать любое число командой:</i> <code>/workers 4</code>"
             )
             notifier.edit_message(chat_id, mid, text, parse_mode="HTML", reply_markup=self._workers_keyboard())
             return
@@ -757,7 +765,7 @@ class AvitoTelegramBot:
         if data == "faq_workers":
             notifier.answer_callback(
                 cb_id,
-                text="⚠️ Защита от блокировок:\n1 модем = 1 IP. Более 2 потоков на 1 IP вызывают бан/капчу 429 на Авито. 2 потока — проверенный безопасный максимум для 1 модема. Для 4 потоков требуется 2 модема!",
+                text="⚡ Скорость и воркеры:\n• 1-2 воркера: без риска блокировок WAF на 1 модеме.\n• 4 воркера: ускоряет сбор в 2 раза благодаря микро-сглаживанию задержек.\n• 8 воркеров: максимальная параллелизация (для 2+ модемов или мощных 4G LTE сессий).",
                 show_alert=True,
             )
             return
@@ -880,31 +888,20 @@ class AvitoTelegramBot:
         if text.startswith("/workers"):
             parts = text.split()
             if len(parts) >= 2 and parts[1].isdigit():
-                requested = int(parts[1])
-                max_safe = self.modems_count * 2
-                if requested > max_safe:
-                    self.workers = max_safe
-                    notifier.send_message(
-                        f"⚠️ <b>Ограничение безопасности для {self.modems_count} модема:</b>\n\n"
-                        f"Вы указали {requested} потоков. Для 1 мобильного модема безопасно использовать <b>не более 2 потоков</b> во избежание блокировок и капчи Авито.\n\n"
-                        f"✅ Установлено безопасное значение: <b>{self.workers} воркера</b>.\n"
-                        f"💡 <i>Чтобы использовать {requested} потоков, необходимо настроить 2 независимых модема.</i>",
-                        parse_mode="HTML",
-                        reply_markup=self._workers_keyboard(),
-                    )
-                elif requested < 1:
-                    self.workers = 1
-                    notifier.send_message("✅ Установлен 1 поток", parse_mode=None, reply_markup=self._workers_keyboard())
-                else:
-                    self.workers = requested
-                    notifier.send_message(
-                        f"✅ Число потоков установлено: <b>{self.workers}</b> (Оптимально для 1 модема)",
-                        parse_mode="HTML",
-                        reply_markup=self._workers_keyboard(),
-                    )
-            else:
+                requested = max(1, min(int(parts[1]), 16))
+                self.workers = requested
+                mode_desc = "Safe Mode" if self.workers <= 2 else ("Fast Mode ⚡" if self.workers <= 4 else "Turbo Mode 🚀")
                 notifier.send_message(
-                    f"🧵 Текущее число потоков: <b>{self.workers}</b> (максимум 2 для 1 модема)",
+                    f"✅ <b>Число воркеров установлено: {self.workers}</b> ({mode_desc})\n\n"
+                    f"💡 <i>Включено микро-сглаживание задержек между параллельными запросами для защиты от банов.</i>",
+                    parse_mode="HTML",
+                    reply_markup=self._workers_keyboard(),
+                )
+            else:
+                mode_desc = "Safe Mode" if self.workers <= 2 else ("Fast Mode ⚡" if self.workers <= 4 else "Turbo Mode 🚀")
+                notifier.send_message(
+                    f"🧵 Текущее число воркеров: <b>{self.workers}</b> ({mode_desc})\n"
+                    f"Доступно от 1 до 16 потоков: <code>/workers 4</code> или <code>/workers 8</code>",
                     parse_mode="HTML",
                     reply_markup=self._workers_keyboard(),
                 )
@@ -921,6 +918,20 @@ class AvitoTelegramBot:
 
         query = text[len("/search"):].strip() if text.startswith("/search") else text
         if not query or query.startswith("/"):
+            return
+
+        import re
+        urls = re.findall(r'https?://[^\s]+', query)
+        if len(urls) > 1:
+            notifier.send_message(
+                f"🔗 <b>Обнаружено {len(urls)} ссылки для сбора данных!</b>\n\n"
+                f"Запускаю последовательный сбор каждой ссылки (лимит: <b>{self.limit}</b> на ссылку, воркеров: <b>{self.workers}</b>)...",
+                parse_mode="HTML",
+            )
+            for idx, u in enumerate(urls, 1):
+                notifier.send_message(f"⏳ <i>[Ссылка {idx}/{len(urls)}] Обработка:</i> <code>{u[:50]}...</code>", parse_mode="HTML")
+                self._run_search_flow(chat_id, u)
+            notifier.send_message(f"🎉 <b>Все {len(urls)} ссылки успешно выгружены в Excel!</b>", parse_mode="HTML")
             return
 
         self._run_search_flow(chat_id, query)

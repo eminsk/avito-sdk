@@ -210,9 +210,13 @@ def test_telegram_bot_commands(monkeypatch):
     assert bot.proxy == "user:pass@1.2.3.4:8080"
     assert bot.proxy_change_url == "https://rotate.url"
 
-    # Setting workers > 2 on 1 modem must clamp to safe limit 2
+    # Setting workers to 5 (expanded range up to 16)
     bot.handle_update({"message": {"chat": {"id": 777}, "text": "/workers 5"}})
-    assert bot.workers == 2
+    assert bot.workers == 5
+
+    # Setting workers > 16 clamps to 16
+    bot.handle_update({"message": {"chat": {"id": 777}, "text": "/workers 99"}})
+    assert bot.workers == 16
 
     # Setting workers = 1
     bot.handle_update({"message": {"chat": {"id": 777}, "text": "/workers 1"}})
@@ -223,6 +227,24 @@ def test_telegram_bot_commands(monkeypatch):
 
     bot.handle_update({"message": {"chat": {"id": 777}, "text": "/limit 25"}})
     assert bot.limit == 25
+
+    # Multi-link message handling
+    flow_calls = []
+    monkeypatch.setattr(bot, "_run_search_flow", lambda cid, q: flow_calls.append(q))
+    multi_url_msg = "https://m.avito.ru/moskva/telefony\nhttps://m.avito.ru/moskva/noutbuki"
+    bot.handle_update({"message": {"chat": {"id": 777}, "text": multi_url_msg}})
+    assert len(flow_calls) == 2
+    assert "telefony" in flow_calls[0]
+    assert "noutbuki" in flow_calls[1]
+
+    # Callback query for workers 4 (Fast)
+    bot.handle_callback({
+        "id": "cb1",
+        "message": {"chat": {"id": 777}, "message_id": 101},
+        "data": "set_workers:4",
+    })
+    assert bot.workers == 4
+
     assert len(replies) >= 4
 
 

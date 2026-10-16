@@ -109,15 +109,13 @@ class AvitoClient:
                 return 1
             return max(1, requested_workers)
 
-        max_allowed = self.modems_count * 2
-        if requested_workers > max_allowed:
-            logger.warning(
-                f"[WorkersSafety] Запрошено {requested_workers} потоков для {self.modems_count} мобильного(ых) модема(ов). "
-                f"Безопасный лимит равен {max_allowed} (по 2 потока на 1 модем во избежание блокировок Avito WAF). "
-                f"Число воркеров скорректировано до {max_allowed}."
+        safe_threshold = self.modems_count * 2
+        if requested_workers > safe_threshold:
+            logger.info(
+                f"[TurboMode] Запущено {requested_workers} параллельных воркеров (Safe threshold: {safe_threshold}). "
+                f"Включен режим адаптивного микро-сглаживания задержек."
             )
-            return max_allowed
-        return max(1, requested_workers)
+        return min(max(1, requested_workers), 16)
 
     @classmethod
     def from_config(
@@ -260,15 +258,32 @@ class AvitoClient:
                 workers=safe_workers,
             )
 
+        consecutive_empty = 0
         try:
             for page_num in range(1, max_pages + 1):
                 search_filter.page = page_num
                 url = build_search_url(search_filter)
                 logger.debug(f"Fetching search page {page_num}: {url}")
 
-                items = self.scrape_page_items(url)
+                items = []
+                try:
+                    items = self.scrape_page_items(url)
+                except Exception as page_err:
+                    logger.warning(f"Error fetching search page {page_num} ({page_err}). Retrying with fresh IP...")
+                    if self.transport.proxy_change_url:
+                        self.transport.rotate_proxy_ip()
+                        time.sleep(3.5)
+                        try:
+                            items = self.scrape_page_items(url)
+                        except Exception:
+                            items = []
+
                 if not items:
-                    break
+                    consecutive_empty += 1
+                    if consecutive_empty >= 2:
+                        break
+                    continue
+                consecutive_empty = 0
 
                 if limit:
                     remaining = limit - yielded_count
@@ -407,14 +422,32 @@ class AvitoClient:
                 workers=safe_workers,
             )
 
+        consecutive_empty = 0
         try:
             for page in range(1, max_pages + 1):
                 if limit and len(results) >= limit:
                     break
                 page_url = build_page_url(url, page)
-                page_items = self.scrape_page_items(page_url)
+                page_items = []
+                try:
+                    page_items = self.scrape_page_items(page_url)
+                except Exception as page_err:
+                    logger.warning(f"Error fetching catalog page {page} ({page_err}). Retrying with fresh proxy IP...")
+                    if self.transport.proxy_change_url:
+                        self.transport.rotate_proxy_ip()
+                        time.sleep(3.5)
+                        try:
+                            page_items = self.scrape_page_items(page_url)
+                        except Exception:
+                            page_items = []
+
                 if not page_items:
-                    break
+                    consecutive_empty += 1
+                    if consecutive_empty >= 2:
+                        logger.info(f"End of catalog reached at page {page} (2 consecutive empty pages).")
+                        break
+                    continue
+                consecutive_empty = 0
 
                 if limit:
                     remaining = limit - len(results)
