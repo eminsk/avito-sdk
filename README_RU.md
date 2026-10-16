@@ -338,7 +338,132 @@ avito-sdk item 3854129841
 
 # Просмотр всех зафиксированных снижений цен:
 avito-sdk drops --db prices.db
+
+# Запуск Model Context Protocol (MCP) сервера через stdio:
+avito-mcp --proxy "http://user:pass@ip:port" --proxy-change-url "https://..."
 ```
+
+---
+
+## 🤖 Встроенный MCP (Model Context Protocol) Сервер
+
+В **avito-sdk** встроен сервер открытого стандарта [Model Context Protocol (MCP)](https://modelcontextprotocol.io) (`avito-mcp` или `avito-sdk mcp`), работающий по протоколу JSON-RPC 2.0 через `stdio`.
+
+Это позволяет искусственному интеллекту в **Google Antigravity**, **Claude Code & Claude Desktop**, **Cursor IDE**, **OpenAI Codex** и **Windsurf** напрямую взаимодействовать с Авито: искать товары, извлекать глубокие характеристики («О помещении», авто и т.д.) и отслеживать снижение цен.
+
+### 🛠️ Доступные MCP-инструменты
+
+| Инструмент | Описание | Основные параметры |
+| :--- | :--- | :--- |
+| `avito_search` | Поиск на Авито с фильтрами, диапазоном цен, ключевыми словами и экспортом в Excel | `query`, `region`, `min_price`, `max_price`, `limit`, `enrich_details`, `excel_path` |
+| `avito_get_item` | Полный сбор карточки товара (характеристики, описание, продавец, просмотры) | `item_id` |
+| `avito_price_drops` | Получение списка товаров со сниженной ценой или полной истории изменения цены | `item_id` (опционально) |
+
+---
+
+### 🚀 Руководства по подключению к AI IDE и Агентам
+
+#### 1. 🪐 Google Antigravity (IDE & CLI)
+
+**Через консоль Antigravity CLI:**
+```bash
+agy mcp add avito -- avito-mcp --workers 2
+```
+
+**Либо в конфигурационном файле `~/.gemini/config/mcp_config.json`:**
+```json
+{
+  "mcpServers": {
+    "avito": {
+      "command": "avito-mcp",
+      "args": ["--db", "avito_prices.db", "--workers", "2"],
+      "env": {
+        "AVITO_PROXY": "http://user:pass@ip:port",
+        "AVITO_PROXY_CHANGE_URL": "https://changeip.mobileproxy.space/?proxy_key=ВАШ_КЛЮЧ"
+      }
+    }
+  }
+}
+```
+
+---
+
+#### 2. ⚡ Anthropic Claude Code & Claude Desktop
+
+**Для консольного Claude Code:**
+```bash
+claude mcp add avito avito-mcp -- --workers 2
+```
+
+**Для десктопного Claude Desktop (`claude_desktop_config.json`):**
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "avito": {
+      "command": "avito-mcp",
+      "args": ["--workers", "2"],
+      "env": {
+        "AVITO_PROXY": "http://user:pass@ip:port",
+        "AVITO_PROXY_CHANGE_URL": "https://changeip.mobileproxy.space/?proxy_key=ВАШ_КЛЮЧ"
+      }
+    }
+  }
+}
+```
+
+---
+
+#### 3. 🖱️ Cursor IDE
+
+Создайте файл `.cursor/mcp.json` в корне вашего проекта (или откройте **Cursor Settings > Features > MCP > Add New MCP Server**):
+
+```json
+{
+  "mcpServers": {
+    "avito": {
+      "command": "avito-mcp",
+      "args": ["--workers", "2"],
+      "env": {
+        "AVITO_PROXY": "http://user:pass@ip:port",
+        "AVITO_PROXY_CHANGE_URL": "https://changeip.mobileproxy.space/?proxy_key=ВАШ_КЛЮЧ"
+      }
+    }
+  }
+}
+```
+
+---
+
+#### 4. 🧠 OpenAI Codex / ChatGPT / Windsurf / Roo Code
+
+Для **Windsurf** (`~/.codeium/windsurf/mcp_config.json`) или плагина **Roo Code / Continue.dev** в VS Code:
+
+```json
+{
+  "mcpServers": {
+    "avito": {
+      "command": "avito-mcp",
+      "args": ["--workers", "2"],
+      "env": {
+        "AVITO_PROXY": "http://user:pass@ip:port",
+        "AVITO_PROXY_CHANGE_URL": "https://changeip.mobileproxy.space/?proxy_key=ВАШ_КЛЮЧ"
+      }
+    }
+  }
+}
+```
+
+---
+
+### 💬 Примеры запросов для нейросети (Prompts)
+
+После подключения вы можете общаться с нейросетью на обычном русском языке:
+- *«Найди на Авито 5 объявлений по аренде складов в Москве до 300 000 руб и сохрани их в таблицу warehouses.xlsx»*
+- *«Открой объявление 4176185210, извлеки все характеристики помещения и покажи контакты продавца»*
+- *«Проверь локальную базу данных на предмет снижения цен на видеокарты и покажи самые выгодные скидки»*
 
 ---
 

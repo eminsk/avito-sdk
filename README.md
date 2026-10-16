@@ -350,14 +350,36 @@ avito-mcp --proxy "http://user:pass@ip:port" --proxy-change-url "https://..." --
 
 ## 🤖 Native MCP (Model Context Protocol) Server
 
-Connect **avito-sdk** directly to **Claude Desktop**, **Cursor**, **Windsurf**, or **Antigravity** via the built-in `avito-mcp` (`avito-sdk mcp`) JSON-RPC 2.0 server (`avito_search`, `avito_get_item`, `avito_price_drops`):
+**avito-sdk** includes a native, high-performance [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server (`avito-mcp` or `avito-sdk mcp`) communicating over JSON-RPC 2.0 `stdio`.
 
+It enables frontier AI assistants and agentic IDEs — **Google Antigravity**, **Anthropic Claude Code & Claude Desktop**, **Cursor IDE**, **OpenAI Codex**, and **Windsurf** — to autonomously search Avito, inspect item parameters («О помещении», авто, etc.), and monitor price drops.
+
+### 🛠️ Exposed MCP Tools
+
+| Tool | Description | Key Parameters |
+| :--- | :--- | :--- |
+| `avito_search` | Search Avito with deep filtering, price ranges, keywords & Excel/Telegram export | `query`, `region`, `min_price`, `max_price`, `limit`, `enrich_details`, `excel_path` |
+| `avito_get_item` | Deep inspect a single item card (characteristics, full description, seller, views) | `item_id` |
+| `avito_price_drops` | Query tracked listings with price drops or full price history for an item | `item_id` (optional) |
+
+---
+
+### 🚀 Integration Guides for AI IDEs & Agents
+
+#### 1. 🪐 Google Antigravity (IDE & CLI)
+
+**Via Antigravity CLI:**
+```bash
+agy mcp add avito -- avito-mcp --workers 2
+```
+
+**Or add to global `~/.gemini/config/mcp_config.json`:**
 ```json
 {
   "mcpServers": {
     "avito": {
       "command": "avito-mcp",
-      "args": ["--playwright", "--workers", "4"],
+      "args": ["--db", "avito_prices.db", "--workers", "2"],
       "env": {
         "AVITO_PROXY": "http://user:pass@ip:port",
         "AVITO_PROXY_CHANGE_URL": "https://changeip.mobileproxy.space/?proxy_key=YOUR_KEY"
@@ -366,6 +388,85 @@ Connect **avito-sdk** directly to **Claude Desktop**, **Cursor**, **Windsurf**, 
   }
 }
 ```
+
+---
+
+#### 2. ⚡ Anthropic Claude Code & Claude Desktop
+
+**Claude Code CLI:**
+```bash
+claude mcp add avito avito-mcp -- --workers 2
+```
+
+**Claude Desktop (`claude_desktop_config.json`):**
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "avito": {
+      "command": "avito-mcp",
+      "args": ["--workers", "2"],
+      "env": {
+        "AVITO_PROXY": "http://user:pass@ip:port",
+        "AVITO_PROXY_CHANGE_URL": "https://changeip.mobileproxy.space/?proxy_key=YOUR_KEY"
+      }
+    }
+  }
+}
+```
+
+---
+
+#### 3. 🖱️ Cursor IDE
+
+Create `.cursor/mcp.json` in your workspace root (or navigate to **Cursor Settings > Features > MCP > Add New MCP Server**):
+
+```json
+{
+  "mcpServers": {
+    "avito": {
+      "command": "avito-mcp",
+      "args": ["--workers", "2"],
+      "env": {
+        "AVITO_PROXY": "http://user:pass@ip:port",
+        "AVITO_PROXY_CHANGE_URL": "https://changeip.mobileproxy.space/?proxy_key=YOUR_KEY"
+      }
+    }
+  }
+}
+```
+
+---
+
+#### 4. 🧠 OpenAI Codex / ChatGPT / Windsurf / Roo Code
+
+For **Windsurf** (`~/.codeium/windsurf/mcp_config.json`) or **VS Code Roo Code / Continue.dev**:
+
+```json
+{
+  "mcpServers": {
+    "avito": {
+      "command": "avito-mcp",
+      "args": ["--workers", "2"],
+      "env": {
+        "AVITO_PROXY": "http://user:pass@ip:port",
+        "AVITO_PROXY_CHANGE_URL": "https://changeip.mobileproxy.space/?proxy_key=YOUR_KEY"
+      }
+    }
+  }
+}
+```
+
+---
+
+### 💬 Example Prompts for AI Agents
+
+Once connected, simply prompt your agent in natural language:
+- *"Find 5 commercial real estate listings in Moscow under 500,000 RUB and export them to `real_estate.xlsx`."*
+- *"Fetch full card details and characteristics for Avito item 4176185210 and summarize the seller's terms."*
+- *"Check the local database for tracked price drops on graphics cards and report the top deals."*
 
 ---
 
