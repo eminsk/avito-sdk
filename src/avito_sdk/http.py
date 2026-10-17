@@ -203,12 +203,14 @@ class SyncHttpTransport:
                 proxy_change_url=self.proxy_change_url,
                 headless=True,
             )
-            new_cookies, _ = provider.fetch_cookies(
+            new_cookies, ua = provider.fetch_cookies(
                 target_url=target_url,
                 storage_path=storage_path,
                 force_refresh=force_refresh,
             )
             self.ip_rotations += provider.ip_rotations
+            if ua:
+                self.user_agent = ua
             if new_cookies:
                 self.cookies.update(new_cookies)
                 if hasattr(self._session, "cookies"):
@@ -417,20 +419,24 @@ class SyncHttpTransport:
         target_url = url
         headers = WEB_HEADERS.copy()
         if "avito.ru" in url:
-            if "m.avito.ru" not in url:
-                target_url = url.replace("https://www.avito.ru", "https://m.avito.ru").replace("http://www.avito.ru", "https://m.avito.ru")
-                if "https://avito.ru" in target_url:
-                    target_url = target_url.replace("https://avito.ru", "https://m.avito.ru")
-                elif "http://avito.ru" in target_url:
-                    target_url = target_url.replace("http://avito.ru", "https://m.avito.ru")
-            # Strip bot-flagging params (?cd=1, ?d=1, &s=104, &s=101) which trigger 439 WAF blocks on mobile
-            import re
-            target_url = re.sub(r'[?&](cd=1|d=1)(?=&|$)', '', target_url)
-            target_url = re.sub(r'[?&]s=(101|104)(?=&|$)', '', target_url)
-            if "?" not in target_url and "&" in target_url:
-                target_url = target_url.replace("&", "?", 1)
-            profile = "android" if CURL_CFFI_AVAILABLE else "ios"
-            headers = get_random_mobile_headers(accept_html=True, profile=profile)
+            if self.use_playwright_cookies:
+                # When using desktop Playwright cookies, preserve desktop avito.ru and matching User-Agent
+                headers["user-agent"] = getattr(self, "user_agent", DEFAULT_USER_AGENT)
+            else:
+                if "m.avito.ru" not in url:
+                    target_url = url.replace("https://www.avito.ru", "https://m.avito.ru").replace("http://www.avito.ru", "https://m.avito.ru")
+                    if "https://avito.ru" in target_url:
+                        target_url = target_url.replace("https://avito.ru", "https://m.avito.ru")
+                    elif "http://avito.ru" in target_url:
+                        target_url = target_url.replace("http://avito.ru", "https://m.avito.ru")
+                # Strip bot-flagging params (?cd=1, ?d=1, &s=104, &s=101) which trigger 439 WAF blocks on mobile
+                import re
+                target_url = re.sub(r'[?&](cd=1|d=1)(?=&|$)', '', target_url)
+                target_url = re.sub(r'[?&]s=(101|104)(?=&|$)', '', target_url)
+                if "?" not in target_url and "&" in target_url:
+                    target_url = target_url.replace("&", "?", 1)
+                profile = "android" if CURL_CFFI_AVAILABLE else "ios"
+                headers = get_random_mobile_headers(accept_html=True, profile=profile)
         resp = self.request("GET", target_url, headers=headers, allow_rotation=allow_rotation)
         return resp.text
 
@@ -507,8 +513,10 @@ class AsyncHttpTransport:
             proxy_change_url=self.proxy_change_url,
             headless=True,
         )
-        new_cookies, _ = await provider.fetch_cookies_async(target_url=target_url)
+        new_cookies, ua = await provider.fetch_cookies_async(target_url=target_url)
         self.ip_rotations += provider.ip_rotations
+        if ua:
+            self.user_agent = ua
         if new_cookies:
             self.cookies.update(new_cookies)
             if self._session and hasattr(self._session, "cookies"):
@@ -639,19 +647,22 @@ class AsyncHttpTransport:
         target_url = url
         headers = WEB_HEADERS.copy()
         if "avito.ru" in url:
-            if "m.avito.ru" not in url:
-                target_url = url.replace("https://www.avito.ru", "https://m.avito.ru").replace("http://www.avito.ru", "https://m.avito.ru")
-                if "https://avito.ru" in target_url:
-                    target_url = target_url.replace("https://avito.ru", "https://m.avito.ru")
-                elif "http://avito.ru" in target_url:
-                    target_url = target_url.replace("http://avito.ru", "https://m.avito.ru")
-            import re
-            target_url = re.sub(r'[?&](cd=1|d=1)(?=&|$)', '', target_url)
-            target_url = re.sub(r'[?&]s=(101|104)(?=&|$)', '', target_url)
-            if "?" not in target_url and "&" in target_url:
-                target_url = target_url.replace("&", "?", 1)
-            profile = "android" if CURL_CFFI_AVAILABLE else "ios"
-            headers = get_random_mobile_headers(accept_html=True, profile=profile)
+            if self.use_playwright_cookies:
+                headers["user-agent"] = getattr(self, "user_agent", DEFAULT_USER_AGENT)
+            else:
+                if "m.avito.ru" not in url:
+                    target_url = url.replace("https://www.avito.ru", "https://m.avito.ru").replace("http://www.avito.ru", "https://m.avito.ru")
+                    if "https://avito.ru" in target_url:
+                        target_url = target_url.replace("https://avito.ru", "https://m.avito.ru")
+                    elif "http://avito.ru" in target_url:
+                        target_url = target_url.replace("http://avito.ru", "https://m.avito.ru")
+                import re
+                target_url = re.sub(r'[?&](cd=1|d=1)(?=&|$)', '', target_url)
+                target_url = re.sub(r'[?&]s=(101|104)(?=&|$)', '', target_url)
+                if "?" not in target_url and "&" in target_url:
+                    target_url = target_url.replace("&", "?", 1)
+                profile = "android" if CURL_CFFI_AVAILABLE else "ios"
+                headers = get_random_mobile_headers(accept_html=True, profile=profile)
         resp = await self.request("GET", target_url, headers=headers)
         return resp.text
 

@@ -96,17 +96,44 @@ def parse_proxy_config(proxy_str: Optional[str], change_ip_url: Optional[str] = 
 
 
 def ensure_playwright_chromium() -> None:
-    """Ensure Playwright Chromium browser binary is installed."""
-    if not os.environ.get("PLAYWRIGHT_BROWSERS_PATH"):
-        os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "0"
+    """Ensure Playwright Chromium browser binary is installed in default or configured location."""
+    # Do NOT set PLAYWRIGHT_BROWSERS_PATH="0" so we share %LOCALAPPDATA%\ms-playwright across projects.
+    cache_dirs = []
+    if os.environ.get("PLAYWRIGHT_BROWSERS_PATH"):
+        cache_dirs.append(os.environ["PLAYWRIGHT_BROWSERS_PATH"])
+    if sys.platform == "win32":
+        cache_dirs.append(os.path.expandvars(r"%LOCALAPPDATA%\ms-playwright"))
+    elif sys.platform == "darwin":
+        cache_dirs.append(os.path.expanduser("~/Library/Caches/ms-playwright"))
+    else:
+        cache_dirs.append(os.path.expanduser("~/.cache/ms-playwright"))
+
+    # Fast filesystem check to avoid triggering unnecessary downloads or asyncio conflicts
+    for cdir in cache_dirs:
+        if os.path.isdir(cdir):
+            for root, _, files in os.walk(cdir):
+                for fname in ("chrome.exe", "chrome", "chromium", "headless_shell.exe", "headless_shell"):
+                    if fname in files:
+                        full_path = os.path.join(root, fname)
+                        if os.path.isfile(full_path) and os.path.getsize(full_path) > 1024:
+                            return
+
     try:
-        from playwright.sync_api import sync_playwright
-        with sync_playwright() as p:
-            exec_path = p.chromium.executable_path
-            if exec_path and os.path.exists(exec_path):
-                return
-    except Exception:
-        pass
+        import asyncio
+        try:
+            asyncio.get_running_loop()
+            in_loop = True
+        except RuntimeError:
+            in_loop = False
+
+        if not in_loop:
+            from playwright.sync_api import sync_playwright
+            with sync_playwright() as p:
+                exec_path = p.chromium.executable_path
+                if exec_path and os.path.exists(exec_path):
+                    return
+    except Exception as exc:
+        logger.debug(f"Playwright executable detection check: {exc}")
 
     logger.info("Installing Playwright Chromium browser...")
     subprocess.run(
@@ -173,26 +200,20 @@ class PlaywrightCookieProvider:
         """Launch Playwright Chromium, bypass anti-bot challenge, and return (cookies, user_agent)."""
         try:
             from playwright.async_api import async_playwright
-        except ImportError as exc:
+        except (ImportError, ModuleNotFoundError) as exc:
             raise ImportError(
-                "Playwright is required for browser cookie harvesting. "
-                "Install it with: pip install 'avito-sdk[browser]' && playwright install chromium"
+                f"Playwright or its dependencies (e.g. greenlet) could not be loaded: {exc}. "
+                "Install it with: uv add 'avito-sdk[browser]' && uv run playwright install chromium"
             ) from exc
 
         ensure_playwright_chromium()
         url = target_url or f"https://www.avito.ru/{random.randint(1111111111, 9999999999)}"
 
-        stealth_cm = None
-        try:
-            from playwright_stealth import Stealth
-            stealth_cm = Stealth().use_async(async_playwright())
-            pw = await stealth_cm.__aenter__()
-        except ImportError:
-            stealth_cm = async_playwright()
-            pw = await stealth_cm.__aenter__()
-
+        pw = None
         browser = None
         try:
+            pw = await async_playwright().start()
+
             launch_args = {
                 "headless": self.headless,
                 "chromium_sandbox": False,
@@ -223,38 +244,32 @@ class PlaywrightCookieProvider:
                 context_args["proxy"] = proxy_cfg
 
             context = await browser.new_context(**context_args)
+            try:
+                from playwright_stealth import Stealth
+                await Stealth().apply_stealth_async(context)
+            except Exception:
+                pass
+
             page = await context.new_page()
             await self._apply_stealth(page)
 
             await page.goto(url, timeout=60_000, wait_until="domcontentloaded")
 
-            for _ in range(10):
+            for attempt_idx in range(12):
                 title = (await page.title() or "").lower()
+                content = (await page.content() or "").lower()
 
                 # Check if "Продолжить" button is present on Avito challenge page
                 try:
-                    continue_btn = page.locator("button:has-text('Продолжить'), button[type='submit']")
-                    if await continue_btn.count() > 0:
+                    continue_btn = page.locator("button:has-text('Продолжить'), button[type='submit'], input[value*='Продолжить']")
+                    if await continue_btn.count() > 0 and await continue_btn.first.is_visible():
                         logger.info("Avito challenge page with 'Продолжить' button found. Clicking...")
                         await continue_btn.first.click()
-                        try:
-                            await page.wait_for_load_state("domcontentloaded", timeout=20_000)
-                        except Exception:
-                            pass
-                        await asyncio.sleep(4.0)
+                        await asyncio.sleep(3.0)
                         title = (await page.title() or "").lower()
+                        content = (await page.content() or "").lower()
                 except Exception as click_err:
                     logger.debug(f"Challenge button click check failed: {click_err}")
-
-                if BAD_IP_TITLE in title or "доступ ограничен" in title or "проверка безопасности" in title:
-                    logger.info(f"Avito IP block detected in Playwright ('{title}'); rotating mobile proxy IP...")
-                    await context.clear_cookies()
-                    await self.rotate_ip()
-                    try:
-                        await page.reload(timeout=35_000, wait_until="domcontentloaded")
-                    except Exception as reload_err:
-                        logger.debug(f"Playwright reload error after IP rotation: {reload_err}")
-                    continue
 
                 try:
                     raw_cookie = await page.evaluate("() => document.cookie")
@@ -264,12 +279,50 @@ class PlaywrightCookieProvider:
 
                 ctx_cookies = await context.cookies()
                 ctx_dict = {c["name"]: c["value"] for c in ctx_cookies if "name" in c and "value" in c}
-
                 combined = {**ctx_dict, **cookie_dict}
+
                 if combined.get("ft") or combined.get("captcha_solved") or ("_adcc" in combined and "pow_challenge" in combined):
                     logger.info("Avito session cookies successfully obtained via Playwright!")
                     return combined, self.user_agent
-                await asyncio.sleep(2.5)
+
+                # Check if an anti-bot challenge is currently running (JS PoW computation or captcha)
+                is_challenge_running = any(
+                    marker in content or marker in title
+                    for marker in (
+                        "выполняется проверка",
+                        "подождите",
+                        "firewall-status",
+                        "smartcaptcha",
+                        "challenge-form",
+                        "проверка безопасности",
+                    )
+                )
+
+                if is_challenge_running:
+                    logger.info(f"Avito security/PoW challenge active ('{title}'). Allowing JS solver to finish...")
+                    await asyncio.sleep(4.0)
+                    continue
+
+                # Hard IP block check
+                is_hard_block = BAD_IP_TITLE in title or "проблема с ip" in title
+                if is_hard_block:
+                    if self.parsed_proxy and self.parsed_proxy.change_ip_url:
+                        logger.info(f"Avito hard IP block detected ('{title}'); rotating mobile proxy IP...")
+                        await context.clear_cookies()
+                        await self.rotate_ip()
+                        try:
+                            await page.reload(timeout=35_000, wait_until="domcontentloaded")
+                        except Exception as reload_err:
+                            logger.debug(f"Playwright reload error after IP rotation: {reload_err}")
+                        continue
+                    else:
+                        logger.warning(
+                            f"Avito flagged IP ('{title}'). Running without rotating proxy; waiting briefly..."
+                        )
+                        await asyncio.sleep(4.0)
+                        continue
+
+                await asyncio.sleep(2.0)
 
             # Fallback to context cookies if document.cookie didn't expose 'ft'
             ctx_cookies = await context.cookies()
@@ -277,9 +330,15 @@ class PlaywrightCookieProvider:
             return fallback_dict, self.user_agent
         finally:
             if browser:
-                await browser.close()
-            if stealth_cm:
-                await stealth_cm.__aexit__(None, None, None)
+                try:
+                    await browser.close()
+                except Exception:
+                    pass
+            if pw:
+                try:
+                    await pw.stop()
+                except Exception:
+                    pass
 
     def fetch_cookies(
         self,
