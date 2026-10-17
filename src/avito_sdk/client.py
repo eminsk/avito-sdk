@@ -399,8 +399,9 @@ class AvitoClient:
         finally:
             if show_progress and yielded_count > 0:
                 print()
+            saved_report = None
             if excel_path and collected_for_excel:
-                to_excel(collected_for_excel, excel_path)
+                saved_report = to_excel(collected_for_excel, excel_path)
             if progress_ids and self.notifier:
                 self.notifier.finish_progress(
                     progress_ids=progress_ids,
@@ -409,7 +410,7 @@ class AvitoClient:
                     use_mobile_proxy=use_mob_proxy,
                     drops_count=drops_count,
                     ip_rotations=self.transport.ip_rotations,
-                    excel_path=excel_path if collected_for_excel else None,
+                    excel_path=saved_report if collected_for_excel else None,
                 )
             if progress_callback:
                 try:
@@ -574,8 +575,9 @@ class AvitoClient:
         finally:
             if show_progress and results:
                 print()
+            saved_report = None
             if excel_path and results:
-                to_excel(results, excel_path)
+                saved_report = to_excel(results, excel_path)
             if progress_ids and self.notifier:
                 self.notifier.finish_progress(
                     progress_ids=progress_ids,
@@ -584,7 +586,7 @@ class AvitoClient:
                     use_mobile_proxy=use_mob_proxy,
                     drops_count=drops_count,
                     ip_rotations=self.transport.ip_rotations,
-                    excel_path=excel_path if results else None,
+                    excel_path=saved_report if results else None,
                 )
             if progress_callback:
                 try:

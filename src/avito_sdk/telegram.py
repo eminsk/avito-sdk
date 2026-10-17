@@ -272,10 +272,21 @@ class TelegramNotifier:
         caption: Optional[str] = None,
         target_chat_ids: Optional[Sequence[str]] = None,
     ) -> None:
-        """Upload a generated Excel (.xlsx) file directly to Telegram chat/channel."""
+        """Upload a generated report (.xlsx or .csv) file directly to Telegram chat/channel."""
         path = Path(filepath)
         if not path.exists():
-            raise FileNotFoundError(f"Excel file not found: {path}")
+            if path.suffix.lower() == ".xlsx" and path.with_suffix(".csv").exists():
+                path = path.with_suffix(".csv")
+            elif path.suffix.lower() == ".csv" and path.with_suffix(".xlsx").exists():
+                path = path.with_suffix(".xlsx")
+            else:
+                raise FileNotFoundError(f"Report file not found: {path}")
+
+        mime_type = (
+            "text/csv"
+            if path.suffix.lower() == ".csv"
+            else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
         chats = target_chat_ids if target_chat_ids is not None else self.chat_ids
         for cid in chats:
@@ -291,11 +302,11 @@ class TelegramNotifier:
                             "document": (
                                 path.name,
                                 f,
-                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                mime_type,
                             )
                         },
                         proxies=self.proxies,
-                        timeout=45,
+                        timeout=60,
                     )
 
             self._request_with_retries(_send_doc)
@@ -368,14 +379,25 @@ class TelegramNotifier:
             f"📉 <b>Снижений цен:</b> {drops_count}\n"
             f"🌐 <b>Мобильный прокси:</b> {proxy_status}\n"
             f"🧵 <b>Потоков:</b> Safe Mode (1 модем)\n\n"
-            f"📊 <i>Детальный отчёт Excel (.xlsx) с ценами и продавцами загружается ниже 👇</i>"
+            f"📊 <i>Детальный отчёт с ценами и продавцами загружается ниже 👇</i>"
         )
         for cid, mid in progress_ids.items():
             self.edit_message(cid, mid, text, parse_mode="HTML")
 
-        if excel_path and Path(excel_path).exists():
-            caption = f"📊 Отчёт Excel: {query} ({total_found} объявлений)"
-            self.send_excel(excel_path, caption=caption, target_chat_ids=list(progress_ids.keys()))
+        resolved_file = None
+        if excel_path:
+            p = Path(excel_path)
+            if p.exists():
+                resolved_file = p
+            elif p.with_suffix(".csv").exists():
+                resolved_file = p.with_suffix(".csv")
+            elif p.with_suffix(".xlsx").exists():
+                resolved_file = p.with_suffix(".xlsx")
+
+        if resolved_file and resolved_file.exists():
+            ext_label = "CSV" if resolved_file.suffix.lower() == ".csv" else "Excel"
+            caption = f"📊 Отчёт {ext_label}: {query} ({total_found} объявлений)"
+            self.send_excel(resolved_file, caption=caption, target_chat_ids=list(progress_ids.keys()))
 
     def _send_photo_bytes(self, chat_id: str, image_url: str, caption: str) -> bool:
         try:
@@ -744,6 +766,17 @@ class AvitoTelegramBot:
                 except Exception:
                     pass
 
+        def _resolve_report_file(p: Optional[Path]) -> Optional[Path]:
+            if not p:
+                return None
+            if p.exists():
+                return p
+            if p.with_suffix(".csv").exists():
+                return p.with_suffix(".csv")
+            if p.with_suffix(".xlsx").exists():
+                return p.with_suffix(".xlsx")
+            return None
+
         try:
             pages_needed = max(1, (self.limit + 29) // 30)
             if query.startswith("http://") or query.startswith("https://"):
@@ -771,7 +804,7 @@ class AvitoTelegramBot:
                             "💡 <i>Проверьте ссылку в браузере: возможно, в адресе опечатка или страница не существует на Авито.</i>",
                             parse_mode="HTML",
                         )
-                return len(items), (excel_path if items and excel_path.exists() else None)
+                return len(items), (_resolve_report_file(excel_path) if items else None)
             else:
                 items = list(
                     client.search(
@@ -790,7 +823,7 @@ class AvitoTelegramBot:
                         f"ℹ️ По запросу «{query}» не найдено объявлений.",
                         parse_mode=None,
                     )
-                return len(items), (excel_path if items and excel_path.exists() else None)
+                return len(items), (_resolve_report_file(excel_path) if items else None)
         except Exception as err:
             logger.error(f"Search flow error: {err}")
             notifier.send_message(f"❌ Ошибка при сборе: {err}", parse_mode=None)
@@ -1201,16 +1234,27 @@ class AvitoTelegramBot:
 
                         if cnt > 0:
                             success_count += 1
-                            if out_excel and Path(out_excel).exists():
+                            resolved_excel = None
+                            if out_excel:
+                                p = Path(out_excel)
+                                if p.exists():
+                                    resolved_excel = p
+                                elif p.with_suffix(".csv").exists():
+                                    resolved_excel = p.with_suffix(".csv")
+                                elif p.with_suffix(".xlsx").exists():
+                                    resolved_excel = p.with_suffix(".xlsx")
+
+                            if resolved_excel and resolved_excel.exists():
                                 preview_title = target_item if len(target_item) <= 45 else target_item[:42] + "..."
-                                t_caption = f"📊 [{idx}/{len(targets)}] Отчёт Excel: {preview_title} ({cnt} объявлений)"
+                                ext_label = "CSV" if resolved_excel.suffix.lower() == ".csv" else "Excel"
+                                t_caption = f"📊 [{idx}/{len(targets)}] Отчёт {ext_label}: {preview_title} ({cnt} объявлений)"
                                 try:
-                                    notifier.send_excel(out_excel, caption=t_caption, target_chat_ids=[chat_id])
+                                    notifier.send_excel(resolved_excel, caption=t_caption, target_chat_ids=[chat_id])
                                 except Exception as upload_err:
-                                    logger.warning(f"Failed to upload Excel for link {idx}: {upload_err}")
+                                    logger.warning(f"Failed to upload report for link {idx}: {upload_err}")
                             notifier.send_message(
                                 f"✅ <b>[{idx}/{len(targets)}] Выгрузка завершена!</b> Собрано: {cnt} объявлений.\n"
-                                f"📁 <i>Файл Excel отправлен выше 👆</i>",
+                                f"📁 <i>Файл отчёта отправлен выше 👆</i>",
                                 parse_mode="HTML",
                             )
                         else:

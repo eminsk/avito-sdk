@@ -108,7 +108,7 @@ def to_excel(
     filepath: Union[str, Path],
     sheet_name: str = "Avito Listings",
     append: bool = False,
-) -> None:
+) -> Path:
     """
     Save items to a styled Excel (.xlsx) file using openpyxl.
     Gracefully falls back to CSV if openpyxl is not installed.
@@ -123,7 +123,7 @@ def to_excel(
         # Fallback to CSV if openpyxl is missing
         csv_path = path.with_suffix(".csv")
         to_csv(items, csv_path)
-        return
+        return csv_path
 
     headers = [
         "ID",
@@ -215,6 +215,7 @@ def to_excel(
         ws.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 50)
 
     wb.save(path)
+    return path
 
 
 def to_dataframe(items: List[Item]) -> Any:

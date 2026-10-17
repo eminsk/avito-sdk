@@ -73,7 +73,7 @@ from avito_sdk.process_guard import (
     single_instance,
 )
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"
 __author__ = "eminsk"
 
 __all__ = [
