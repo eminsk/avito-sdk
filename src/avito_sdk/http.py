@@ -14,6 +14,12 @@ from typing import Any, Dict, Optional
 
 logger = logging.getLogger("avito_sdk")
 
+try:
+    import curl_cffi  # noqa: F401
+    CURL_CFFI_AVAILABLE = True
+except Exception:
+    CURL_CFFI_AVAILABLE = False
+
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -31,12 +37,36 @@ MOBILE_PROFILES = [
     ("Android 14; CPH2551", "131.0.6778.200", "131"),   # OnePlus Open
 ]
 
+# Realistic modern iOS Safari profiles for seamless rotation without TLS/Client Hints mismatch
+IOS_MOBILE_PROFILES = [
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (iPad; CPU OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+]
 
-def get_random_mobile_headers(accept_html: bool = False) -> Dict[str, str]:
+
+def get_random_mobile_headers(accept_html: bool = False, profile: str = "android") -> Dict[str, str]:
     """
-    Generate realistic mobile headers with synchronized Android User-Agent and Client Hints.
-    Strictly aligns with curl_cffi Chrome 131 TLS fingerprint to prevent Avito WAF blocks.
+    Generate realistic mobile headers.
+    When profile='ios', generates Safari Mobile headers without sec-ch-ua to eliminate
+    OpenSSL TLS fingerprint mismatches on Avito WAF.
     """
+    if profile == "ios":
+        ua = random.choice(IOS_MOBILE_PROFILES)
+        accept = (
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+            if accept_html
+            else "application/json, text/plain, */*"
+        )
+        return {
+            "accept": accept,
+            "accept-language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+            "referer": "https://m.avito.ru/",
+            "user-agent": ua,
+        }
+
     device, chrome_ver, major = random.choice(MOBILE_PROFILES)
     ua = (
         f"Mozilla/5.0 (Linux; {device}) "
@@ -115,13 +145,15 @@ class SyncHttpTransport:
                 except Exception:
                     pass
         self.timeout = timeout
-        self.max_retries = max(max_retries, 5) if self.proxy_change_url else max_retries
+        self.max_retries = max_retries
         self.impersonate = impersonate
         self.ip_rotations = 0
         self._rotation_lock = threading.Lock()
         self._last_rotation_ts = 0.0
         self._session_generation = 0
         self._pacing_delay = 0.35 if self.proxy else 0.0
+        self._pacing_lock = threading.Lock()
+        self._last_request_ts = 0.0
         self._thread_local = threading.local()
         self._session = self._create_session()
 
@@ -192,14 +224,14 @@ class SyncHttpTransport:
             return False
         with self._rotation_lock:
             now = time.monotonic()
-            if self._last_rotation_ts > 0 and (now - self._last_rotation_ts) < 4.0:
+            if self._last_rotation_ts > 0 and (now - self._last_rotation_ts) < 5.0:
                 return True
 
             rotated = False
             if "mobileproxy.space" in self.proxy_change_url:
                 try:
                     from avito_sdk.mobileproxy import MobileProxySpace
-                    mps = MobileProxySpace(change_url=self.proxy_change_url, reconnect_delay=3.5)
+                    mps = MobileProxySpace(change_url=self.proxy_change_url, reconnect_delay=4.5)
                     res = mps.rotate_ip(wait_reconnect=True)
                     if res.get("success"):
                         self.ip_rotations += 1
@@ -220,7 +252,7 @@ class SyncHttpTransport:
                         logger.debug(f"Mobile proxy rotation status: {resp.status}")
                     self.ip_rotations += 1
                     self._last_rotation_ts = time.monotonic()
-                    time.sleep(3.5)
+                    time.sleep(4.5)
                     rotated = True
                 except Exception as err:
                     logger.warning(f"Failed to rotate mobile proxy IP: {err}")
@@ -245,6 +277,36 @@ class SyncHttpTransport:
                 return True
             return False
 
+    def _apply_adaptive_pacing(self) -> None:
+        """
+        Global rate controller per mobile modem:
+        Guarantees that outbound requests from all parallel threads are staggered
+        with natural human/cellular micro-delays, preventing sudden burst spikes
+        that trigger Avito WAF rate-limiting.
+        """
+        if not self.proxy:
+            return
+
+        with self._pacing_lock:
+            now = time.monotonic()
+            elapsed = now - self._last_request_ts
+
+            import sys
+            if "PyPy" in sys.version:
+                # PyPy JIT micro-loops are extremely fast -> smooth baseline 0.45s + jitter
+                min_gap = 0.45 + random.uniform(0.08, 0.22)
+            elif not getattr(sys, "_is_gil_enabled", lambda: True)():
+                # Free-threaded No-GIL: true hardware concurrent execution across CPU cores
+                min_gap = 0.40 + random.uniform(0.05, 0.20)
+            else:
+                # Standard CPython with GIL
+                min_gap = 0.35 + random.uniform(0.05, 0.15)
+
+            if elapsed < min_gap:
+                time.sleep(min_gap - elapsed)
+
+            self._last_request_ts = time.monotonic()
+
     def request(
         self,
         method: str,
@@ -259,6 +321,7 @@ class SyncHttpTransport:
             session = self._get_thread_session()
             if self.cookies and hasattr(session, "cookies"):
                 session.cookies.update(self.cookies)
+            self._apply_adaptive_pacing()
             try:
                 resp = session.request(
                     method=method,
@@ -338,7 +401,7 @@ class SyncHttpTransport:
         if getattr(self, "_pacing_delay", 0) > 0:
             time.sleep(random.uniform(0.15, self._pacing_delay))
         url = f"https://m.avito.ru/api/1/card/items/{item_id}"
-        headers = get_random_mobile_headers(accept_html=False)
+        headers = get_random_mobile_headers(accept_html=False, profile="android" if CURL_CFFI_AVAILABLE else "ios")
         try:
             resp = self.request("GET", url, headers=headers, allow_rotation=False)
             if resp.status_code == 200:
@@ -360,14 +423,14 @@ class SyncHttpTransport:
                     target_url = target_url.replace("https://avito.ru", "https://m.avito.ru")
                 elif "http://avito.ru" in target_url:
                     target_url = target_url.replace("http://avito.ru", "https://m.avito.ru")
-            # Convert desktop delivery param cd=1 -> mobile d=1
+            # Strip bot-flagging params (?cd=1, ?d=1, &s=104, &s=101) which trigger 439 WAF blocks on mobile
             import re
-            target_url = re.sub(r'([?&])cd=1(?=&|$)', r'\1d=1', target_url)
-            # Strip bot-flagging sort params (&s=104 and &s=101) which trigger 429 WAF blocks on mobile
+            target_url = re.sub(r'[?&](cd=1|d=1)(?=&|$)', '', target_url)
             target_url = re.sub(r'[?&]s=(101|104)(?=&|$)', '', target_url)
             if "?" not in target_url and "&" in target_url:
                 target_url = target_url.replace("&", "?", 1)
-            headers = get_random_mobile_headers(accept_html=True)
+            profile = "android" if CURL_CFFI_AVAILABLE else "ios"
+            headers = get_random_mobile_headers(accept_html=True, profile=profile)
         resp = self.request("GET", target_url, headers=headers, allow_rotation=allow_rotation)
         return resp.text
 
@@ -460,7 +523,7 @@ class AsyncHttpTransport:
         if "mobileproxy.space" in self.proxy_change_url:
             try:
                 from avito_sdk.mobileproxy import MobileProxySpace
-                mps = MobileProxySpace(change_url=self.proxy_change_url, reconnect_delay=3.5)
+                mps = MobileProxySpace(change_url=self.proxy_change_url, reconnect_delay=4.5)
                 res = await asyncio.to_thread(mps.rotate_ip, True)
                 if res.get("success"):
                     self.ip_rotations += 1
@@ -484,7 +547,7 @@ class AsyncHttpTransport:
             )
             await asyncio.to_thread(urllib.request.urlopen, req, timeout=15)
             self.ip_rotations += 1
-            await asyncio.sleep(3.5)
+            await asyncio.sleep(4.5)
             if self._session and hasattr(self._session, "close"):
                 try:
                     await self._session.close()
@@ -564,7 +627,7 @@ class AsyncHttpTransport:
 
     async def fetch_item_card(self, item_id: int) -> dict:
         url = f"https://m.avito.ru/api/1/card/items/{item_id}"
-        headers = get_random_mobile_headers(accept_html=False)
+        headers = get_random_mobile_headers(accept_html=False, profile="android" if CURL_CFFI_AVAILABLE else "ios")
         resp = await self.request("GET", url, headers=headers)
         data = resp.json()
         if isinstance(data, dict):
@@ -583,11 +646,12 @@ class AsyncHttpTransport:
                 elif "http://avito.ru" in target_url:
                     target_url = target_url.replace("http://avito.ru", "https://m.avito.ru")
             import re
-            target_url = re.sub(r'([?&])cd=1(?=&|$)', r'\1d=1', target_url)
+            target_url = re.sub(r'[?&](cd=1|d=1)(?=&|$)', '', target_url)
             target_url = re.sub(r'[?&]s=(101|104)(?=&|$)', '', target_url)
             if "?" not in target_url and "&" in target_url:
                 target_url = target_url.replace("&", "?", 1)
-            headers = get_random_mobile_headers(accept_html=True)
+            profile = "android" if CURL_CFFI_AVAILABLE else "ios"
+            headers = get_random_mobile_headers(accept_html=True, profile=profile)
         resp = await self.request("GET", target_url, headers=headers)
         return resp.text
 

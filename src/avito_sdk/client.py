@@ -208,6 +208,7 @@ class AvitoClient:
         excel_path: Optional[Union[str, Path]] = None,
         limit: Optional[int] = None,
         max_pages: int = 5,
+        progress_callback: Optional[Any] = None,
     ) -> Generator[Item, None, None]:
         """
         Search Avito for items matching specified criteria and all 9 AdsFilter rules.
@@ -246,6 +247,7 @@ class AvitoClient:
                 show_progress=show_progress,
                 excel_path=excel_path,
                 limit=limit,
+                progress_callback=progress_callback,
             ):
                 yield itm
             return
@@ -296,26 +298,29 @@ class AvitoClient:
                 url = build_search_url(search_filter)
                 logger.debug(f"Fetching search page {page_num}: {url}")
 
-                items = []
                 try:
                     items = self.scrape_page_items(url)
                 except Exception as page_err:
-                    logger.warning(f"Error fetching search page {page_num} ({page_err}). Retrying with fresh IP...")
-                    if self.transport.proxy_change_url:
+                    logger.warning(f"Error fetching search page {page_num} ({page_err}). Skipping page.")
+                    items = []
+
+                if not items and page_num == 1 and self.transport.proxy_change_url:
+                    for p1_att in range(1, 3):
+                        logger.info(f"Search page 1 returned 0 items. Rotating mobile proxy IP (attempt {p1_att}/2)...")
                         self.transport.rotate_proxy_ip()
+                        import time
                         time.sleep(3.5)
                         try:
                             items = self.scrape_page_items(url)
-                        except Exception:
-                            items = []
+                            if items:
+                                break
+                        except Exception as p1_err:
+                            logger.warning(f"Search page 1 retry {p1_att} failed: {p1_err}")
 
                 if not items:
                     consecutive_empty += 1
-                    if consecutive_empty >= 2 or page_num == 1:
-                        if page_num == 1:
-                            logger.info(f"Page 1 returned 0 items for query: {query}")
-                        else:
-                            logger.info(f"End of search results at page {page_num}.")
+                    if consecutive_empty >= 2:
+                        logger.info(f"End of search results at page {page_num} (2 consecutive empty pages).")
                         break
                     continue
                 consecutive_empty = 0
@@ -327,7 +332,8 @@ class AvitoClient:
                 enriched_in_parallel = False
                 if enrich_details and safe_workers > 1 and len(items) > 1:
                     from concurrent.futures import ThreadPoolExecutor
-                    with ThreadPoolExecutor(max_workers=safe_workers) as pool:
+                    enrich_workers = min(safe_workers, 4) if self.transport.proxy else safe_workers
+                    with ThreadPoolExecutor(max_workers=enrich_workers) as pool:
                         list(pool.map(self.enrich_item, items))
                     enriched_in_parallel = True
 
@@ -375,6 +381,12 @@ class AvitoClient:
                             ip_rotations=self.transport.ip_rotations,
                         )
 
+                    if progress_callback:
+                        try:
+                            progress_callback(yielded_count, limit or max(yielded_count, len(items)))
+                        except Exception:
+                            pass
+
                     yield item
                     if limit and yielded_count >= limit:
                         break
@@ -395,6 +407,11 @@ class AvitoClient:
                     ip_rotations=self.transport.ip_rotations,
                     excel_path=excel_path if collected_for_excel else None,
                 )
+            if progress_callback:
+                try:
+                    progress_callback(yielded_count, limit or yielded_count)
+                except Exception:
+                    pass
 
     def scrape_url(
         self,
@@ -464,26 +481,47 @@ class AvitoClient:
                 if limit and len(results) >= limit:
                     break
                 page_url = build_page_url(url, page)
-                page_items = []
+                page_fetch_failed = False
                 try:
                     page_items = self.scrape_page_items(page_url)
                 except Exception as page_err:
-                    logger.warning(f"Error fetching catalog page {page} ({page_err}). Retrying with fresh proxy IP...")
+                    logger.warning(f"Error fetching catalog page {page} ({page_err}).")
+                    page_items = []
+                    page_fetch_failed = True
+
+                if page_fetch_failed:
                     if self.transport.proxy_change_url:
+                        for retry_att in range(1, 3):
+                            logger.info(f"Page {page} challenge/error (retry {retry_att}/2). Rotating mobile proxy IP and retrying...")
+                            self.transport.rotate_proxy_ip()
+                            import time
+                            time.sleep(3.5)
+                            try:
+                                page_items = self.scrape_page_items(page_url)
+                                page_fetch_failed = False
+                                break
+                            except Exception as retry_err:
+                                logger.warning(f"Page {page} retry {retry_att} failed: {retry_err}")
+                    if page_fetch_failed:
+                        continue
+
+                if not page_items and page == 1 and self.transport.proxy_change_url:
+                    for p1_att in range(1, 3):
+                        logger.info(f"Catalog page 1 returned 0 items. Rotating mobile proxy IP (attempt {p1_att}/2)...")
                         self.transport.rotate_proxy_ip()
+                        import time
                         time.sleep(3.5)
                         try:
                             page_items = self.scrape_page_items(page_url)
-                        except Exception:
-                            page_items = []
+                            if page_items:
+                                break
+                        except Exception as p1_err:
+                            logger.warning(f"Catalog page 1 retry {p1_att} failed: {p1_err}")
 
                 if not page_items:
                     consecutive_empty += 1
-                    if consecutive_empty >= 2 or page == 1:
-                        if page == 1:
-                            logger.info(f"Page 1 returned 0 items. URL may be invalid or category empty: {url}")
-                        else:
-                            logger.info(f"End of catalog reached at page {page} (2 consecutive empty pages).")
+                    if consecutive_empty >= 2:
+                        logger.info(f"End of catalog reached at page {page} (2 consecutive empty pages).")
                         break
                     continue
                 consecutive_empty = 0
@@ -495,7 +533,8 @@ class AvitoClient:
                 enriched_in_parallel = False
                 if enrich_details and safe_workers > 1 and len(page_items) > 1:
                     from concurrent.futures import ThreadPoolExecutor
-                    with ThreadPoolExecutor(max_workers=safe_workers) as pool:
+                    enrich_workers = min(safe_workers, 4) if self.transport.proxy else safe_workers
+                    with ThreadPoolExecutor(max_workers=enrich_workers) as pool:
                         list(pool.map(self.enrich_item, page_items))
                     enriched_in_parallel = True
 
@@ -635,9 +674,12 @@ class AvitoClient:
     def scrape_page_items(self, url: str) -> List[Item]:
         """Fetch and extract items from a single page URL."""
         html_text = self.transport.fetch_html(url)
-        if "такой страницы не существует" in html_text.lower() or "страница не найдена" in html_text.lower():
+        lower_html = html_text.lower()
+        if "такой страницы не существует" in lower_html or "страница не найдена" in lower_html:
             logger.warning(f"Avito page not found (404 Not Found): {url}")
             return []
+        if any(kw in lower_html for kw in ("проблема с ip", "доступ ограничен", "smartcaptcha")):
+            raise RuntimeError(f"Avito security challenge/block page on {url}")
 
         soup = BeautifulSoup(html_text, "html.parser")
         embedded = extract_embedded_state(soup)
@@ -649,21 +691,28 @@ class AvitoClient:
 
         # Fallback to HTML elements
         items: List[Item] = []
-        for el in soup.select('[data-marker="item"]'):
+        for el in soup.select('[data-marker="item"], [data-marker*="snippet"], [data-marker*="serp"], div[data-item-id]'):
             item_id_str = el.get("data-item-id") or el.get("id")
+            if not item_id_str and el.get("href"):
+                import re
+                m = re.search(r'_(\d+)(?:\?|$)', el.get("href", ""))
+                if m:
+                    item_id_str = m.group(1)
             if not item_id_str:
                 continue
             item_id = safe_int(item_id_str, default=0)
             if not item_id:
                 continue
 
-            title_el = el.select_one('[data-marker="item-title"]') or el.select_one("h3")
+            title_el = el.select_one('[data-marker="item-title"], [data-marker="snippetTitle"]') or el.select_one("h3")
             title = title_el.get_text(strip=True) if title_el else ""
 
-            price_el = el.select_one('[data-marker="item-price"]') or el.select_one('[itemprop="price"]')
+            price_el = el.select_one('[data-marker="item-price"], [data-marker="snippetPrice"], [data-marker="snippetPriceValue"]') or el.select_one('[itemprop="price"]')
             price = safe_int(price_el.get_text(), default=0) if price_el else 0
 
-            url_el = el.select_one('a[data-marker="item-title"]') or el.select_one('a[itemprop="url"]')
+            url_el = el.select_one('a[data-marker="item-title"], a[data-marker="snippetTitle"]') or el.select_one('a[itemprop="url"]')
+            if not url_el and el.name == "a":
+                url_el = el
             link = url_el.get("href") if url_el else ""
             if link:
                 if link.startswith("/"):

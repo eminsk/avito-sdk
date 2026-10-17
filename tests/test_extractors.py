@@ -234,3 +234,32 @@ def test_commercial_realty_price_parsing():
     assert item.id == 3854129841
     assert item.price == 2466
 
+
+def test_extract_embedded_state_skips_non_catalog_scripts():
+    """Verify that extract_embedded_state skips header/subdomain scripts and finds catalog items in __initialData__."""
+    from bs4 import BeautifulSoup
+    from avito_sdk.extractors import extract_embedded_state, extract_catalog_items
+
+    html = """
+    <html>
+      <head>
+        <script type="mime/invalid" data-mfe-state="true">
+          {"subdomain": {"routeBasePath": "", "subdomainSlug": ""}, "geo": {"id": 123}}
+        </script>
+        <script>
+          window.__initialData__ = "{\\"search\\":{\\"allItems\\":{\\"777\\":{\\"type\\":\\"item\\",\\"value\\":{\\"id\\":777,\\"title\\":\\"Ноутбук ThinkPad\\",\\"priceDetailed\\":{\\"value\\":55000}}}}}}";
+        </script>
+      </head>
+      <body></body>
+    </html>
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    state = extract_embedded_state(soup)
+    assert state is not None
+    items = extract_catalog_items(state)
+    assert len(items) == 1
+    assert items[0].id == 777
+    assert items[0].title.startswith("Ноутбук ThinkPad")
+    assert items[0].price == 55000
+
+

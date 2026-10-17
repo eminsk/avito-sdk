@@ -3,13 +3,13 @@
 [ 🇬🇧 English Documentation ](https://github.com/eminsk/avito-sdk/blob/main/README.md) | [ 🇷🇺 Документация на русском ]
 
 
-[![Release Version](https://img.shields.io/badge/релиз-v0.3.0-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.3.0)
+[![Release Version](https://img.shields.io/badge/релиз-v0.3.1-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.3.1)
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/avito-sdk/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/avito-sdk.svg?style=flat&logo=pypi)](https://pypi.org/project/avito-sdk/)
 [![Python Versions](https://img.shields.io/badge/python-3.8_--_3.16+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://pypi.org/project/avito-sdk/)
 [![Free-Threaded No-GIL](https://img.shields.io/badge/No--GIL-3.13t%20--%203.16t-brightgreen?style=flat)](https://peps.python.org/pep-0703/)
 [![PyPy](https://img.shields.io/badge/PyPy-3.11_%7C_3.12-yellow.svg?style=flat&logo=pypy)](https://pypy.org/)
-[![Tests](https://img.shields.io/badge/тесты-69%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/avito-sdk)
+[![Tests](https://img.shields.io/badge/тесты-72%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/avito-sdk)
 [![Telegram Bot](https://img.shields.io/badge/Telegram_Бот-@eminsk__avito__bot-2CA5E0?style=flat&logo=telegram&logoColor=white)](https://t.me/eminsk_avito_bot)
 [![Mobile Proxy](https://img.shields.io/badge/Мобильный_Прокси-Auto--Failover-ff6b6b.svg?style=flat)](https://mobileproxy.space/)
 [![MCP Server](https://img.shields.io/badge/MCP-Встроенный_Сервер-00a67e.svg?style=flat)](#встроенный-mcp-сервер-model-context-protocol)

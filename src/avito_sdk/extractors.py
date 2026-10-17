@@ -348,10 +348,21 @@ def extract_views(payload: Any, html_text: Optional[str] = None) -> Tuple[Option
 
 def extract_embedded_state(soup: BeautifulSoup) -> Optional[Dict[str, Any]]:
     """Extract window.__initialData__ or JSON state scripts from HTML."""
+    first_mfe_state = None
     try:
         for script in soup.select('script[type="mime/invalid"][data-mfe-state="true"]'):
-            if "sandbox" not in script.text:
-                return json.loads(html_lib.unescape(script.text))
+            txt = script.text or ""
+            if "sandbox" not in txt:
+                try:
+                    data = json.loads(html_lib.unescape(txt))
+                    if isinstance(data, dict):
+                        if first_mfe_state is None:
+                            first_mfe_state = data
+                        # Prioritize state containing catalog, search, or result payload
+                        if any(k in data for k in ("search", "catalog", "items", "allItems", "result")):
+                            return data
+                except Exception:
+                    pass
     except Exception:
         pass
 
@@ -379,7 +390,8 @@ def extract_embedded_state(soup: BeautifulSoup) -> Optional[Dict[str, Any]]:
                         pass
     except Exception:
         pass
-    return None
+
+    return first_mfe_state
 
 
 def parse_raw_item(raw: Dict[str, Any]) -> Optional[Item]:

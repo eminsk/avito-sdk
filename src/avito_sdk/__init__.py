@@ -63,14 +63,17 @@ from avito_sdk.vk import VKNotifier
 from avito_sdk.mcp_server import AvitoMCPServer
 from avito_sdk.logging_utils import PrivacyFilter, setup_logging
 from avito_sdk.mobileproxy import MobileProxySpace
+from avito_sdk.process_guard import ensure_single_instance, release_instance_lock
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 __author__ = "eminsk"
 
 __all__ = [
     "__version__",
     "AvitoClient",
     "AsyncAvitoClient",
+    "ensure_single_instance",
+    "release_instance_lock",
     "AvitoConfig",
     "load_avito_config",
     "MobileProxySpace",

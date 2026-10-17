@@ -340,7 +340,6 @@ class TelegramNotifier:
             f"⏳ <b>Сбор данных с Авито в процессе...</b>\n\n"
             f"🔍 <b>Запрос:</b> <code>{html.escape(query)}</code>\n"
             f"📊 <b>Прогресс:</b> {bar}\n\n"
-            f"📦 <b>Собрано:</b> {current} из {total}\n"
             f"🌐 <b>Мобильный прокси:</b> {proxy_status}\n"
             f"🧵 <b>Потоков:</b> {workers}  |  📉 <b>Снижений цен:</b> {drops_count}\n"
             f"⚡ <i>Обогащение характеристик и запись в Excel...</i>"
@@ -366,7 +365,6 @@ class TelegramNotifier:
             f"✅ <b>Парсинг успешно завершён!</b>\n\n"
             f"🔍 <b>Запрос:</b> <code>{html.escape(query)}</code>\n"
             f"📊 <b>Прогресс:</b> {bar}\n\n"
-            f"📦 <b>Собрано объявлений:</b> {total_found}\n"
             f"📉 <b>Снижений цен:</b> {drops_count}\n"
             f"🌐 <b>Мобильный прокси:</b> {proxy_status}\n"
             f"🧵 <b>Потоков:</b> Safe Mode (1 модем)\n\n"
@@ -630,7 +628,7 @@ class AvitoTelegramBot:
             task_state = (
                 f"⏳ <b>Фоновый сбор данных в процессе:</b>\n"
                 f"{link_desc}"
-                f"📊 <b>Прогресс:</b> {bar} <b>{pct}%</b> ({self._current_collected}/{self._current_limit or self.limit})\n\n"
+                f"📊 <b>Прогресс:</b> {bar}\n\n"
             )
         else:
             task_state = "💤 <b>Статус:</b> Ожидание команд (готов к поиску)\n\n"
@@ -715,7 +713,7 @@ class AvitoTelegramBot:
         query: str,
         on_progress: Optional[Any] = None,
         suppress_individual_progress: bool = False,
-    ) -> int:
+    ) -> Tuple[int, Optional[Path]]:
         from avito_sdk.client import AvitoClient
         notifier = TelegramNotifier(bot_token=self.bot_token, chat_id=chat_id)
         target_chats = [chat_id]
@@ -760,12 +758,20 @@ class AvitoTelegramBot:
                     progress_callback=_on_prog,
                 )
                 if not items:
-                    notifier.send_message(
-                        "ℹ️ По данной ссылке не найдено активных объявлений.\n"
-                        "💡 <i>Проверьте ссылку в браузере: возможно, в адресе опечатка или страница не существует на Авито.</i>",
-                        parse_mode="HTML",
-                    )
-                return len(items)
+                    rotations = getattr(client.transport, "ip_rotations", 0)
+                    if rotations >= 2 and not suppress_individual_progress:
+                        notifier.send_message(
+                            "⚠️ <b>Авито временно ограничил доступ (WAF / SmartCaptcha)</b>.\n"
+                            f"🔄 <i>Выполнено ротаций IP: {rotations}. Данная категория или страница защищена от автоматических запросов на Авито.</i>",
+                            parse_mode="HTML",
+                        )
+                    elif not suppress_individual_progress:
+                        notifier.send_message(
+                            "ℹ️ По данной ссылке не найдено активных объявлений.\n"
+                            "💡 <i>Проверьте ссылку в браузере: возможно, в адресе опечатка или страница не существует на Авито.</i>",
+                            parse_mode="HTML",
+                        )
+                return len(items), (excel_path if items and excel_path.exists() else None)
             else:
                 items = list(
                     client.search(
@@ -774,20 +780,21 @@ class AvitoTelegramBot:
                         enrich_details=self.enrich_details,
                         max_workers=self.workers,
                         limit=self.limit,
-                        telegram_progress=True,
+                        telegram_progress=not suppress_individual_progress,
                         excel_path=excel_path,
+                        progress_callback=_on_prog,
                     )
                 )
-                if not items:
+                if not items and not suppress_individual_progress:
                     notifier.send_message(
                         f"ℹ️ По запросу «{query}» не найдено объявлений.",
                         parse_mode=None,
                     )
-                return len(items)
+                return len(items), (excel_path if items and excel_path.exists() else None)
         except Exception as err:
             logger.error(f"Search flow error: {err}")
             notifier.send_message(f"❌ Ошибка при сборе: {err}", parse_mode=None)
-            return 0
+            return 0, None
         finally:
             client.close()
 
@@ -1019,99 +1026,235 @@ class AvitoTelegramBot:
         import html
         urls = re.findall(r'https?://[^\s]+', query)
         if len(urls) > 1:
+            targets = urls
+            target_type = "ссылок"
+        elif len(urls) == 1:
+            targets = urls
+            target_type = "ссылки"
+        else:
+            lines = [line.strip() for line in query.splitlines() if line.strip() and not line.strip().startswith("/")]
+            if len(lines) > 1:
+                targets = lines
+                target_type = "запросов"
+            elif len(lines) == 1:
+                targets = lines
+                target_type = "запроса"
+            else:
+                return
+
+        if len(targets) > 1:
             with self._scrape_lock:
                 if self._is_scraping:
                     bar = render_telegram_progress_bar(self._current_collected, self._current_limit or self.limit)
                     pct = int(round((self._current_collected / max(1, self._current_limit or self.limit)) * 100))
                     if self._total_links > 1:
-                        link_info = f"🔗 <b>Текущая ссылка ({self._current_link_idx}/{self._total_links}):</b>\n<code>{html.escape(self._current_url[:50])}...</code>\n\n"
+                        link_info = f"🔗 <b>Текущая задача ({self._current_link_idx}/{self._total_links}):</b>\n<code>{html.escape(self._current_url[:50])}...</code>\n\n"
                     else:
                         link_info = f"🔍 <b>Запрос:</b> <code>{html.escape(self._current_task_info[:50])}</code>\n\n"
                     notifier.send_message(
                         f"⏳ <b>Сбор данных выполняется прямо сейчас:</b>\n\n"
                         f"{link_info}"
-                        f"📊 <b>Прогресс:</b> {bar} <b>{pct}%</b>\n"
-                        f"📦 <b>Собрано объявлений:</b> {self._current_collected} из {self._current_limit or self.limit}\n"
-                        f"🧵 <b>Воркеров:</b> {self.workers}  |  🌐 <b>4G LTE:</b> активен\n\n"
-                        f"💡 <i>Сбор продолжается в фоне. По завершению каждой ссылки бот сразу пришлёт Excel-отчёт сюда в чат!</i>",
+                        f"📊 <b>Прогресс:</b> {bar}\n"
+                        f"🧵 <b>Воркеров:</b> {self.workers} (Safe Mode)  |  🌐 <b>4G LTE:</b> активен\n\n"
+                        f"💡 <i>Сбор продолжается в фоне. По завершению каждой ссылки бот сразу присылает Excel-отчёт сюда в чат!</i>",
                         parse_mode="HTML",
                     )
                     return
                 self._is_scraping = True
-                self._current_task_info = f"Сбор {len(urls)} ссылок (по {self.limit} шт, {self.workers} воркеров)"
-                self._total_links = len(urls)
+                self._current_task_info = f"Пакетный сбор {len(targets)} {target_type} (по {self.limit} шт, {self.workers} воркеров)"
+                self._total_links = len(targets)
                 self._current_link_idx = 1
-                self._current_url = urls[0]
+                self._current_url = targets[0]
                 self._current_collected = 0
                 self._current_limit = self.limit
 
-            grand_total = len(urls) * self.limit
-            master_bar = render_telegram_progress_bar(0, grand_total)
-            link_bar = render_telegram_progress_bar(0, self.limit)
-            initial_master_text = (
-                f"🚀 <b>Пакетный сбор данных с Авито ({len(urls)} ссылки)</b>\n\n"
-                f"📊 <b>1. Общий прогресс ({len(urls)} ссылок):</b>\n"
-                f"{master_bar} <b>0%</b> (0 / {grand_total} объявл.)\n\n"
-                f"🔗 <b>2. Текущая ссылка [1/{len(urls)}]:</b>\n"
-                f"<code>{html.escape(urls[0][:50])}...</code>\n"
-                f"{link_bar} <b>0%</b> (0 / {self.limit} объявл.)\n\n"
-                f"🌐 <b>Мобильный прокси:</b> Подключен (4G LTE)\n"
-                f"🧵 <b>Потоков:</b> {self.workers} воркеров (Turbo Mode, No-GIL)\n\n"
-                f"⚡ <i>После каждой ссылки бот сразу прикрепит файл Excel ниже 👇</i>"
+            def _render_dual_text(
+                current_idx: int,
+                current_target: str,
+                current_collected: int,
+                current_limit: int,
+                total_completed_items: int,
+                rotations: int,
+                is_finished: bool = False,
+            ) -> str:
+                total_links = max(1, len(targets))
+                completed_links = max(0, current_idx - 1)
+                grand_collected = total_completed_items + current_collected
+
+                curr_target_limit = max(1, current_limit or self.limit or 1)
+                curr_ratio = min(max(current_collected / curr_target_limit, 0.0), 1.0)
+                curr_pct = min(100, int(round(curr_ratio * 100)))
+                curr_blocks = min(10, max(0, int(round(10 * curr_ratio))))
+                curr_bar = "🟩" * curr_blocks + "⬜" * (10 - curr_blocks)
+
+                overall_ratio = min(max((completed_links + curr_ratio) / total_links, 0.0), 1.0)
+                overall_pct = 100 if is_finished else min(100, int(round(overall_ratio * 100)))
+                overall_blocks = 10 if is_finished else min(10, max(0, int(round(10 * overall_ratio))))
+                overall_bar = "🟩" * overall_blocks + "⬜" * (10 - overall_blocks)
+
+                target_preview = html.escape(current_target[:60])
+                if len(current_target) > 60:
+                    target_preview += "..."
+
+                if is_finished:
+                    return (
+                        f"🎉 <b>Пакетный сбор успешно завершён!</b>\n\n"
+                        f"📊 <b>Общий прогресс ({total_links}/{total_links}):</b>\n"
+                        f"{overall_bar} <b>100%</b> ({grand_collected} объявлений из {total_links} ссылок)\n\n"
+                        f"🧵 <b>Потоков:</b> {self.workers} воркеров (Safe Mode)\n"
+                        f"🔄 <b>Ротаций IP:</b> {rotations}\n"
+                        f"📁 <i>Все сформированные файлы Excel (.xlsx) загружены выше в чат 👆</i>"
+                    )
+
+                return (
+                    f"🚀 <b>Пакетный сбор данных с Авито (всего задач: {total_links})</b>\n\n"
+                    f"📊 <b>1. Общий прогресс ({completed_links}/{total_links} завершено):</b>\n"
+                    f"{overall_bar} <b>{overall_pct}%</b> ({completed_links}/{total_links} ссылок | {grand_collected} объявл.)\n\n"
+                    f"🔗 <b>2. Текущая задача [{current_idx}/{total_links}]:</b>\n"
+                    f"<code>{target_preview}</code>\n"
+                    f"{curr_bar} <b>{curr_pct}%</b> ({current_collected} / {curr_target_limit} объявлений)\n\n"
+                    f"🧵 <b>Режим:</b> {self.workers} воркеров (Safe Mode: адаптивная защита)\n"
+                    f"🌐 <b>Мобильный прокси:</b> Активен (ротаций IP: {rotations})\n"
+                    f"⚡ <i>Файл Excel (.xlsx) загружается в чат сразу по завершению каждой ссылки!</i>"
+                )
+
+            init_msg = notifier.send_message(
+                _render_dual_text(
+                    current_idx=1,
+                    current_target=targets[0],
+                    current_collected=0,
+                    current_limit=self.limit,
+                    total_completed_items=0,
+                    rotations=0,
+                ),
+                parse_mode="HTML",
             )
-            msg_res = notifier.send_message(initial_master_text, parse_mode="HTML")
-            master_mid = msg_res.get(chat_id)
+            master_mid = init_msg.get(chat_id)
 
             def _bg_multi_worker():
+                completed_items_total = 0
+                success_count = 0
+                total_rotations = 0
+                last_edit_time = [0.0]
+
                 try:
-                    success_count = 0
-                    total_items = 0
-                    for idx, u in enumerate(urls, 1):
+                    for idx, target_item in enumerate(targets, 1):
                         self._current_link_idx = idx
-                        self._current_url = u
+                        self._current_url = target_item
                         self._current_collected = 0
                         self._current_limit = self.limit
 
-                        def _batch_progress(curr, tot, rots=0):
-                            if not master_mid:
-                                return
-                            overall = total_items + curr
-                            m_b = render_telegram_progress_bar(overall, grand_total)
-                            m_p = int(round((overall / max(1, grand_total)) * 100))
-                            l_b = render_telegram_progress_bar(curr, tot or self.limit)
-                            l_p = int(round((curr / max(1, tot or self.limit)) * 100))
-                            upd_txt = (
-                                f"🚀 <b>Пакетный сбор данных с Авито ({len(urls)} ссылки)</b>\n\n"
-                                f"📊 <b>1. Общий прогресс ({len(urls)} ссылок):</b>\n"
-                                f"{m_b} <b>{m_p}%</b> ({overall} / {grand_total} объявл.)\n\n"
-                                f"🔗 <b>2. Текущая ссылка [{idx}/{len(urls)}]:</b>\n"
-                                f"<code>{html.escape(u[:50])}...</code>\n"
-                                f"{l_b} <b>{l_p}%</b> ({curr} / {tot or self.limit} объявл.)\n\n"
-                                f"🌐 <b>Мобильный прокси:</b> ротаций {rots}\n"
-                                f"🧵 <b>Потоков:</b> {self.workers} воркеров (Turbo Mode, No-GIL)\n\n"
-                                f"⚡ <i>После каждой ссылки бот сразу прикрепит файл Excel ниже 👇</i>"
+                        if master_mid:
+                            notifier.edit_message(
+                                chat_id,
+                                master_mid,
+                                _render_dual_text(
+                                    current_idx=idx,
+                                    current_target=target_item,
+                                    current_collected=0,
+                                    current_limit=self.limit,
+                                    total_completed_items=completed_items_total,
+                                    rotations=total_rotations,
+                                ),
+                                parse_mode="HTML",
                             )
-                            notifier.edit_message(chat_id, master_mid, upd_txt, parse_mode="HTML")
+
+                        def _on_multi_prog(current, total, rotations):
+                            nonlocal total_rotations
+                            total_rotations = max(total_rotations, rotations)
+                            self._current_collected = current
+                            self._current_limit = total
+                            now = time.time()
+                            if now - last_edit_time[0] >= 1.5 and master_mid:
+                                last_edit_time[0] = now
+                                notifier.edit_message(
+                                    chat_id,
+                                    master_mid,
+                                    _render_dual_text(
+                                        current_idx=idx,
+                                        current_target=target_item,
+                                        current_collected=current,
+                                        current_limit=total or self.limit,
+                                        total_completed_items=completed_items_total,
+                                        rotations=total_rotations,
+                                    ),
+                                    parse_mode="HTML",
+                                )
 
                         try:
-                            cnt = self._run_search_flow(chat_id, u, on_progress=_batch_progress, suppress_individual_progress=True) or 0
+                            flow_res = self._run_search_flow(
+                                chat_id,
+                                target_item,
+                                on_progress=_on_multi_prog,
+                                suppress_individual_progress=True,
+                            )
                         except TypeError:
-                            cnt = self._run_search_flow(chat_id, u) or 0
+                            flow_res = self._run_search_flow(chat_id, target_item)
+
+                        if isinstance(flow_res, tuple):
+                            cnt, out_excel = flow_res
+                        else:
+                            cnt, out_excel = (flow_res or 0), None
+
+                        cnt = cnt or 0
+                        completed_items_total += cnt
+
                         if cnt > 0:
                             success_count += 1
-                            total_items += cnt
+                            if out_excel and Path(out_excel).exists():
+                                preview_title = target_item if len(target_item) <= 45 else target_item[:42] + "..."
+                                t_caption = f"📊 [{idx}/{len(targets)}] Отчёт Excel: {preview_title} ({cnt} объявлений)"
+                                try:
+                                    notifier.send_excel(out_excel, caption=t_caption, target_chat_ids=[chat_id])
+                                except Exception as upload_err:
+                                    logger.warning(f"Failed to upload Excel for link {idx}: {upload_err}")
+                            notifier.send_message(
+                                f"✅ <b>[{idx}/{len(targets)}] Выгрузка завершена!</b> Собрано: {cnt} объявлений.\n"
+                                f"📁 <i>Файл Excel отправлен выше 👆</i>",
+                                parse_mode="HTML",
+                            )
+                        else:
+                            notifier.send_message(
+                                f"⚠️ <b>[{idx}/{len(targets)}] По данной ссылке не найдено объявлений</b> (страница пуста или защищена).\n"
+                                f"<i>Перехожу к следующей ссылке...</i>",
+                                parse_mode="HTML",
+                            )
 
-                    fin_b = render_telegram_progress_bar(total_items, max(1, grand_total))
-                    fin_p = int(round((total_items / max(1, grand_total)) * 100))
-                    fin_txt = (
-                        f"🎉 <b>Пакетный сбор по {len(urls)} ссылкам завершён!</b>\n\n"
-                        f"📊 <b>Итого собрано:</b> {fin_b} <b>{fin_p}%</b> ({total_items} / {grand_total} объявл.)\n"
-                        f"📁 <i>Все сформированные файлы Excel (.xlsx) загружены выше в диалог 👆</i>"
-                    )
+                        if master_mid:
+                            notifier.edit_message(
+                                chat_id,
+                                master_mid,
+                                _render_dual_text(
+                                    current_idx=min(idx + 1, len(targets)),
+                                    current_target=targets[min(idx, len(targets) - 1)],
+                                    current_collected=0,
+                                    current_limit=self.limit,
+                                    total_completed_items=completed_items_total,
+                                    rotations=total_rotations,
+                                ),
+                                parse_mode="HTML",
+                            )
+
+                        import sys
+                        link_pause = getattr(self, "_link_delay", 0.01 if "pytest" in sys.modules else 2.0)
+                        if link_pause > 0:
+                            time.sleep(link_pause)
+
                     if master_mid:
-                        notifier.edit_message(chat_id, master_mid, fin_txt, parse_mode="HTML")
-                    else:
-                        notifier.send_message(fin_txt, parse_mode="HTML")
+                        notifier.edit_message(
+                            chat_id,
+                            master_mid,
+                            _render_dual_text(
+                                current_idx=len(targets),
+                                current_target="",
+                                current_collected=0,
+                                current_limit=self.limit,
+                                total_completed_items=completed_items_total,
+                                rotations=total_rotations,
+                                is_finished=True,
+                            ),
+                            parse_mode="HTML",
+                        )
                 finally:
                     with self._scrape_lock:
                         self._is_scraping = False
@@ -1127,6 +1270,7 @@ class AvitoTelegramBot:
             t.start()
             return
 
+        target = targets[0]
         with self._scrape_lock:
             if self._is_scraping:
                 bar = render_telegram_progress_bar(self._current_collected, self._current_limit or self.limit)
@@ -1138,24 +1282,23 @@ class AvitoTelegramBot:
                 notifier.send_message(
                     f"⏳ <b>Сбор данных выполняется прямо сейчас:</b>\n\n"
                     f"{link_info}"
-                    f"📊 <b>Прогресс:</b> {bar} <b>{pct}%</b>\n"
-                    f"📦 <b>Собрано объявлений:</b> {self._current_collected} из {self._current_limit or self.limit}\n"
+                    f"📊 <b>Прогресс:</b> {bar}\n"
                     f"🧵 <b>Воркеров:</b> {self.workers}  |  🌐 <b>4G LTE:</b> активен\n\n"
                     f"💡 <i>Сбор продолжается в фоне. По завершению бот сразу пришлёт Excel-отчёт сюда в чат!</i>",
                     parse_mode="HTML",
                 )
                 return
             self._is_scraping = True
-            self._current_task_info = query[:60]
+            self._current_task_info = target[:60]
             self._total_links = 1
             self._current_link_idx = 1
-            self._current_url = query
+            self._current_url = target
             self._current_collected = 0
             self._current_limit = self.limit
 
         def _bg_single_worker():
             try:
-                self._run_search_flow(chat_id, query)
+                self._run_search_flow(chat_id, target, suppress_individual_progress=False)
             finally:
                 with self._scrape_lock:
                     self._is_scraping = False
@@ -1170,6 +1313,9 @@ class AvitoTelegramBot:
 
     def run_polling(self, poll_interval: float = 1.0) -> None:
         """Start infinite long-polling loop for the Telegram bot controller."""
+        from avito_sdk.process_guard import ensure_single_instance
+        ensure_single_instance(lock_name="bot.lock", pid_name="bot.pid")
+
         notifier = TelegramNotifier(bot_token=self.bot_token, chat_id="")
         notifier.set_bot_commands()
         print("[*] AvitoTelegramBot is running! Menu and commands registered in Telegram.")
