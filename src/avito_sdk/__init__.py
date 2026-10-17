@@ -30,8 +30,10 @@ from avito_sdk.export import (
     to_jsonl,
 )
 from avito_sdk.extractors import (
+    extract_all_embedded_states,
     extract_catalog_items,
     extract_description,
+    extract_embedded_state,
     extract_params,
     extract_seller_id,
     extract_seller_name,
@@ -63,17 +65,26 @@ from avito_sdk.vk import VKNotifier
 from avito_sdk.mcp_server import AvitoMCPServer
 from avito_sdk.logging_utils import PrivacyFilter, setup_logging
 from avito_sdk.mobileproxy import MobileProxySpace
-from avito_sdk.process_guard import ensure_single_instance, release_instance_lock
+from avito_sdk.process_guard import (
+    SingleInstanceGuard,
+    ensure_single_instance,
+    is_pid_alive,
+    release_instance_lock,
+    single_instance,
+)
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 __author__ = "eminsk"
 
 __all__ = [
     "__version__",
     "AvitoClient",
     "AsyncAvitoClient",
+    "SingleInstanceGuard",
     "ensure_single_instance",
     "release_instance_lock",
+    "single_instance",
+    "is_pid_alive",
     "AvitoConfig",
     "load_avito_config",
     "MobileProxySpace",
@@ -103,6 +114,8 @@ __all__ = [
     "extract_views",
     "parse_raw_item",
     "extract_catalog_items",
+    "extract_embedded_state",
+    "extract_all_embedded_states",
     "build_search_url",
     "build_item_api_url",
     "build_item_web_url",

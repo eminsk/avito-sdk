@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 
 from avito_sdk.export import to_csv, to_dataframe, to_excel, to_json, to_jsonl
 from avito_sdk.extractors import (
+    extract_all_embedded_states,
     extract_catalog_items,
     extract_description,
     extract_embedded_state,
@@ -298,29 +299,32 @@ class AvitoClient:
                 url = build_search_url(search_filter)
                 logger.debug(f"Fetching search page {page_num}: {url}")
 
-                try:
-                    items = self.scrape_page_items(url)
-                except Exception as page_err:
-                    logger.warning(f"Error fetching search page {page_num} ({page_err}). Skipping page.")
-                    items = []
+                items: List[Item] = []
+                for attempt in range(1, 4):
+                    try:
+                        items = self.scrape_page_items(url)
+                    except Exception as page_err:
+                        logger.warning(f"Error fetching search page {page_num} attempt {attempt}/3: {page_err}")
+                        items = []
 
-                if not items and page_num == 1 and self.transport.proxy_change_url:
-                    for p1_att in range(1, 3):
-                        logger.info(f"Search page 1 returned 0 items. Rotating mobile proxy IP (attempt {p1_att}/2)...")
+                    if items:
+                        break
+
+                    if self.transport.proxy_change_url and attempt < 3:
+                        logger.info(
+                            f"Search page {page_num} returned 0 items / error (attempt {attempt}/3). "
+                            "Rotating mobile proxy IP and retrying..."
+                        )
                         self.transport.rotate_proxy_ip()
-                        import time
                         time.sleep(3.5)
-                        try:
-                            items = self.scrape_page_items(url)
-                            if items:
-                                break
-                        except Exception as p1_err:
-                            logger.warning(f"Search page 1 retry {p1_att} failed: {p1_err}")
 
                 if not items:
                     consecutive_empty += 1
-                    if consecutive_empty >= 2:
-                        logger.info(f"End of search results at page {page_num} (2 consecutive empty pages).")
+                    if consecutive_empty >= 3 and page_num > 3:
+                        logger.info(f"End of search results at page {page_num} ({consecutive_empty} consecutive empty pages).")
+                        break
+                    elif consecutive_empty >= 5:
+                        logger.info(f"Stopping at page {page_num} after {consecutive_empty} consecutive empty pages.")
                         break
                     continue
                 consecutive_empty = 0
@@ -481,47 +485,32 @@ class AvitoClient:
                 if limit and len(results) >= limit:
                     break
                 page_url = build_page_url(url, page)
-                page_fetch_failed = False
-                try:
-                    page_items = self.scrape_page_items(page_url)
-                except Exception as page_err:
-                    logger.warning(f"Error fetching catalog page {page} ({page_err}).")
-                    page_items = []
-                    page_fetch_failed = True
+                page_items: List[Item] = []
+                for attempt in range(1, 4):
+                    try:
+                        page_items = self.scrape_page_items(page_url)
+                    except Exception as page_err:
+                        logger.warning(f"Error fetching catalog page {page} attempt {attempt}/3: {page_err}")
+                        page_items = []
 
-                if page_fetch_failed:
-                    if self.transport.proxy_change_url:
-                        for retry_att in range(1, 3):
-                            logger.info(f"Page {page} challenge/error (retry {retry_att}/2). Rotating mobile proxy IP and retrying...")
-                            self.transport.rotate_proxy_ip()
-                            import time
-                            time.sleep(3.5)
-                            try:
-                                page_items = self.scrape_page_items(page_url)
-                                page_fetch_failed = False
-                                break
-                            except Exception as retry_err:
-                                logger.warning(f"Page {page} retry {retry_att} failed: {retry_err}")
-                    if page_fetch_failed:
-                        continue
+                    if page_items:
+                        break
 
-                if not page_items and page == 1 and self.transport.proxy_change_url:
-                    for p1_att in range(1, 3):
-                        logger.info(f"Catalog page 1 returned 0 items. Rotating mobile proxy IP (attempt {p1_att}/2)...")
+                    if self.transport.proxy_change_url and attempt < 3:
+                        logger.info(
+                            f"Catalog page {page} returned 0 items / error (attempt {attempt}/3). "
+                            "Rotating mobile proxy IP and retrying..."
+                        )
                         self.transport.rotate_proxy_ip()
-                        import time
                         time.sleep(3.5)
-                        try:
-                            page_items = self.scrape_page_items(page_url)
-                            if page_items:
-                                break
-                        except Exception as p1_err:
-                            logger.warning(f"Catalog page 1 retry {p1_att} failed: {p1_err}")
 
                 if not page_items:
                     consecutive_empty += 1
-                    if consecutive_empty >= 2:
-                        logger.info(f"End of catalog reached at page {page} (2 consecutive empty pages).")
+                    if consecutive_empty >= 3 and page > 3:
+                        logger.info(f"End of catalog reached at page {page} ({consecutive_empty} consecutive empty pages).")
+                        break
+                    elif consecutive_empty >= 5:
+                        logger.info(f"Stopping at page {page} after {consecutive_empty} consecutive empty pages.")
                         break
                     continue
                 consecutive_empty = 0
@@ -621,6 +610,9 @@ class AvitoClient:
         else:
             cfg = load_avito_config("config.toml")
 
+        from avito_sdk.process_guard import ensure_single_instance
+        ensure_single_instance(name="avito_scraper", lock_name="scraper.lock", pid_name="scraper.pid")
+
         enrich = bool(cfg.parse_views or cfg.parse_description or cfg.parse_params)
         all_collected: List[Item] = []
 
@@ -682,8 +674,12 @@ class AvitoClient:
             raise RuntimeError(f"Avito security challenge/block page on {url}")
 
         soup = BeautifulSoup(html_text, "html.parser")
-        embedded = extract_embedded_state(soup)
+        for state in extract_all_embedded_states(soup):
+            items = extract_catalog_items(state)
+            if items:
+                return items
 
+        embedded = extract_embedded_state(soup)
         if embedded:
             items = extract_catalog_items(embedded)
             if items:

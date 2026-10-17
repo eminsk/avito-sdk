@@ -1314,7 +1314,7 @@ class AvitoTelegramBot:
     def run_polling(self, poll_interval: float = 1.0) -> None:
         """Start infinite long-polling loop for the Telegram bot controller."""
         from avito_sdk.process_guard import ensure_single_instance
-        ensure_single_instance(lock_name="bot.lock", pid_name="bot.pid")
+        ensure_single_instance(name="telegram_bot", token=self.bot_token, lock_name="bot.lock", pid_name="bot.pid")
 
         notifier = TelegramNotifier(bot_token=self.bot_token, chat_id="")
         notifier.set_bot_commands()

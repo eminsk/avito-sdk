@@ -263,3 +263,34 @@ def test_extract_embedded_state_skips_non_catalog_scripts():
     assert items[0].price == 55000
 
 
+def test_extract_all_embedded_states_multiple_candidates():
+    """Verify that multiple MFE and __initialData__ scripts are all extracted and scored properly."""
+    from bs4 import BeautifulSoup
+    from avito_sdk.extractors import extract_all_embedded_states, extract_embedded_state, extract_catalog_items
+
+    html = """
+    <html>
+      <head>
+        <script type="mime/invalid" data-mfe-state="true">
+          {"result": {"userInfo": {"id": 12345, "name": "User"}}}
+        </script>
+        <script>
+          window.__initialData__ = "{\\"search\\":{\\"catalog\\":{\\"items\\":[{\\"id\\":888,\\"title\\":\\"iPhone 15\\",\\"priceDetailed\\":{\\"value\\":75000}}]}}}";
+        </script>
+      </head>
+      <body></body>
+    </html>
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    all_states = extract_all_embedded_states(soup)
+    assert len(all_states) == 2
+
+    # extract_embedded_state must prioritize the one with catalog items over userInfo
+    best_state = extract_embedded_state(soup)
+    assert best_state is not None
+    items = extract_catalog_items(best_state)
+    assert len(items) == 1
+    assert items[0].id == 888
+    assert items[0].price == 75000
+
+

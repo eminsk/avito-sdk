@@ -346,9 +346,11 @@ def extract_views(payload: Any, html_text: Optional[str] = None) -> Tuple[Option
     return total, today
 
 
-def extract_embedded_state(soup: BeautifulSoup) -> Optional[Dict[str, Any]]:
-    """Extract window.__initialData__ or JSON state scripts from HTML."""
-    first_mfe_state = None
+def extract_all_embedded_states(soup: BeautifulSoup) -> List[Dict[str, Any]]:
+    """Extract all candidate JSON state dictionaries from HTML scripts."""
+    states: List[Dict[str, Any]] = []
+
+    # 1. MFE state scripts: script[type="mime/invalid"][data-mfe-state="true"]
     try:
         for script in soup.select('script[type="mime/invalid"][data-mfe-state="true"]'):
             txt = script.text or ""
@@ -356,16 +358,13 @@ def extract_embedded_state(soup: BeautifulSoup) -> Optional[Dict[str, Any]]:
                 try:
                     data = json.loads(html_lib.unescape(txt))
                     if isinstance(data, dict):
-                        if first_mfe_state is None:
-                            first_mfe_state = data
-                        # Prioritize state containing catalog, search, or result payload
-                        if any(k in data for k in ("search", "catalog", "items", "allItems", "result")):
-                            return data
+                        states.append(data)
                 except Exception:
                     pass
     except Exception:
         pass
 
+    # 2. window.__initialData__ scripts
     try:
         for s in soup.find_all("script"):
             text = s.string or s.text or ""
@@ -377,7 +376,7 @@ def extract_embedded_state(soup: BeautifulSoup) -> Optional[Dict[str, Any]]:
                         decoded = json.loads(f'"{raw_val}"')
                         data = json.loads(decoded) if isinstance(decoded, str) else decoded
                         if isinstance(data, dict):
-                            return data
+                            states.append(data)
                     except Exception:
                         pass
                 m2 = re.search(r'__initialData__\s*=\s*({.+?});', text, re.DOTALL)
@@ -385,13 +384,37 @@ def extract_embedded_state(soup: BeautifulSoup) -> Optional[Dict[str, Any]]:
                     try:
                         data = json.loads(m2.group(1))
                         if isinstance(data, dict):
-                            return data
+                            states.append(data)
                     except Exception:
                         pass
     except Exception:
         pass
 
-    return first_mfe_state
+    return states
+
+
+def extract_embedded_state(soup: BeautifulSoup) -> Optional[Dict[str, Any]]:
+    """Extract window.__initialData__ or JSON state scripts from HTML with catalog prioritization."""
+    candidates = extract_all_embedded_states(soup)
+    if not candidates:
+        return None
+
+    def _score_candidate(d: Dict[str, Any]) -> int:
+        score = 0
+        if any(k in d for k in ("catalog", "items", "allItems")):
+            score += 10
+        res = d.get("result")
+        if isinstance(res, dict):
+            if any(k in res for k in ("catalog", "items", "allItems")):
+                score += 10
+            elif "items" in str(res):
+                score += 2
+        if "search" in d:
+            score += 5
+        return score
+
+    candidates.sort(key=_score_candidate, reverse=True)
+    return candidates[0]
 
 
 def parse_raw_item(raw: Dict[str, Any]) -> Optional[Item]:
@@ -550,6 +573,7 @@ def extract_catalog_items(payload: Any) -> List[Item]:
     candidates = [
         payload.get("catalog"),
         result.get("catalog") if isinstance(result, dict) else None,
+        search_cand.get("catalog") if isinstance(search_cand, dict) else None,
         search_cand,
         result,
         payload,

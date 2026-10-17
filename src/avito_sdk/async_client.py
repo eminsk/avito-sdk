@@ -12,6 +12,7 @@ from typing import AsyncGenerator, List, Optional, Union
 from bs4 import BeautifulSoup
 
 from avito_sdk.extractors import (
+    extract_all_embedded_states,
     extract_catalog_items,
     extract_description,
     extract_embedded_state,
@@ -146,8 +147,12 @@ class AsyncAvitoClient:
             return []
 
         soup = BeautifulSoup(html_text, "html.parser")
-        embedded = extract_embedded_state(soup)
+        for state in extract_all_embedded_states(soup):
+            items = extract_catalog_items(state)
+            if items:
+                return items
 
+        embedded = extract_embedded_state(soup)
         if embedded:
             items = extract_catalog_items(embedded)
             if items:

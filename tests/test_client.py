@@ -429,4 +429,63 @@ def test_logging_setup_and_privacy_filter(tmp_path):
     assert "***:***" in content
 
 
+def test_scrape_url_multi_attempt_rotation_and_resilience(monkeypatch, tmp_path):
+    """
+    Verify that scrape_url rotates proxy IP when a page returns 0 items/error,
+    retries up to 3 attempts, survives transient empty pages, and collects all items.
+    """
+    client = AvitoClient(
+        proxy="http://user:pass@proxy.test:8080",
+        proxy_change_url="http://change.test/ip",
+        tracker_db=tmp_path / "test.db",
+    )
+
+    rotations = 0
+
+    def mock_rotate():
+        nonlocal rotations
+        rotations += 1
+        return True
+
+    monkeypatch.setattr(client.transport, "rotate_proxy_ip", mock_rotate)
+
+    page_attempts = {}
+
+    def mock_scrape_page(page_url):
+        import re
+        m = re.search(r'[?&]p=(\d+)', page_url)
+        page = int(m.group(1)) if m else 1
+
+        attempts = page_attempts.get(page, 0) + 1
+        page_attempts[page] = attempts
+
+        if page == 1:
+            return [Item(id=101, title="Page 1 item 1"), Item(id=102, title="Page 1 item 2")]
+        elif page == 2:
+            # Attempt 1 returns empty, attempt 2 (after rotation) returns items
+            if attempts == 1:
+                return []
+            return [Item(id=201, title="Page 2 item 1"), Item(id=202, title="Page 2 item 2")]
+        elif page == 3:
+            # Temporary block on page 3
+            return []
+        elif page == 4:
+            return [Item(id=401, title="Page 4 item 1"), Item(id=402, title="Page 4 item 2")]
+        return []
+
+    monkeypatch.setattr(client, "scrape_page_items", mock_scrape_page)
+
+    results = client.scrape_url(
+        url="https://www.avito.ru/moskva/noutbuki",
+        max_pages=4,
+    )
+
+    # Must collect items from page 1 (2), page 2 (2), and page 4 (2) = 6 items!
+    assert len(results) == 6
+    item_ids = [it.id for it in results]
+    assert item_ids == [101, 102, 201, 202, 401, 402]
+    # Verify that rotate_proxy_ip was triggered during page 2 retry and page 3 retries
+    assert rotations >= 2
+
+
 
