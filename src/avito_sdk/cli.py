@@ -34,7 +34,6 @@ def main(argv=None) -> int:
     search_p.add_argument("--proxy", default=None, help="Mobile proxy URL (e.g. http://user:pass@ip:port)")
     search_p.add_argument("--proxy-change-url", default=None, help="Mobile proxy IP rotation URL")
     search_p.add_argument("--mobileproxy-key", default=None, help="MobileProxy.space rotation key (auto-builds change URL)")
-    search_p.add_argument("--playwright", action="store_true", help="Use Playwright Chromium to harvest session cookies ('ft')")
     search_p.add_argument("--workers", type=int, default=2, help="Number of parallel threads for card enrichment (max 2 for 1 modem)")
     search_p.add_argument("--tg-token", default=None, help="Telegram bot token for sending notifications & Excel report")
     search_p.add_argument("--tg-chat-id", default=None, help="Telegram channel (@channel or -100...) or chat ID")
@@ -46,8 +45,6 @@ def main(argv=None) -> int:
     bot_p.add_argument("--proxy", default=None, help="Mobile proxy URL (e.g. http://user:pass@ip:port)")
     bot_p.add_argument("--proxy-change-url", default=None, help="Mobile proxy IP rotation URL")
     bot_p.add_argument("--mobileproxy-key", default=None, help="MobileProxy.space rotation key")
-    bot_p.add_argument("--playwright", action="store_true", default=True, help="Enable Playwright Chromium cookie harvesting (default: True)")
-    bot_p.add_argument("--no-playwright", dest="playwright", action="store_false", help="Disable Playwright cookie harvesting")
     bot_p.add_argument("--workers", type=int, default=2, help="Parallel worker threads for card enrichment (max 2 for 1 modem)")
     bot_p.add_argument("-n", "--limit", type=int, default=30, help="Default item limit per search")
 
@@ -72,7 +69,6 @@ def main(argv=None) -> int:
     mcp_p.add_argument("--proxy", default=None, help="Mobile proxy URL")
     mcp_p.add_argument("--proxy-change-url", default=None, help="Mobile proxy IP rotation URL")
     mcp_p.add_argument("--mobileproxy-key", default=None, help="MobileProxy.space rotation key")
-    mcp_p.add_argument("--playwright", action="store_true", help="Enable Playwright Chromium cookie harvesting")
     mcp_p.add_argument("--db", default="avito_prices.db", help="Path to SQLite price database")
     mcp_p.add_argument("--tg-token", default=None, help="Telegram Bot Token")
     mcp_p.add_argument("--tg-chat-id", default=None, help="Telegram Channel/Chat ID")
@@ -93,7 +89,6 @@ def main(argv=None) -> int:
         server = AvitoMCPServer(
             proxy=args.proxy,
             proxy_change_url=args.proxy_change_url,
-            use_playwright_cookies=args.playwright,
             tracker_db=args.db,
             tg_token=args.tg_token,
             tg_chat_id=args.tg_chat_id,
@@ -117,7 +112,6 @@ def main(argv=None) -> int:
             channel_id=args.channel_id,
             workers=args.workers,
             limit=args.limit,
-            use_playwright_cookies=args.playwright,
         )
         bot.run_polling()
         return 0
@@ -129,7 +123,6 @@ def main(argv=None) -> int:
         client = AvitoClient(
             proxy=args.proxy,
             proxy_change_url=args.proxy_change_url,
-            use_playwright_cookies=args.playwright,
             tg_token=args.tg_token,
             tg_chat_id=args.tg_chat_id,
         )

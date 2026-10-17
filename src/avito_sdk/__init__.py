@@ -19,7 +19,6 @@ from avito_sdk.cookies import (
     AvitoUrlConverter,
     ExternalApiCookiesProvider,
     ParsePhone,
-    PlaywrightCookieProvider,
     parse_proxy_config,
 )
 from avito_sdk.export import (
@@ -95,7 +94,6 @@ __all__ = [
     "TelegramNotifier",
     "VKNotifier",
     "AvitoTelegramBot",
-    "PlaywrightCookieProvider",
     "ExternalApiCookiesProvider",
     "AvitoUrlConverter",
     "ParsePhone",

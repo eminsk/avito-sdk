@@ -222,9 +222,6 @@ def test_telegram_bot_commands(monkeypatch):
     bot.handle_update({"message": {"chat": {"id": 777}, "text": "/workers 1"}})
     assert bot.workers == 1
 
-    bot.handle_update({"message": {"chat": {"id": 777}, "text": "/playwright"}})
-    assert bot.use_playwright_cookies is True
-
     bot.handle_update({"message": {"chat": {"id": 777}, "text": "/limit 25"}})
     assert bot.limit == 25
 

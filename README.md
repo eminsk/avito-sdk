@@ -3,13 +3,13 @@
 [ 🇬🇧 English ] | [ 🇷🇺 Документация на русском ](https://github.com/eminsk/avito-sdk/blob/main/README_RU.md)
 
 
-[![Release Version](https://img.shields.io/badge/release-v0.3.4-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.3.4)
+[![Release Version](https://img.shields.io/badge/release-v0.4.0-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.0)
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/avito-sdk/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/avito-sdk.svg?style=flat&logo=pypi)](https://pypi.org/project/avito-sdk/)
 [![Python Versions](https://img.shields.io/badge/python-3.8_--_3.16+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://pypi.org/project/avito-sdk/)
 [![Free-Threaded No-GIL](https://img.shields.io/badge/No--GIL-3.13t%20--%203.16t-brightgreen?style=flat)](https://peps.python.org/pep-0703/)
-[![PyPy](https://img.shields.io/badge/PyPy-3.11_%7C_3.12-yellow.svg?style=flat&logo=pypy)](https://pypy.org/)
-[![Tests](https://img.shields.io/badge/tests-78%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/avito-sdk)
+[![PyPy](https://img.shields.io/badge/PyPy-3.8_--_3.12-yellow.svg?style=flat&logo=pypy)](https://pypy.org/)
+[![Tests](https://img.shields.io/badge/tests-77%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/avito-sdk)
 [![Telegram Bot](https://img.shields.io/badge/Telegram_Bot-@eminsk__avito__bot-2CA5E0?style=flat&logo=telegram&logoColor=white)](https://t.me/eminsk_avito_bot)
 [![Mobile Proxy](https://img.shields.io/badge/Mobile_Proxy-Integrated_Auto--Failover-ff6b6b.svg?style=flat)](https://mobileproxy.space/)
 [![MCP Server](https://img.shields.io/badge/MCP-Native_Stdio_Server-00a67e.svg?style=flat)](#native-mcp-model-context-protocol-server)
@@ -21,7 +21,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
 [![Donate USDT](https://img.shields.io/badge/Donate-USDT_(TRC20)-26A17B?style=flat&logo=tether&logoColor=white)](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P)
 
-> **High-performance headless Avito scraping and data extraction SDK for Python.**  
+> **High-performance Avito scraping and data extraction SDK for Python.**  
 > Developed by core contributor to [`Duff89/parser_avito`](https://github.com/Duff89/parser_avito).
 
 > ### 🤝 Community, Issues & Support
@@ -34,7 +34,7 @@
 
 ## 🚀 Key Features
 
-- 🚀 **100% Headless & Lightweight**: Zero desktop window / GUI dependencies (No Tkinter, CustomTkinter, or Flet). Runs out of the box in Linux, Docker, AWS, Raspberry Pi, Windows, and macOS.
+- 🚀 **100% Pure Native HTTP & Zero Browser Overheads**: Zero browser binaries, zero GUI dependencies, zero heavy drivers (No Playwright, Selenium, or Tkinter). Instant startup, ultra-low memory footprint, runs out of the box anywhere.
 - ⚡ **Dual Sync & Async API**: `AsyncAvitoClient` for high-throughput asyncio backends (Aiogram 3, FastAPI, aiohttp) and `AvitoClient` for scripts and automation.
 - 📉 **Real-time Price Tracking (PR #334 / Issue #214)**: Built-in `PriceTracker` engine with SQLite persistence, historical logs, and automatic price drop calculation (`item.price_drop`).
 - 👤 **Seller Details & Store Slugs (PR #334 / Issue #333)**: Extracts verified seller name (`seller_name`) and seller profile/brand ID (`seller_id`).
@@ -43,7 +43,7 @@
 - 🛡️ **Anti-Bot TLS Fingerprinting**: Browser impersonation (Chrome/Safari TLS fingerprints) via `curl_cffi` with transparent fallback to standard HTTP transport.
 - 📊 **Multi-Format Exporters**: Direct export to styled Excel (`.xlsx` with automatic column sizing via openpyxl), CSV, JSON, JSONL, and Pandas/Polars `DataFrame`.
 - 💻 **Command-Line Interface (CLI)**: Built-in CLI commands `avito-sdk` and `avito-parser` for instant terminal searches and exports.
-- 🌐 **Universal Python Support**: Full compatibility with Python 3.8 – 3.16+, Free-Threaded No-GIL (PEP 703: 3.13t–3.15t), and PyPy.
+- 🌐 **Universal Python Support**: Full compatibility with Python 3.8 – 3.16+, Free-Threaded No-GIL (PEP 703: Python 3.13t – 3.16t), and PyPy (PyPy 3.8 – 3.12).
 
 ---
 
@@ -263,9 +263,9 @@ avito-sdk search "ноутбук" --proxy "http://user:pass@host:port" --mobilep
 
 ---
 
-### 7. 🎭 Playwright Cookie Harvesting + Telegram Progress Bar + Excel Upload
+### 7. 🌐 Mobile Proxy Auto-Rotation + Telegram Progress Bar + Excel Upload
 
-Install with Playwright browser support (`pip install "avito-sdk[all]"`):
+Pure native HTTP scraping with automatic cellular IP rotation:
 
 ```python
 from avito_sdk import AvitoClient
@@ -273,7 +273,6 @@ from avito_sdk import AvitoClient
 client = AvitoClient(
     proxy="http://user:pass@ip:port",
     proxy_change_url="https://changeip.mobileproxy.space/?proxy_key=YOUR_KEY",
-    use_playwright_cookies=True,  # Automatically harvests 'ft' cookie via headless Chromium + stealth JS
     tg_token="123456:ABC-DEF_BOT_TOKEN",
     tg_chat_id="-1001234567890",  # Telegram channel or chat ID
 )
@@ -307,7 +306,7 @@ Live status message displayed in Telegram during scraping:
 
 ### 8. 🤖 Interactive Telegram Bot Controller (`AvitoTelegramBot`)
 
-Control parsing directly from Telegram (`/search`, `/proxy`, `/workers`, `/playwright`), watch a live updating progress bar (`🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 50%`), and receive the `.xlsx` report right in the chat:
+Control parsing directly from Telegram (`/search`, `/proxy`, `/workers`), watch a live updating progress bar (`🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 50%`), and receive the `.xlsx` report right in the chat:
 
 ```python
 from avito_sdk import AvitoTelegramBot
@@ -317,7 +316,6 @@ bot = AvitoTelegramBot(
     proxy="http://user:pass@ip:port",
     proxy_change_url="https://changeip.mobileproxy.space/?proxy_key=YOUR_KEY",
     workers=4,
-    use_playwright_cookies=True,
 )
 bot.run_polling()
 ```
@@ -332,11 +330,10 @@ The package provides `avito-sdk` and `avito-parser` executable scripts:
 # Search and save directly to Excel:
 avito-sdk search "MacBook M2" --region moskva --max-price 90000 --output macbooks.xlsx
 
-# High-speed multithreaded search with Mobile Proxy, Playwright cookies, Telegram progress & Excel upload:
+# High-speed multithreaded search with Mobile Proxy, Telegram progress & Excel upload:
 avito-sdk search "помещение" --region moskva --enrich --workers 5 \
   --proxy "http://user:pass@ip:port" \
   --proxy-change-url "https://changeip.mobileproxy.space/?proxy_key=..." \
-  --playwright \
   --tg-token "123456:ABC..." --tg-chat-id "-1001234567890" \
   --output premises.xlsx
 
@@ -344,7 +341,7 @@ avito-sdk search "помещение" --region moskva --enrich --workers 5 \
 avito-sdk bot --tg-token "123456:ABC..." \
   --proxy "http://user:pass@ip:port" \
   --proxy-change-url "https://changeip.mobileproxy.space/?proxy_key=..." \
-  --playwright --workers 4
+  --workers 4
 
 # Run directly from a parser_avito config.toml file:
 avito-sdk config config.toml
@@ -356,7 +353,7 @@ avito-sdk item 3854129841
 avito-sdk drops --db prices.db
 
 # Start Model Context Protocol (MCP) Server over stdio:
-avito-mcp --proxy "http://user:pass@ip:port" --proxy-change-url "https://..." --playwright
+avito-mcp --proxy "http://user:pass@ip:port" --proxy-change-url "https://..."
 ```
 
 ---

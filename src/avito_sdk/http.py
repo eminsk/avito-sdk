@@ -119,10 +119,10 @@ class SyncHttpTransport:
         proxy_change_url: Optional[str] = None,
         mobileproxy_key: Optional[str] = None,
         cookies: Optional[Dict[str, str]] = None,
-        use_playwright_cookies: bool = False,
         timeout: int = 25,
         max_retries: int = 3,
         impersonate: str = "chrome",
+        **kwargs,
     ):
         self.proxy = normalize_proxy(proxy)
         if mobileproxy_key and not proxy_change_url:
@@ -132,18 +132,6 @@ class SyncHttpTransport:
             self.proxy_change_url = proxy_change_url
         self.mobileproxy_key = mobileproxy_key
         self.cookies: Dict[str, str] = dict(cookies) if cookies else {}
-        self.use_playwright_cookies = use_playwright_cookies
-        if use_playwright_cookies and not self.cookies:
-            from pathlib import Path
-            import json
-            cache_p = Path("storage/own_cookies.json")
-            if cache_p.exists():
-                try:
-                    cdata = json.loads(cache_p.read_text(encoding="utf-8"))
-                    if isinstance(cdata.get("cookies"), dict):
-                        self.cookies.update(cdata["cookies"])
-                except Exception:
-                    pass
         self.timeout = timeout
         self.max_retries = max_retries
         self.impersonate = impersonate
@@ -189,36 +177,10 @@ class SyncHttpTransport:
                 session.cookies.update(self.cookies)
             return session
 
-    def refresh_cookies(
-        self,
-        target_url: Optional[str] = None,
-        storage_path: Optional[str] = "storage/own_cookies.json",
-        force_refresh: bool = False,
-    ) -> Dict[str, str]:
-        """Obtain fresh Avito cookies via Playwright + Mobile Proxy (with optional disk cache)."""
-        from avito_sdk.cookies import PlaywrightCookieProvider
-        with self._rotation_lock:
-            provider = PlaywrightCookieProvider(
-                proxy=self.proxy,
-                proxy_change_url=self.proxy_change_url,
-                headless=True,
-            )
-            new_cookies, ua = provider.fetch_cookies(
-                target_url=target_url,
-                storage_path=storage_path,
-                force_refresh=force_refresh,
-            )
-            self.ip_rotations += provider.ip_rotations
-            if ua:
-                self.user_agent = ua
-            if new_cookies:
-                self.cookies.update(new_cookies)
-                if hasattr(self._session, "cookies"):
-                    self._session.cookies.update(new_cookies)
-                sess = getattr(self._thread_local, "session", None)
-                if sess is not None and hasattr(sess, "cookies"):
-                    sess.cookies.update(new_cookies)
-            return self.cookies
+    def refresh_cookies(self, *args, **kwargs) -> Dict[str, str]:
+        """Rotate mobile proxy IP to obtain fresh session state."""
+        self.rotate_proxy_ip()
+        return self.cookies
 
     def rotate_proxy_ip(self) -> bool:
         """Trigger mobile proxy IP change via proxy_change_url (thread-safe for 3.15t/3.16t No-GIL)."""
@@ -351,11 +313,6 @@ class SyncHttpTransport:
                         time.sleep(3.5)
                     elif not allow_rotation:
                         return resp
-                    if self.use_playwright_cookies:
-                        try:
-                            self.refresh_cookies(target_url=url, force_refresh=True)
-                        except Exception as pw_err:
-                            logger.warning(f"Playwright cookie refresh failed: {pw_err}")
                     elif not self.proxy_change_url:
                         from avito_sdk.mobileproxy import DEFAULT_FREE_TRIAL_URL
                         delay = 1.5 * attempt + random.uniform(0.5, 1.5)
@@ -419,24 +376,20 @@ class SyncHttpTransport:
         target_url = url
         headers = WEB_HEADERS.copy()
         if "avito.ru" in url:
-            if self.use_playwright_cookies:
-                # When using desktop Playwright cookies, preserve desktop avito.ru and matching User-Agent
-                headers["user-agent"] = getattr(self, "user_agent", DEFAULT_USER_AGENT)
-            else:
-                if "m.avito.ru" not in url:
-                    target_url = url.replace("https://www.avito.ru", "https://m.avito.ru").replace("http://www.avito.ru", "https://m.avito.ru")
-                    if "https://avito.ru" in target_url:
-                        target_url = target_url.replace("https://avito.ru", "https://m.avito.ru")
-                    elif "http://avito.ru" in target_url:
-                        target_url = target_url.replace("http://avito.ru", "https://m.avito.ru")
-                # Strip bot-flagging params (?cd=1, ?d=1, &s=104, &s=101) which trigger 439 WAF blocks on mobile
-                import re
-                target_url = re.sub(r'[?&](cd=1|d=1)(?=&|$)', '', target_url)
-                target_url = re.sub(r'[?&]s=(101|104)(?=&|$)', '', target_url)
-                if "?" not in target_url and "&" in target_url:
-                    target_url = target_url.replace("&", "?", 1)
-                profile = "android" if CURL_CFFI_AVAILABLE else "ios"
-                headers = get_random_mobile_headers(accept_html=True, profile=profile)
+            if "m.avito.ru" not in url:
+                target_url = url.replace("https://www.avito.ru", "https://m.avito.ru").replace("http://www.avito.ru", "https://m.avito.ru")
+                if "https://avito.ru" in target_url:
+                    target_url = target_url.replace("https://avito.ru", "https://m.avito.ru")
+                elif "http://avito.ru" in target_url:
+                    target_url = target_url.replace("http://avito.ru", "https://m.avito.ru")
+            # Strip bot-flagging params (?cd=1, ?d=1, &s=104, &s=101) which trigger 439 WAF blocks on mobile
+            import re
+            target_url = re.sub(r'[?&](cd=1|d=1)(?=&|$)', '', target_url)
+            target_url = re.sub(r'[?&]s=(101|104)(?=&|$)', '', target_url)
+            if "?" not in target_url and "&" in target_url:
+                target_url = target_url.replace("&", "?", 1)
+            profile = "android" if CURL_CFFI_AVAILABLE else "ios"
+            headers = get_random_mobile_headers(accept_html=True, profile=profile)
         resp = self.request("GET", target_url, headers=headers, allow_rotation=allow_rotation)
         return resp.text
 
@@ -465,10 +418,10 @@ class AsyncHttpTransport:
         proxy_change_url: Optional[str] = None,
         mobileproxy_key: Optional[str] = None,
         cookies: Optional[Dict[str, str]] = None,
-        use_playwright_cookies: bool = False,
         timeout: int = 25,
         max_retries: int = 3,
         impersonate: str = "chrome",
+        **kwargs,
     ):
         self.proxy = normalize_proxy(proxy)
         if mobileproxy_key and not proxy_change_url:
@@ -478,7 +431,6 @@ class AsyncHttpTransport:
             self.proxy_change_url = proxy_change_url
         self.mobileproxy_key = mobileproxy_key
         self.cookies: Dict[str, str] = dict(cookies) if cookies else {}
-        self.use_playwright_cookies = use_playwright_cookies
         self.timeout = timeout
         self.max_retries = max_retries
         self.impersonate = impersonate
@@ -487,8 +439,6 @@ class AsyncHttpTransport:
 
     async def _get_session(self):
         if self._session is None:
-            if self.use_playwright_cookies and not self.cookies:
-                await self.refresh_cookies()
             try:
                 from curl_cffi.requests import AsyncSession
                 self._session = AsyncSession(impersonate=self.impersonate)
@@ -505,22 +455,9 @@ class AsyncHttpTransport:
                 )
         return self._session
 
-    async def refresh_cookies(self, target_url: Optional[str] = None) -> Dict[str, str]:
-        """Obtain fresh Avito cookies asynchronously via Playwright + Mobile Proxy."""
-        from avito_sdk.cookies import PlaywrightCookieProvider
-        provider = PlaywrightCookieProvider(
-            proxy=self.proxy,
-            proxy_change_url=self.proxy_change_url,
-            headless=True,
-        )
-        new_cookies, ua = await provider.fetch_cookies_async(target_url=target_url)
-        self.ip_rotations += provider.ip_rotations
-        if ua:
-            self.user_agent = ua
-        if new_cookies:
-            self.cookies.update(new_cookies)
-            if self._session and hasattr(self._session, "cookies"):
-                self._session.cookies.update(new_cookies)
+    async def refresh_cookies(self, *args, **kwargs) -> Dict[str, str]:
+        """Rotate mobile proxy IP asynchronously to obtain fresh session state."""
+        await self.rotate_proxy_ip()
         return self.cookies
 
     async def rotate_proxy_ip(self) -> bool:
@@ -600,11 +537,6 @@ class AsyncHttpTransport:
                     if self.proxy_change_url:
                         await self.rotate_proxy_ip()
                         await asyncio.sleep(3.5)
-                    if self.use_playwright_cookies:
-                        try:
-                            await self.refresh_cookies(target_url=url)
-                        except Exception as pw_err:
-                            logger.warning(f"Playwright async cookie refresh failed: {pw_err}")
                     elif not self.proxy_change_url:
                         from avito_sdk.mobileproxy import DEFAULT_FREE_TRIAL_URL
                         delay = 1.5 * attempt + random.uniform(0.5, 1.5)
@@ -647,22 +579,19 @@ class AsyncHttpTransport:
         target_url = url
         headers = WEB_HEADERS.copy()
         if "avito.ru" in url:
-            if self.use_playwright_cookies:
-                headers["user-agent"] = getattr(self, "user_agent", DEFAULT_USER_AGENT)
-            else:
-                if "m.avito.ru" not in url:
-                    target_url = url.replace("https://www.avito.ru", "https://m.avito.ru").replace("http://www.avito.ru", "https://m.avito.ru")
-                    if "https://avito.ru" in target_url:
-                        target_url = target_url.replace("https://avito.ru", "https://m.avito.ru")
-                    elif "http://avito.ru" in target_url:
-                        target_url = target_url.replace("http://avito.ru", "https://m.avito.ru")
-                import re
-                target_url = re.sub(r'[?&](cd=1|d=1)(?=&|$)', '', target_url)
-                target_url = re.sub(r'[?&]s=(101|104)(?=&|$)', '', target_url)
-                if "?" not in target_url and "&" in target_url:
-                    target_url = target_url.replace("&", "?", 1)
-                profile = "android" if CURL_CFFI_AVAILABLE else "ios"
-                headers = get_random_mobile_headers(accept_html=True, profile=profile)
+            if "m.avito.ru" not in url:
+                target_url = url.replace("https://www.avito.ru", "https://m.avito.ru").replace("http://www.avito.ru", "https://m.avito.ru")
+                if "https://avito.ru" in target_url:
+                    target_url = target_url.replace("https://avito.ru", "https://m.avito.ru")
+                elif "http://avito.ru" in target_url:
+                    target_url = target_url.replace("http://avito.ru", "https://m.avito.ru")
+            import re
+            target_url = re.sub(r'[?&](cd=1|d=1)(?=&|$)', '', target_url)
+            target_url = re.sub(r'[?&]s=(101|104)(?=&|$)', '', target_url)
+            if "?" not in target_url and "&" in target_url:
+                target_url = target_url.replace("&", "?", 1)
+            profile = "android" if CURL_CFFI_AVAILABLE else "ios"
+            headers = get_random_mobile_headers(accept_html=True, profile=profile)
         resp = await self.request("GET", target_url, headers=headers)
         return resp.text
 

@@ -56,7 +56,6 @@ class AvitoClient:
         proxy_change_url: Optional[str] = None,
         mobileproxy_key: Optional[str] = None,
         cookies: Optional[dict] = None,
-        use_playwright_cookies: bool = False,
         timeout: int = 25,
         max_retries: int = 3,
         tracker_db: Optional[Union[str, Path]] = "avito_prices.db",
@@ -67,6 +66,7 @@ class AvitoClient:
         vk_token: Optional[str] = None,
         vk_user_id: Optional[Union[str, int, List[Union[str, int]]]] = None,
         modems_count: int = 1,
+        **kwargs,
     ):
         from avito_sdk.vk import VKNotifier
 
@@ -76,7 +76,6 @@ class AvitoClient:
             proxy_change_url=proxy_change_url,
             mobileproxy_key=mobileproxy_key,
             cookies=cookies,
-            use_playwright_cookies=use_playwright_cookies,
             timeout=timeout,
             max_retries=max_retries,
         )
@@ -165,7 +164,6 @@ class AvitoClient:
             proxy=cfg.proxy_string,
             proxy_change_url=cfg.proxy_change_url,
             mobileproxy_key=cfg.mobileproxy_key,
-            use_playwright_cookies=cfg.use_webdriver,
             timeout=cfg.timeout,
             max_retries=cfg.max_count_of_retry,
             tracker_db=resolved_db,

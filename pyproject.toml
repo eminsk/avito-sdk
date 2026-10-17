@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "avito-sdk"
-version = "0.3.5"
-description = "High-performance headless Avito scraping & data extraction SDK with price tracking, parameters parsing, and async support"
+version = "0.4.0"
+description = "High-performance Avito scraping & data extraction SDK with mobile proxy rotation, price tracking, parameters parsing, and async support"
 readme = "README.md"
 authors = [
     { name = "eminsk", email = "M_N_Nik@yahoo.com" },
@@ -19,7 +19,7 @@ keywords = [
     "crawler",
     "sdk",
     "api",
-    "headless",
+    "mobile-proxy",
     "price-tracker",
     "e-commerce",
 ]
@@ -46,8 +46,6 @@ classifiers = [
 dependencies = [
     "beautifulsoup4>=4.10.0",
     "openpyxl>=3.0.0",
-    "playwright>=1.40.0",
-    "playwright-stealth>=1.0.6",
     "requests>=2.28.0",
     "tomli>=2.0.0; python_version < '3.11'",
 ]
@@ -55,10 +53,6 @@ dependencies = [
 [project.optional-dependencies]
 tls = [
     "curl-cffi>=0.7.0",
-]
-browser = [
-    "playwright>=1.40.0",
-    "playwright-stealth>=1.0.6",
 ]
 excel = [
     "openpyxl>=3.0.0",
@@ -74,7 +68,6 @@ all = [
     "openpyxl>=3.0.0",
     "httpx>=0.24.0",
     "pandas>=1.5.0",
-    "playwright>=1.40.0",
 ]
 dev = [
     "pytest>=7.0.0",
@@ -100,3 +93,5 @@ packages = ["src/avito_sdk"]
 minversion = "7.0"
 addopts = "-ra -q"
 testpaths = ["tests"]
+pythonpath = ["src"]
+

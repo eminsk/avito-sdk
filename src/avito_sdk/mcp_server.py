@@ -89,18 +89,15 @@ class AvitoMCPServer:
         self,
         proxy: Optional[str] = None,
         proxy_change_url: Optional[str] = None,
-        use_playwright_cookies: bool = False,
         tracker_db: str = "avito_prices.db",
         tg_token: Optional[str] = None,
         tg_chat_id: Optional[str] = None,
         workers: int = 2,
         client: Optional[AvitoClient] = None,
+        **kwargs,
     ):
         self.proxy = proxy or os.environ.get("AVITO_PROXY")
         self.proxy_change_url = proxy_change_url or os.environ.get("AVITO_PROXY_CHANGE_URL")
-        self.use_playwright_cookies = use_playwright_cookies or (
-            os.environ.get("AVITO_PLAYWRIGHT", "").lower() in ("1", "true", "yes")
-        )
         self.tracker_db = tracker_db or os.environ.get("AVITO_TRACKER_DB", "avito_prices.db")
         self.tg_token = tg_token or os.environ.get("AVITO_TG_TOKEN")
         self.tg_chat_id = tg_chat_id or os.environ.get("AVITO_TG_CHAT_ID")
@@ -113,7 +110,6 @@ class AvitoMCPServer:
             self._client = AvitoClient(
                 proxy=self.proxy,
                 proxy_change_url=self.proxy_change_url,
-                use_playwright_cookies=self.use_playwright_cookies,
                 tracker_db=self.tracker_db,
                 tg_token=self.tg_token,
                 tg_chat_id=self.tg_chat_id,
@@ -265,7 +261,6 @@ def main_mcp(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Start Avito SDK Model Context Protocol (MCP) Server over stdio")
     parser.add_argument("--proxy", default=None, help="Mobile proxy URL")
     parser.add_argument("--proxy-change-url", default=None, help="Mobile proxy IP rotation URL")
-    parser.add_argument("--playwright", action="store_true", help="Use Playwright Chromium for ft cookies")
     parser.add_argument("--db", default="avito_prices.db", help="Path to SQLite price tracker database")
     parser.add_argument("--tg-token", default=None, help="Telegram Bot Token")
     parser.add_argument("--tg-chat-id", default=None, help="Telegram Channel/Chat ID")
@@ -275,7 +270,6 @@ def main_mcp(argv=None) -> int:
     server = AvitoMCPServer(
         proxy=args.proxy,
         proxy_change_url=args.proxy_change_url,
-        use_playwright_cookies=args.playwright,
         tracker_db=args.db,
         tg_token=args.tg_token,
         tg_chat_id=args.tg_chat_id,

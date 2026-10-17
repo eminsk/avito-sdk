@@ -491,8 +491,8 @@ class AvitoTelegramBot:
         workers: int = 2,
         limit: int = 30,
         enrich_details: bool = True,
-        use_playwright_cookies: bool = False,
         modems_count: int = 1,
+        **kwargs,
     ):
         self.bot_token = bot_token
         self.proxy = proxy
@@ -507,7 +507,6 @@ class AvitoTelegramBot:
             )
         self.limit = max(1, limit)
         self.enrich_details = enrich_details
-        self.use_playwright_cookies = use_playwright_cookies
         self._offset = 0
         self._is_scraping = False
         self._current_task_info = ""
@@ -745,7 +744,6 @@ class AvitoTelegramBot:
         client = AvitoClient(
             proxy=self.proxy,
             proxy_change_url=self.proxy_change_url,
-            use_playwright_cookies=self.use_playwright_cookies,
             tg_token=self.bot_token,
             tg_chat_id=target_chats,
             modems_count=self.modems_count,
@@ -990,12 +988,6 @@ class AvitoTelegramBot:
 
         if text.startswith("/start") or text.startswith("/help") or text.startswith("/status"):
             notifier.send_message(self._status_text(), parse_mode="HTML", reply_markup=self._main_keyboard())
-            return
-
-        if text.startswith("/playwright"):
-            self.use_playwright_cookies = not self.use_playwright_cookies
-            state = "ВКЛ (Playwright Chromium)" if self.use_playwright_cookies else "ВЫКЛ (быстрый HTTP)"
-            notifier.send_message(f"🎭 Сбор cookies через Playwright: <b>{state}</b>", parse_mode="HTML")
             return
 
         if text.startswith("/proxy"):

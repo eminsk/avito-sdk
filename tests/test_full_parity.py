@@ -17,7 +17,6 @@ from avito_sdk import (
     ExternalApiCookiesProvider,
     Item,
     ParsePhone,
-    PlaywrightCookieProvider,
     PriceTracker,
     TelegramNotifier,
     VKNotifier,
@@ -45,18 +44,6 @@ def test_all_6_proxy_formats():
         assert parsed.username == exp_u
         assert parsed.password == exp_p
         assert parsed.change_ip_url == "https://rotate.me"
-
-
-def test_playwright_cookie_disk_cache(tmp_path):
-    cache_file = tmp_path / "own_cookies.json"
-    cache_file.write_text(
-        json.dumps({"cookies": {"ft": "cached_ft_token"}, "user_agent": "CustomUA/1.0"}),
-        encoding="utf-8",
-    )
-    provider = PlaywrightCookieProvider(proxy="user:pass@1.2.3.4:8080")
-    cookies, ua = provider.fetch_cookies(storage_path=str(cache_file), force_refresh=False)
-    assert cookies["ft"] == "cached_ft_token"
-    assert ua == "CustomUA/1.0"
 
 
 def test_spfa_external_cookies_url_converter_and_phones(monkeypatch, tmp_path):
