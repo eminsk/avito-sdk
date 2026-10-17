@@ -59,6 +59,12 @@ class AsyncAvitoClient:
             max_retries=max_retries,
         )
         self.tracker = PriceTracker(db_path=tracker_db) if (enable_tracking and tracker_db) else None
+        if not any(isinstance(h, logging.FileHandler) for h in logger.handlers):
+            try:
+                from avito_sdk.logging_utils import setup_logging
+                setup_logging(log_file="storage/logs/avito_sdk.log")
+            except Exception:
+                pass
 
     async def search(
         self,

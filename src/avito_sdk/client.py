@@ -90,6 +90,12 @@ class AvitoClient:
         self.vk_notifier: Optional[VKNotifier] = (
             VKNotifier(vk_token=vk_token, user_id=vk_user_id) if (vk_token and vk_user_id) else None
         )
+        if not any(isinstance(h, logging.FileHandler) for h in logger.handlers):
+            try:
+                from avito_sdk.logging_utils import setup_logging
+                setup_logging(log_file="storage/logs/avito_sdk.log")
+            except Exception:
+                pass
         self._audit_proxy_status()
 
     def _masked_proxy(self) -> str:
