@@ -1,3 +1,14 @@
+python-avito-sdk (0.3.0-1) unstable; urgency=medium
+
+  * Release v0.3.0: Dual live Telegram progress bars (overall + current link).
+  * Full PyPy 3.11, PyPy 3.12, and Python 3.16 No-GIL (Free-Threaded) compatibility.
+  * Automatic persistent rotating file logging to storage/logs/avito_sdk.log.
+  * ASCII English logging for clean terminal output and cross-platform universality.
+  * Anti-reboot card enrichment with allow_rotation flag preventing unnecessary modem reboots.
+  * Adaptive micro-pacing for safe 8-worker concurrency on mobile proxies.
+
+ -- eminsk <M_N_N@tut.by>  Fri, 16 Oct 2026 23:59:00 +0000
+
 python-avito-sdk (0.2.0-1) unstable; urgency=medium
 
   * Release v0.2.0: Auto-failover on 429/SmartCaptcha with MobileProxy.space IP rotation.

@@ -64,7 +64,7 @@ from avito_sdk.mcp_server import AvitoMCPServer
 from avito_sdk.logging_utils import PrivacyFilter, setup_logging
 from avito_sdk.mobileproxy import MobileProxySpace
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __author__ = "eminsk"
 
 __all__ = [
