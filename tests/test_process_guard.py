@@ -44,7 +44,7 @@ def test_single_instance_guard_collision(tmp_path):
 
     # Second instance with same name must raise collision
     g2 = SingleInstanceGuard(name="unit_test_collision", storage_dir=tmp_path, raise_on_collision=True)
-    with pytest.raises(RuntimeError, match="is already running"):
+    with pytest.raises(RuntimeError, match=r"Another instance.*is (already )?running"):
         g2.acquire()
 
     # Release g1

@@ -278,13 +278,13 @@ class SingleInstanceGuard:
                 except (IOError, OSError) as flock_err:
                     self._show_collision_banner(existing_pid, started_at)
                     if self.raise_on_collision:
-                        raise RuntimeError(f"Another instance of '{self.name}' is running: {flock_err}")
+                        raise RuntimeError(f"Another instance of '{self.name}' is already running: {flock_err}")
                     sys.exit(0)
         except (IOError, OSError) as lock_err:
             if sys.platform != "win32" or not self._win_mutex_handle:
                 self._show_collision_banner(existing_pid, started_at)
                 if self.raise_on_collision:
-                    raise RuntimeError(f"Another instance is running: {lock_err}")
+                    raise RuntimeError(f"Another instance of '{self.name}' is already running: {lock_err}")
                 sys.exit(0)
 
         # 3. Write PID & register cleanup
