@@ -7,7 +7,7 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Union
 
 from avito_sdk.models import Item
 

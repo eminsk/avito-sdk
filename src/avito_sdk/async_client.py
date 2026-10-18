@@ -27,7 +27,6 @@ from avito_sdk.models import Item, SearchFilter
 from avito_sdk.tracker import PriceTracker
 from avito_sdk.url import (
     build_item_web_url,
-    build_page_url,
     build_search_url,
 )
 

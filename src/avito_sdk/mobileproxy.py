@@ -11,7 +11,7 @@ import logging
 import time
 import urllib.parse
 import urllib.request
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger("avito_sdk")
 

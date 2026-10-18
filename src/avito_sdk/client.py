@@ -8,11 +8,14 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 import time
-from typing import Generator, Iterable, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Generator, List, Optional, Union
+
+if TYPE_CHECKING:
+    from avito_sdk.config import AvitoConfig
 
 from bs4 import BeautifulSoup
 
-from avito_sdk.export import to_csv, to_dataframe, to_excel, to_json, to_jsonl
+from avito_sdk.export import to_csv, to_dataframe, to_excel, to_json
 from avito_sdk.extractors import (
     extract_all_embedded_states,
     extract_catalog_items,
@@ -22,15 +25,13 @@ from avito_sdk.extractors import (
     extract_seller_id,
     extract_seller_name,
     extract_views,
-    parse_raw_item,
     safe_int,
 )
 from avito_sdk.http import SyncHttpTransport
-from avito_sdk.models import Item, SearchFilter, SearchPage
+from avito_sdk.models import Item, SearchFilter
 from avito_sdk.telegram import TelegramNotifier
 from avito_sdk.tracker import PriceTracker
 from avito_sdk.url import (
-    build_item_api_url,
     build_item_web_url,
     build_page_url,
     build_search_url,

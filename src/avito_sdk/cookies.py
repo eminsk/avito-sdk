@@ -113,7 +113,6 @@ class ExternalApiCookiesProvider:
         return self.purchase_new_cookies()
 
     def purchase_new_cookies(self) -> Tuple[Dict[str, str], Optional[str]]:
-        import json
         import time
         import requests
 

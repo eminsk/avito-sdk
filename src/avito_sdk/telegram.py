@@ -10,15 +10,13 @@ interactive Telegram Bot Controller (AvitoTelegramBot) with:
 from __future__ import annotations
 
 import logging
-import tempfile
 import threading
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import requests
 
-from avito_sdk.export import to_excel
 from avito_sdk.http import normalize_proxy
 from avito_sdk.models import Item
 
@@ -641,7 +639,6 @@ class AvitoTelegramBot:
         import html
         if self._is_scraping:
             bar = render_telegram_progress_bar(self._current_collected, self._current_limit or self.limit)
-            pct = int(round((self._current_collected / max(1, self._current_limit or self.limit)) * 100))
             if self._total_links > 1:
                 link_desc = f"🔗 <b>Ссылка {self._current_link_idx}/{self._total_links}:</b> <code>{html.escape(self._current_url[:45])}...</code>\n"
             else:
@@ -1071,7 +1068,6 @@ class AvitoTelegramBot:
             with self._scrape_lock:
                 if self._is_scraping:
                     bar = render_telegram_progress_bar(self._current_collected, self._current_limit or self.limit)
-                    pct = int(round((self._current_collected / max(1, self._current_limit or self.limit)) * 100))
                     if self._total_links > 1:
                         link_info = f"🔗 <b>Текущая задача ({self._current_link_idx}/{self._total_links}):</b>\n<code>{html.escape(self._current_url[:50])}...</code>\n\n"
                     else:
@@ -1310,7 +1306,6 @@ class AvitoTelegramBot:
         with self._scrape_lock:
             if self._is_scraping:
                 bar = render_telegram_progress_bar(self._current_collected, self._current_limit or self.limit)
-                pct = int(round((self._current_collected / max(1, self._current_limit or self.limit)) * 100))
                 if self._total_links > 1:
                     link_info = f"🔗 <b>Текущая ссылка ({self._current_link_idx}/{self._total_links}):</b>\n<code>{html.escape(self._current_url[:50])}...</code>\n\n"
                 else:

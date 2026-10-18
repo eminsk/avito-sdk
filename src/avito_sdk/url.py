@@ -4,10 +4,8 @@ Avito URL builders, parsers, and API endpoint converters.
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-from typing import Any, Dict, Optional
-from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
+from typing import Optional
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from avito_sdk.models import SearchFilter
 
