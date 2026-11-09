@@ -81,7 +81,7 @@ avito-parser = "avito_sdk.cli:main"
 avito-mcp = "avito_sdk.mcp_server:main_mcp"
 
 [project.urls]
-Homepage = "https://github.com/eminsk/avito-sdk"
+Homepage = "https://eminsk.github.io/#avito-sdk"
 Documentation = "https://github.com/eminsk/avito-sdk#readme"
 Repository = "https://github.com/eminsk/avito-sdk"
 Issues = "https://github.com/eminsk/avito-sdk/issues"
