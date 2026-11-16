@@ -7,7 +7,9 @@ Prefers curl_cffi when available; falls back cleanly to httpx/requests.
 from __future__ import annotations
 
 import logging
+import os
 import random
+import sys
 import threading
 import time
 from typing import Any, Dict, Optional
@@ -110,6 +112,48 @@ def normalize_proxy(proxy: Optional[str]) -> Optional[str]:
     return proxy
 
 
+def get_ca_bundle() -> str | bool:
+    """Locates a valid CA certificate bundle path, or returns False if unavailable/broken.
+
+    Protects against curl: (77) in PyInstaller frozen apps (_MEIPASS) and Windows non-ASCII paths.
+    """
+    for env_var in ("SSL_CERT_FILE", "CURL_CA_BUNDLE", "REQUESTS_CA_BUNDLE"):
+        path = os.environ.get(env_var)
+        if path and os.path.isfile(path):
+            return _normalize_ca_path(path)
+
+    try:
+        import certifi
+        cert_path = certifi.where()
+        if cert_path and os.path.isfile(cert_path):
+            return _normalize_ca_path(cert_path)
+    except Exception:
+        pass
+
+    if hasattr(sys, "_MEIPASS"):
+        mei_path = os.path.join(sys._MEIPASS, "certifi", "cacert.pem")
+        if os.path.isfile(mei_path):
+            return _normalize_ca_path(mei_path)
+
+    return False
+
+
+def _normalize_ca_path(path: str) -> str:
+    """Normalizes certificate path for Windows libcurl compatibility."""
+    if sys.platform == "win32":
+        if not all(ord(c) < 128 for c in path):
+            try:
+                import ctypes
+                buf = ctypes.create_unicode_buffer(1024)
+                if ctypes.windll.kernel32.GetShortPathNameW(path, buf, 1024) > 0:
+                    short_path = buf.value
+                    if short_path and os.path.isfile(short_path) and all(ord(c) < 128 for c in short_path):
+                        return short_path
+            except Exception:
+                pass
+    return path
+
+
 class SyncHttpTransport:
     """Synchronous HTTP transport with mobile proxy rotation support."""
 
@@ -122,6 +166,7 @@ class SyncHttpTransport:
         timeout: int = 25,
         max_retries: int = 3,
         impersonate: str = "chrome",
+        verify: str | bool | None = None,
         **kwargs,
     ):
         self.proxy = normalize_proxy(proxy)
@@ -135,6 +180,7 @@ class SyncHttpTransport:
         self.timeout = timeout
         self.max_retries = max_retries
         self.impersonate = impersonate
+        self.verify = get_ca_bundle() if verify is None else verify
         self.ip_rotations = 0
         self._rotation_lock = threading.Lock()
         self._last_rotation_ts = 0.0
@@ -162,7 +208,7 @@ class SyncHttpTransport:
     def _create_session(self):
         try:
             from curl_cffi import requests as cffi_requests
-            session = cffi_requests.Session(impersonate=self.impersonate)
+            session = cffi_requests.Session(impersonate=self.impersonate, verify=self.verify)
             if self.proxy:
                 session.proxies = {"http": self.proxy, "https": self.proxy}
             if self.cookies:
@@ -171,6 +217,8 @@ class SyncHttpTransport:
         except ImportError:
             import requests
             session = requests.Session()
+            if self.verify is not None:
+                session.verify = self.verify
             if self.proxy:
                 session.proxies = {"http": self.proxy, "https": self.proxy}
             if self.cookies:
@@ -337,6 +385,26 @@ class SyncHttpTransport:
                 return resp
             except Exception as e:
                 last_error = e
+                err_msg = str(e)
+                if (
+                    "(77)" in err_msg
+                    or "certificate verify locations" in err_msg
+                    or "trust anchors" in err_msg
+                ) and self.verify is not False:
+                    logger.warning(
+                        f"curl (77) SSL certificate error detected ({e}). "
+                        "Switching session to verify=False to prevent network failure."
+                    )
+                    self.verify = False
+                    sess = getattr(self._thread_local, "session", None)
+                    if sess and hasattr(sess, "close"):
+                        try:
+                            sess.close()
+                        except Exception:
+                            pass
+                    self._thread_local.session = None
+                    continue
+
                 # Clean up broken session so next attempt opens a brand new socket
                 sess = getattr(self._thread_local, "session", None)
                 if sess and hasattr(sess, "close"):
@@ -421,6 +489,7 @@ class AsyncHttpTransport:
         timeout: int = 25,
         max_retries: int = 3,
         impersonate: str = "chrome",
+        verify: str | bool | None = None,
         **kwargs,
     ):
         self.proxy = normalize_proxy(proxy)
@@ -434,6 +503,7 @@ class AsyncHttpTransport:
         self.timeout = timeout
         self.max_retries = max_retries
         self.impersonate = impersonate
+        self.verify = get_ca_bundle() if verify is None else verify
         self.ip_rotations = 0
         self._session = None
 
@@ -441,7 +511,7 @@ class AsyncHttpTransport:
         if self._session is None:
             try:
                 from curl_cffi.requests import AsyncSession
-                self._session = AsyncSession(impersonate=self.impersonate)
+                self._session = AsyncSession(impersonate=self.impersonate, verify=self.verify)
                 if self.proxy:
                     self._session.proxies = {"http": self.proxy, "https": self.proxy}
                 if self.cookies:
@@ -452,6 +522,7 @@ class AsyncHttpTransport:
                     proxy=self.proxy,
                     cookies=self.cookies,
                     timeout=self.timeout,
+                    verify=self.verify,
                 )
         return self._session
 
@@ -552,6 +623,25 @@ class AsyncHttpTransport:
                 return resp
             except Exception as e:
                 last_error = e
+                err_msg = str(e)
+                if (
+                    "(77)" in err_msg
+                    or "certificate verify locations" in err_msg
+                    or "trust anchors" in err_msg
+                ) and self.verify is not False:
+                    logger.warning(
+                        f"curl (77) SSL certificate error detected in AsyncSession ({e}). "
+                        "Switching session to verify=False to prevent network failure."
+                    )
+                    self.verify = False
+                    if self._session and hasattr(self._session, "close"):
+                        try:
+                            await self._session.close()
+                        except Exception:
+                            pass
+                    self._session = None
+                    continue
+
                 if self._session and hasattr(self._session, "close"):
                     try:
                         await self._session.close()
