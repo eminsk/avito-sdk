@@ -2,6 +2,30 @@
 
 All notable changes to `avito-sdk` will be documented in this file.
 
+## [0.4.2] - 2026-11-16
+
+### Added & Enhanced
+- **Mobile Proxy Auto-Rotation & Multi-Threaded Scraping**:
+  - First-class support for mobile proxy rotation (`MobileProxyRotator` and MobileProxy.space integration) for high-concurrency scraping without anti-bot bans or 429 rate limits.
+  - Seamless support for external IP-change rotation URLs (`change_ip_url`) with configurable cooldowns and automatic retry mechanisms.
+- **PyInstaller & Bundled Environment Compatibility**:
+  - Added robust `get_ca_bundle()` resolution supporting `sys._MEIPASS` when compiled into standalone `.exe` binaries with PyInstaller.
+  - Automatic Windows 8.3 short-path conversion (`GetShortPathNameW`) to eliminate issues with Cyrillic or special characters in user profile directory paths.
+- **Resilient SSL Fallback (`curl: (77)`)**:
+  - Graceful auto-recovery in both `SyncHttpTransport` and `AsyncHttpTransport` when SSL CA certificates cannot be loaded: transparently retries with `verify=False` to prevent parser downtime.
+
+### Fixed
+- **Typing Imports**: Resolved missing `Any`, `Tuple`, and `AvitoConfig` type hints across exporters, parameters, and models.
+- **ProcessGuard**: Harmonized cross-platform process collision messages and regex patterns across Windows, Linux, and macOS (`flock`).
+
+## [0.4.1] - 2026-10-17
+
+### Added
+- **Pure Native HTTP Transport**:
+  - Zero Playwright dependency by default for ultra-lightweight execution.
+  - Built-in Mobile Proxy Auto-Rotation integration.
+  - Full compatibility with PyPy 3.8–3.12 and Python 3.13 free-threaded (no-GIL) builds.
+
 ## [0.1.0] - 2026-10-05
 
 ### Added
