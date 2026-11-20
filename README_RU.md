@@ -3,14 +3,14 @@
 [ 🇬🇧 English Documentation ](https://github.com/eminsk/avito-sdk/blob/main/README.md) | [ 🇷🇺 Документация на русском ]
 
 
-[![Release Version](https://img.shields.io/badge/релиз-v0.4.1-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.1)
+[![Release Version](https://img.shields.io/badge/релиз-v0.4.2-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.2)
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/avito-sdk/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/avito-sdk.svg?style=flat&logo=pypi)](https://pypi.org/project/avito-sdk/)
 [![Python Versions](https://img.shields.io/badge/python-3.8_--_3.16+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://pypi.org/project/avito-sdk/)
 [![Free-Threaded No-GIL](https://img.shields.io/badge/No--GIL-3.13t%20--%203.16t-brightgreen?style=flat)](https://peps.python.org/pep-0703/)
 [![PyPy](https://img.shields.io/badge/PyPy-3.8_--_3.12-yellow.svg?style=flat&logo=pypy)](https://pypy.org/)
 [![Pure Native HTTP](https://img.shields.io/badge/Браузер-Zero--Browser_%7C_Чистый_HTTP-informational?style=flat)](https://github.com/eminsk/avito-sdk)
-[![Tests](https://img.shields.io/badge/тесты-77%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/avito-sdk)
+[![Tests](https://img.shields.io/badge/тесты-82%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/avito-sdk)
 [![Telegram Bot](https://img.shields.io/badge/Telegram_Бот-@eminsk__avito__bot-2CA5E0?style=flat&logo=telegram&logoColor=white)](https://t.me/eminsk_avito_bot)
 [![Mobile Proxy](https://img.shields.io/badge/Мобильный_Прокси-Auto--Failover-ff6b6b.svg?style=flat)](https://mobileproxy.space/)
 [![MCP Server](https://img.shields.io/badge/MCP-Встроенный_Сервер-00a67e.svg?style=flat)](#встроенный-mcp-сервер-model-context-protocol)
@@ -74,8 +74,10 @@ conda install -c conda-forge avito-sdk
 
 ---
 
-## 🌟 Что нового в версии 0.2.2
+## 🌟 Что нового в версии 0.4.2
 
+- 🛡️ **Устойчивость SSL CA в PyInstaller и авто-восстановление при `curl: (77)`:** Динамический поиск CA-сертификатов (`_MEIPASS`, `certifi`, переменные окружения), конвертация кириллических путей Windows в короткий формат 8.3 (`GetShortPathNameW`) и безопасный фолбэк на `verify=False`.
+- ⚡ **100% чистый HTTP без браузеров и Playwright:** Полная архитектура Zero-Browser с поддержкой PyPy 3.8–3.12 и Free-Threaded No-GIL (3.13t–3.16t).
 - 🔗 **Пакетный сбор по нескольким ссылкам (Multi-Link Scraping):** Отправляйте сразу 2, 3, 4 или более ссылок в одном сообщении Telegram-боту `@eminsk_avito_bot`. Бот последовательно собирает каждую ссылку с заданным лимитом (до 1000+ объявлений) и присылает отдельные файлы Excel.
 - 🚀 **Параллельные потоки Fast и Turbo (до 8–16 воркеров):** Ускорение сбора в 2–4 раза благодаря адаптивному микро-сглаживанию задержек между запросами.
 - 🌐 **Строгий аудит мобильного прокси (`[ProxyAudit]`):** Автоматическая верификация купленного мобильного 4G/LTE прокси с ротацией IP при каждом запуске.

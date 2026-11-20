@@ -3,14 +3,14 @@
 [ 🇬🇧 English ] | [ 🇷🇺 Документация на русском ](https://github.com/eminsk/avito-sdk/blob/main/README_RU.md)
 
 
-[![Release Version](https://img.shields.io/badge/release-v0.4.1-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.1)
+[![Release Version](https://img.shields.io/badge/release-v0.4.2-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.2)
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/avito-sdk/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/avito-sdk.svg?style=flat&logo=pypi)](https://pypi.org/project/avito-sdk/)
 [![Python Versions](https://img.shields.io/badge/python-3.8_--_3.16+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://pypi.org/project/avito-sdk/)
 [![Free-Threaded No-GIL](https://img.shields.io/badge/No--GIL-3.13t%20--%203.16t-brightgreen?style=flat)](https://peps.python.org/pep-0703/)
 [![PyPy](https://img.shields.io/badge/PyPy-3.8_--_3.12-yellow.svg?style=flat&logo=pypy)](https://pypy.org/)
 [![Pure Native HTTP](https://img.shields.io/badge/Browser-Zero--Browser_%7C_Pure_Native_HTTP-informational?style=flat)](https://github.com/eminsk/avito-sdk)
-[![Tests](https://img.shields.io/badge/tests-77%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/avito-sdk)
+[![Tests](https://img.shields.io/badge/tests-82%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/avito-sdk)
 [![Telegram Bot](https://img.shields.io/badge/Telegram_Bot-@eminsk__avito__bot-2CA5E0?style=flat&logo=telegram&logoColor=white)](https://t.me/eminsk_avito_bot)
 [![Mobile Proxy](https://img.shields.io/badge/Mobile_Proxy-Integrated_Auto--Failover-ff6b6b.svg?style=flat)](https://mobileproxy.space/)
 [![MCP Server](https://img.shields.io/badge/MCP-Native_Stdio_Server-00a67e.svg?style=flat)](#native-mcp-model-context-protocol-server)
@@ -77,8 +77,10 @@ pixi add avito-sdk
 
 ---
 
-## 🌟 What's New in Version 0.2.2
+## 🌟 What's New in Version 0.4.2
 
+- 🛡️ **PyInstaller CA Resilience & `curl: (77)` Auto-Recovery:** Automatic CA bundle discovery (`_MEIPASS`, `certifi`, environment variables), Windows 8.3 short-path conversion (`GetShortPathNameW`) for non-ASCII usernames, and automatic fallback to `verify=False` on `curl: (77)`.
+- ⚡ **100% Pure Native HTTP Zero-Browser Architecture:** Completely removed Playwright/browser dependencies with full PyPy 3.8–3.12 and Free-Threaded No-GIL (3.13t–3.16t) support.
 - 🔗 **Multi-Link Batch Scraping:** Send 2, 3, 4, or more Avito URLs in a single Telegram message to `@eminsk_avito_bot`. The bot sequentially scrapes each URL (up to 1,000+ items per link) and delivers individual Excel spreadsheets.
 - 🚀 **Fast and Turbo Modes (up to 8–16 workers):** Accelerated concurrent scraping with adaptive micro-jitter to prevent WAF burst blocks.
 - 🌐 **Strict Mobile Proxy Audit (`[ProxyAudit]`):** Automatic verification of purchased 4G/LTE mobile proxies with IP rotation at startup and in logs.
