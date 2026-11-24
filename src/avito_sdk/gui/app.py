@@ -109,6 +109,42 @@ class AvitoGUIApp:
         self.root.geometry("1120x760")
         self.root.minsize(960, 640)
 
+        # Windows Taskbar AppUserModelID (ensures custom icon appears on taskbar)
+        if sys.platform.startswith("win"):
+            try:
+                import ctypes
+                ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("eminsk.avitosdkpro.monitor.0.4.3")
+            except Exception:
+                pass
+
+        # Set window icon and taskbar / Alt-Tab icon for main and all child windows
+        self._app_photo_icon = None
+        for icon_candidate in [
+            _get_base_dir() / "assets" / "icon.ico",
+            Path(__file__).resolve().parent / "assets" / "icon.ico",
+        ]:
+            if icon_candidate.exists():
+                try:
+                    self.root.iconbitmap(str(icon_candidate))
+                    break
+                except Exception:
+                    pass
+
+        for png_candidate in [
+            _get_base_dir() / "assets" / "icon_256.png",
+            _get_base_dir() / "assets" / "icon.png",
+            Path(__file__).resolve().parent / "assets" / "icon.png",
+        ]:
+            if png_candidate.exists():
+                try:
+                    from PIL import Image, ImageTk
+                    pil_img = Image.open(png_candidate)
+                    self._app_photo_icon = ImageTk.PhotoImage(pil_img)
+                    self.root.iconphoto(True, self._app_photo_icon)
+                    break
+                except Exception:
+                    pass
+
         self.config = GUIConfig.load()
         self.worker_thread: Optional[threading.Thread] = None
         self.is_running = False
@@ -133,13 +169,33 @@ class AvitoGUIApp:
         header_frame = ctk.CTkFrame(self.root, corner_radius=0, height=65, fg_color="#1a1c23")
         header_frame.pack(fill="x", side="top", padx=0, pady=0)
 
+        # App logo icon
+        self.logo_image = None
+        for png_candidate in [
+            _get_base_dir() / "assets" / "icon_256.png",
+            _get_base_dir() / "assets" / "icon.png",
+            Path(__file__).resolve().parent / "assets" / "icon.png",
+        ]:
+            if png_candidate.exists():
+                try:
+                    from PIL import Image
+                    pil_img = Image.open(png_candidate)
+                    self.logo_image = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(38, 38))
+                    break
+                except Exception:
+                    pass
+
+        if self.logo_image:
+            lbl_logo = ctk.CTkLabel(header_frame, image=self.logo_image, text="")
+            lbl_logo.pack(side="left", padx=(18, 8), pady=12)
+
         title_label = ctk.CTkLabel(
             header_frame,
-            text="⚡ AVITO SDK PRO",
+            text="AVITO SDK PRO",
             font=ctk.CTkFont(size=20, weight="bold"),
             text_color="#38bdf8",
         )
-        title_label.pack(side="left", padx=20, pady=12)
+        title_label.pack(side="left", padx=(0 if self.logo_image else 20, 8), pady=12)
 
         badge_label = ctk.CTkLabel(
             header_frame,
@@ -153,6 +209,18 @@ class AvitoGUIApp:
         )
         badge_label.pack(side="left", padx=5, pady=18)
 
+        btn_issues = ctk.CTkButton(
+            header_frame,
+            text="🐛 Баги / GitHub",
+            width=120,
+            height=28,
+            fg_color="#334155",
+            hover_color="#475569",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=lambda: webbrowser.open("https://github.com/eminsk/avito-sdk/issues"),
+        )
+        btn_issues.pack(side="right", padx=(6, 16), pady=16)
+
         self.status_pill = ctk.CTkLabel(
             header_frame,
             text="● ГОТОВ К РАБОТЕ",
@@ -163,7 +231,7 @@ class AvitoGUIApp:
             padx=14,
             pady=4,
         )
-        self.status_pill.pack(side="right", padx=20, pady=15)
+        self.status_pill.pack(side="right", padx=(10, 6), pady=15)
 
         # Quick Stats strip
         stats_strip = ctk.CTkFrame(self.root, height=36, fg_color="#0f172a", corner_radius=0)
@@ -374,7 +442,31 @@ class AvitoGUIApp:
             font=ctk.CTkFont(size=12),
             text_color="#94a3b8",
         )
-        lbl_info.pack(anchor="w", padx=20, pady=(0, 14))
+        lbl_info.pack(anchor="w", padx=20, pady=(0, 10))
+
+        # Mobile Proxy Recommendation Banner
+        promo_frame = ctk.CTkFrame(card, fg_color="#1e293b", corner_radius=8)
+        promo_frame.pack(fill="x", padx=20, pady=(0, 14))
+
+        lbl_promo = ctk.CTkLabel(
+            promo_frame,
+            text="📱 Нужен надежный мобильный 4G прокси с ротацией IP без банов?",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="#f8fafc",
+        )
+        lbl_promo.pack(side="left", padx=14, pady=8)
+
+        btn_mobile_link = ctk.CTkButton(
+            promo_frame,
+            text="MobileProxy.space ↗",
+            width=170,
+            height=28,
+            fg_color="#e11d48",
+            hover_color="#be123c",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=lambda: webbrowser.open("https://mobileproxy.space/?p=32111"),
+        )
+        btn_mobile_link.pack(side="right", padx=12, pady=8)
 
         lbl_proxy = ctk.CTkLabel(card, text="Строка прокси (HTTP / SOCKS5):", font=ctk.CTkFont(size=12, weight="bold"))
         lbl_proxy.pack(anchor="w", padx=20, pady=(6, 2))
@@ -416,6 +508,18 @@ class AvitoGUIApp:
             btn_row, text="Статус: Не проверен", font=ctk.CTkFont(size=12), text_color="#94a3b8"
         )
         self.lbl_proxy_status.pack(side="left", padx=6)
+
+        btn_proxy_help = ctk.CTkButton(
+            btn_row,
+            text="🐛 Сообщить о баге на GitHub",
+            width=190,
+            height=28,
+            fg_color="#334155",
+            hover_color="#475569",
+            font=ctk.CTkFont(size=11),
+            command=lambda: webbrowser.open("https://github.com/eminsk/avito-sdk/issues"),
+        )
+        btn_proxy_help.pack(side="right", padx=10)
 
     def _build_tg_tab(self) -> None:
         tab = self.tab_tg

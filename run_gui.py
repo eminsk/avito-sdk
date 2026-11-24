@@ -25,6 +25,14 @@ try:
 except Exception:
     pass
 
+# Ensure Windows Taskbar displays custom application icon instead of default Python icon
+if sys.platform.startswith("win"):
+    try:
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("eminsk.avitosdkpro.monitor.0.4.3")
+    except Exception:
+        pass
+
 # Ensure src/ is on sys.path if running from source
 src_dir = Path(__file__).resolve().parent / "src"
 if src_dir.exists():

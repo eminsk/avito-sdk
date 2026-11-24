@@ -1,27 +1,27 @@
-# avito-sdk
+<p align="center">
+  <img src="assets/logo.png" width="140" alt="Avito SDK Pro Logo">
+</p>
+<h1 align="center">Avito SDK Pro</h1>
+<p align="center">
+  <b>High-performance Python SDK & Modern Desktop GUI for Avito scraping, real-time monitoring, and price sniping.</b>
+</p>
 
-[ 🇬🇧 English ] | [ 🇷🇺 Документация на русском ](https://github.com/eminsk/avito-sdk/blob/main/README_RU.md)
+<p align="center">
+  <b>🇬🇧 English</b> •
+  <a href="https://github.com/eminsk/avito-sdk/blob/main/README_RU.md">🇷🇺 Документация на русском</a>
+</p>
 
-
-[![Release Version](https://img.shields.io/badge/release-v0.4.2-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.2)
+[![Release Version](https://img.shields.io/badge/release-v0.4.3-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.3)
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/avito-sdk/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/avito-sdk.svg?style=flat&logo=pypi)](https://pypi.org/project/avito-sdk/)
 [![Python Versions](https://img.shields.io/badge/python-3.8_--_3.16+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://pypi.org/project/avito-sdk/)
 [![Free-Threaded No-GIL](https://img.shields.io/badge/No--GIL-3.13t%20--%203.16t-brightgreen?style=flat)](https://peps.python.org/pep-0703/)
 [![PyPy](https://img.shields.io/badge/PyPy-3.8_--_3.12-yellow.svg?style=flat&logo=pypy)](https://pypy.org/)
 [![Pure Native HTTP](https://img.shields.io/badge/Browser-Zero--Browser_%7C_Pure_Native_HTTP-informational?style=flat)](https://github.com/eminsk/avito-sdk)
-[![Tests](https://img.shields.io/badge/tests-82%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/avito-sdk)
+[![Tests](https://img.shields.io/badge/tests-84%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/avito-sdk)
+[![Desktop GUI](https://img.shields.io/badge/Desktop_GUI-CustomTkinter-blueviolet.svg?style=flat)](https://github.com/eminsk/avito-sdk#desktop-gui)
 [![Telegram Bot](https://img.shields.io/badge/Telegram_Bot-@eminsk__avito__bot-2CA5E0?style=flat&logo=telegram&logoColor=white)](https://t.me/eminsk_avito_bot)
-[![Mobile Proxy](https://img.shields.io/badge/Mobile_Proxy-Integrated_Auto--Failover-ff6b6b.svg?style=flat)](https://mobileproxy.space/)
-[![MCP Server](https://img.shields.io/badge/MCP-Native_Stdio_Server-00a67e.svg?style=flat)](#native-mcp-model-context-protocol-server)
-[![Excel Export](https://img.shields.io/badge/Export-.xlsx_Hyperlinks-217346?style=flat&logo=microsoftexcel&logoColor=white)](https://github.com/eminsk/avito-sdk)
-[![CI](https://github.com/eminsk/avito-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/eminsk/avito-sdk/actions)
-[![Conda-Forge](https://img.shields.io/conda/vn/conda-forge/avito-sdk.svg?style=flat&logo=condaforge)](https://anaconda.org/conda-forge/avito-sdk)
-[![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/avito-sdk.svg?style=flat&logo=condaforge)](https://anaconda.org/conda-forge/avito-sdk)
-[![eminsk PPA](https://img.shields.io/badge/APT%20PPA-python3--avito--sdk-blueviolet.svg?style=flat)](https://eminsk.github.io/ppa/)
-[![GitHub Stars](https://img.shields.io/github/stars/eminsk/avito-sdk?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
-[![Donate USDT](https://img.shields.io/badge/Donate-USDT_(TRC20)-26A17B?style=flat&logo=tether&logoColor=white)](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P)
 
 > **High-performance Avito scraping and data extraction SDK for Python.**  
 > Production-grade, autonomous Avito scraping and data extraction engine for Python.
@@ -36,12 +36,14 @@
 
 ## 🚀 Key Features
 
-- 🚀 **100% Pure Native HTTP & Zero Browser Overheads**: Zero browser binaries, zero GUI dependencies, zero heavy drivers (No Playwright, Selenium, or Tkinter). Instant startup, ultra-low memory footprint, runs out of the box anywhere.
+- 🖥️ **Modern Desktop GUI (Avito SDK Pro)**: Dark-themed `CustomTkinter` desktop app with live listing cards, instant deal sniper buttons, 1-click proxy verification, and Excel export.
+- 📦 **Standalone Windows Executable (`.exe`)**: 1-click launch on Windows 10/11 without needing Python, virtual environments, or terminal commands.
+- 🌐 **Flexible Proxy Architecture**: Supports cheap static Datacenter proxies, Pay-As-You-Go mobile proxies (AstroProxy, Asocks), and dedicated mobile 4G modems with API rotation (MobileProxy.space).
 - ⚡ **Dual Sync & Async API**: `AsyncAvitoClient` for high-throughput asyncio backends (Aiogram 3, FastAPI, aiohttp) and `AvitoClient` for scripts and automation.
-- 📉 **Real-time Price Tracking (PR #334 / Issue #214)**: Built-in `PriceTracker` engine with SQLite persistence, historical logs, and automatic price drop calculation (`item.price_drop`).
-- 👤 **Seller Details & Store Slugs (PR #334 / Issue #333)**: Extracts verified seller name (`seller_name`) and seller profile/brand ID (`seller_id`).
-- 📋 **Deep Parameters & Specs Parsing (PR #337 / Issue #335)**: Extracts full item characteristics («О помещении», floor, area, auto specs, electronics) from Beduin mobile scenarios and Mobile API.
-- 📝 **Full Multiline Descriptions (PR #329 / Issue #305)**: Extracts complete uncut descriptions from JSON scenarios and Schema.org microdata.
+- 📉 **Real-time Price Tracking**: Built-in `PriceTracker` engine with SQLite persistence, historical logs, and automatic price drop calculation (`item.price_drop`).
+- 👤 **Seller Details & Store Slugs**: Extracts verified seller name (`seller_name`) and seller profile/brand ID (`seller_id`).
+- 📋 **Deep Parameters & Specs Parsing**: Extracts full item characteristics («О помещении», floor, area, auto specs, electronics) from Beduin mobile scenarios and Mobile API.
+- 📝 **Full Multiline Descriptions**: Extracts complete uncut descriptions from JSON scenarios and Schema.org microdata.
 - 🛡️ **Anti-Bot TLS Fingerprinting**: Browser impersonation (Chrome/Safari TLS fingerprints) via `curl_cffi` with transparent fallback to standard HTTP transport.
 - 📊 **Multi-Format Exporters**: Direct export to styled Excel (`.xlsx` with automatic column sizing via openpyxl), CSV, JSON, JSONL, and Pandas/Polars `DataFrame`.
 - 💻 **Command-Line Interface (CLI)**: Built-in CLI commands `avito-sdk` and `avito-parser` for instant terminal searches and exports.
@@ -49,56 +51,86 @@
 
 ---
 
-## 📦 Installation
+## 🖥️ Desktop GUI (Avito SDK Pro)
+
+For users who want instant real-time monitoring and sniping without writing code:
+
+### 1. Download Standalone Windows App (No Python Required):
+1. Download **[AvitoSDK_Pro_Windows_x64.zip](https://github.com/eminsk/avito-sdk/releases/latest)** from [Releases](https://github.com/eminsk/avito-sdk/releases).
+2. Unpack and launch `AvitoSDK_Pro.exe`.
+3. Pre-configured search links and price limits are loaded automatically out of the box!
+
+### 2. Launch via Python / PyPI:
+```bash
+pip install "avito-sdk[gui]"
+avito-gui
+```
+Or from source:
+```bash
+python run_gui.py
+# or double-click run_gui.bat
+```
+
+### Desktop App Features:
+- 🔍 **Monitoring Tab**: Monitor multiple Avito catalog URLs concurrently with price range and keyword filtering.
+- ⚡ **Live Feed Tab**: Real-time listing stream with clickable *"Open on Avito ↗"* buttons for immediate purchase.
+- 📊 **Excel Export**: Export the live feed into beautifully formatted `.xlsx` spreadsheets with active hyperlinks.
+- 🌐 **Proxy Tab**: 1-click proxy connectivity test with ping latency measurement in milliseconds.
+- ✈️ **Telegram Tab**: Instant deal notification dispatch with support for dedicated Telegram proxies to bypass regional ISP throttling.
+- 🐛 **Bug Tracker Integration**: Instant 1-click access to the [GitHub Issue Tracker](https://github.com/eminsk/avito-sdk/issues).
+
+---
+
+## 📦 Developer Installation
 
 ```bash
-# Standard installation via PyPI
+# Core package
 pip install avito-sdk
 
-# With anti-bot TLS impersonation (recommended)
-pip install "avito-sdk[tls]"
+# With Desktop GUI
+pip install "avito-sdk[gui]"
 
-# Full installation (Excel, TLS, Async, DataFrames)
+# Full installation (GUI, Excel, TLS, Async, DataFrames)
 pip install "avito-sdk[all]"
 ```
 
-### Via Debian / Ubuntu APT (eminsk PPA)
-```bash
-curl -sS https://eminsk.github.io/ppa/setup.sh | sudo bash
-sudo apt install python3-avito-sdk
-```
+---
 
-Or via Conda / Mamba:
-```bash
-conda install -c conda-forge avito-sdk
-# or with pixi
-pixi add avito-sdk
-```
+## 🌟 What's New in Version 0.4.3
+
+- 🎨 **Modern Desktop GUI**: Sleek dark UI built on CustomTkinter with live item cards, deal sniping, and persistent configuration.
+- 💎 **Standalone Windows Binary with Embedded Icon**: Windows Taskbar AppUserModelID integration, bundled `certifi` CA certificates, and full resolution of `curl: (77)` errors.
+- 🌐 **Universal Proxy Presets**: Explicit guides and support for server proxies, pay-as-you-go mobile traffic, and rotating modems.
+- ✈️ **Telegram Proxy Decoupling**: Separate proxy channel for `api.telegram.org` ensuring Telegram notifications deliver even when local network blocks Telegram.
 
 ---
 
-## 🌟 What's New in Version 0.4.2
+## 🌐 Choosing & Configuring Proxies
 
-- 🛡️ **PyInstaller CA Resilience & `curl: (77)` Auto-Recovery:** Automatic CA bundle discovery (`_MEIPASS`, `certifi`, environment variables), Windows 8.3 short-path conversion (`GetShortPathNameW`) for non-ASCII usernames, and automatic fallback to `verify=False` on `curl: (77)`.
-- ⚡ **100% Pure Native HTTP Zero-Browser Architecture:** Completely removed Playwright/browser dependencies with full PyPy 3.8–3.12 and Free-Threaded No-GIL (3.13t–3.16t) support.
-- 🔗 **Multi-Link Batch Scraping:** Send 2, 3, 4, or more Avito URLs in a single Telegram message to `@eminsk_avito_bot`. The bot sequentially scrapes each URL (up to 1,000+ items per link) and delivers individual Excel spreadsheets.
-- 🚀 **Fast and Turbo Modes (up to 8–16 workers):** Accelerated concurrent scraping with adaptive micro-jitter to prevent WAF burst blocks.
-- 🌐 **Strict Mobile Proxy Audit (`[ProxyAudit]`):** Automatic verification of purchased 4G/LTE mobile proxies with IP rotation at startup and in logs.
-- 📝 **Persistent Rotating File Logging (`storage/logs/avito_bot.log`):** Automatic log rotation (10 MB × 5 archives), strictly excluded from Git (`.gitignore`).
-- 🔒 **On-the-Fly Credential Masking (`PrivacyFilter`):** Sensitive proxy passwords and Telegram bot tokens are dynamically redacted from logs.
-- 🧹 **Guaranteed Resource Cleanup (Zero Socket Leaks):** All HTTP sessions, sockets, and transport connections are always closed cleanly.
+Avito SDK Pro adapts to your budget and monitoring workload:
 
----
+### 1. Datacenter / Server Static Proxies (IPv4 / SOCKS5 — ~\$0.50/mo)
+* **Best for:** Low-frequency sniping of 1–3 search links with intervals of 25–45 seconds.
+* **Providers:** Proxy-Seller, SpaceProxy, PX6, etc.
+* **Connection string:** `http://user:pass@host:port` or `socks5://user:pass@host:port`.
+* **Tip:** Keep `max_workers=1` and interval at 30 seconds.
 
-## 🌐 Mobile Proxy Requirements & Support Policy
+### 2. Pay-As-You-Go Mobile Proxies (~$2–$3 per 1 GB)
+* **Best for:** Cost-effective private monitoring **without paying $25–$30/mo for a dedicated modem**.
+* **Providers:** [AstroProxy](https://astroproxy.com) or [Asocks](https://asocks.com).
+* **Cost efficiency:** 1 GB costs ~$2.50. Because Avito SDK only requests lightweight HTML/JSON without downloading images (~10–15 KB per request), **1 GB provides over 70,000 queries** — enough for a full month of continuous monitoring every 30 seconds!
+* **Rotation:** IP rotates seamlessly on the provider side.
 
-> [!IMPORTANT]
-> **Mandatory requirement for stable scraping & official support policy:**
-> 1. Scraping Avito (especially for 100 to 1,000+ items, deep specs enrichment, and parallel workers) **strictly requires a purchased 4G/LTE mobile proxy with automatic IP rotation** (e.g. via [MobileProxy.space](https://mobileproxy.space/?p=32111)).
-> 2. **Proxy Audit in Logs:** The SDK automatically audits proxy status at startup and logs an explicit `[ProxyAudit]` badge.
-> 3. ⛔ **Support Policy:** **If scraping is run without a paid 4G mobile proxy with IP rotation (via direct home/datacenter IPs or non-rotating proxies), any issues regarding Avito WAF challenges, SmartCaptcha, HTTP 429 Too Many Requests, or 439 blocks ARE NOT CONSIDERED AND WILL NOT BE SUPPORTED.**
-> 4. **Persistent Logging & Privacy:** Logs are automatically saved to `storage/logs/avito_bot.log` with file rotation (10 MB × 5 backups) and are strictly excluded from Git (`.gitignore`). Credentials and bot tokens are masked in real time via `PrivacyFilter`.
-> 5. **Resource Cleanup:** All HTTP client sessions, sockets, and connections are always closed cleanly with zero leaks.
+### 3. Dedicated 4G/LTE Mobile Modems with API Rotation
+* **Best for:** High-volume commercial scraping of hundreds of pages and thousands of listings in 4–16 parallel workers.
+* **Recommended provider:** [MobileProxy.space](https://mobileproxy.space/?p=32111).
+* **Connection:**
+  ```python
+  client = AvitoClient(
+      proxy="http://login:password@proxy-domain.space:port",
+      proxy_change_url="https://changeip.mobileproxy.space/?proxy_key=YOUR_KEY",
+  )
+  ```
 
 ---
 

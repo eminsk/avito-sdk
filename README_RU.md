@@ -1,26 +1,27 @@
-# avito-sdk
+<p align="center">
+  <img src="assets/logo.png" width="140" alt="Avito SDK Pro Logo">
+</p>
+<h1 align="center">Avito SDK Pro</h1>
+<p align="center">
+  <b>Высокопроизводительная библиотека, SDK и настольное приложение для безопасного сбора и снайпинга объявлений Avito.</b>
+</p>
 
-[ 🇬🇧 English Documentation ](https://github.com/eminsk/avito-sdk/blob/main/README.md) | [ 🇷🇺 Документация на русском ]
+<p align="center">
+  <a href="https://github.com/eminsk/avito-sdk/blob/main/README.md">🇬🇧 English Documentation</a> •
+  <b>🇷🇺 Документация на русском</b>
+</p>
 
-
-[![Release Version](https://img.shields.io/badge/релиз-v0.4.2-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.2)
+[![Release Version](https://img.shields.io/badge/релиз-v0.4.3-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.3)
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/avito-sdk/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/avito-sdk.svg?style=flat&logo=pypi)](https://pypi.org/project/avito-sdk/)
 [![Python Versions](https://img.shields.io/badge/python-3.8_--_3.16+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://pypi.org/project/avito-sdk/)
 [![Free-Threaded No-GIL](https://img.shields.io/badge/No--GIL-3.13t%20--%203.16t-brightgreen?style=flat)](https://peps.python.org/pep-0703/)
 [![PyPy](https://img.shields.io/badge/PyPy-3.8_--_3.12-yellow.svg?style=flat&logo=pypy)](https://pypy.org/)
 [![Pure Native HTTP](https://img.shields.io/badge/Браузер-Zero--Browser_%7C_Чистый_HTTP-informational?style=flat)](https://github.com/eminsk/avito-sdk)
-[![Tests](https://img.shields.io/badge/тесты-82%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/avito-sdk)
+[![Tests](https://img.shields.io/badge/тесты-84%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/avito-sdk)
 [![Telegram Bot](https://img.shields.io/badge/Telegram_Бот-@eminsk__avito__bot-2CA5E0?style=flat&logo=telegram&logoColor=white)](https://t.me/eminsk_avito_bot)
-[![Mobile Proxy](https://img.shields.io/badge/Мобильный_Прокси-Auto--Failover-ff6b6b.svg?style=flat)](https://mobileproxy.space/)
-[![MCP Server](https://img.shields.io/badge/MCP-Встроенный_Сервер-00a67e.svg?style=flat)](#встроенный-mcp-сервер-model-context-protocol)
-[![Excel Export](https://img.shields.io/badge/Экспорт-.xlsx_Гиперссылки-217346?style=flat&logo=microsoftexcel&logoColor=white)](https://github.com/eminsk/avito-sdk)
-[![CI](https://github.com/eminsk/avito-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/eminsk/avito-sdk/actions)
-[![Conda-Forge](https://img.shields.io/conda/vn/conda-forge/avito-sdk.svg?style=flat&logo=condaforge)](https://anaconda.org/conda-forge/avito-sdk)
-[![eminsk PPA](https://img.shields.io/badge/APT%20PPA-python3--avito--sdk-blueviolet.svg?style=flat)](https://eminsk.github.io/ppa/)
-[![GitHub Stars](https://img.shields.io/github/stars/eminsk/avito-sdk?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/stargazers)
+[![Desktop GUI](https://img.shields.io/badge/Desktop_GUI-CustomTkinter-blueviolet.svg?style=flat)](https://github.com/eminsk/avito-sdk#desktop-gui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
-[![Donate USDT](https://img.shields.io/badge/Donate-USDT_(TRC20)-26A17B?style=flat&logo=tether&logoColor=white)](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P)
 
 > **Высокопроизводительная библиотека и SDK для работы с Avito без GUI.**  
 > Автономная высокопроизводительная библиотека и SDK для работы с Avito без GUI.
@@ -35,29 +36,64 @@
 
 ## 🚀 Возможности
 
-- 🚀 **100% Headless и легкий вес**: Никаких оконных библиотек (Tkinter, CustomTkinter, Flet, PyInstaller). Работает прямо в Linux, Docker, AWS, Raspberry Pi, macOS и Windows.
+- 🖥️ **Современный настольный интерфейс (Desktop GUI)**: Готовое графическое приложение на `CustomTkinter` с живой лентой карточек, экспресс-кнопками перехода на лоты, проверкой прокси в 1 клик и экспортом в Excel.
+- 📦 **Автономный Windows `.exe` дистрибутив**: Запускается в 1 клик на Windows 10/11 без необходимости устанавливать Python или настраивать виртуальные окружения.
+- 🌐 **Гибкая работа с любыми прокси**: Серверные IPv4/SOCKS5, экономные мобильные с тарификацией по мегабайтам (AstroProxy, Asocks) и модемы с ротацией по API/ссылке (MobileProxy.space).
 - ⚡ **Asyncio и Синхронный режим**: `AsyncAvitoClient` для высоконагруженных Telegram-ботов (Aiogram 3, Telethon), FastAPI, и `AvitoClient` для простых скриптов.
-- 📉 **Отслеживание изменения цен (PR #334 / Issue #214)**: Автоматическая фиксация старой цены, вычисление снижения цены (`price_drop`) и ведение истории в SQLite.
-- 👤 **Извлечение данных продавца (PR #334 / Issue #333)**: Сбор имени продавца (`seller_name`) и slug/ID профиля/магазина (`seller_id`).
-- 📋 **Глубокий сбор характеристик (PR #337 / Issue #335)**: Извлечение всех параметров («О помещении», площадь, этаж, тех. характеристики авто и электроники) из Beduin-сценариев и Mobile API.
-- 📝 **Полный текст описания (PR #329 / Issue #305)**: Извлечение многострочного описания из микроразметки Schema.org и сценариев Avito.
-- 🛡️ **Обход TLS-fingerprinting**: Имитация сетевого отпечатка Chrome/Safari через `curl_cffi` с автоматическим фолбэком на стандартный HTTP-транспорт.
+- 📉 **Отслеживание изменения цен**: Автоматическая фиксация старой цены, вычисление снижения цены (`price_drop`) и ведение истории в SQLite.
+- 👤 **Извлечение данных продавца**: Сбор имени продавца (`seller_name`) и slug/ID профиля/магазина (`seller_id`).
+- 📋 **Глубокий сбор характеристик**: Извлечение всех параметров («О помещении», площадь, этаж, тех. характеристики авто и электроники) из Beduin-сценариев и Mobile API.
+- 📝 **Полный текст описания**: Извлечение многострочного описания из микроразметки Schema.org и сценариев Avito.
+- 🛡️ **Обход TLS-fingerprinting**: Имитация сетевого отпечатка Chrome/Safari через `curl_cffi` с автоматическим фолбэком на чистый HTTP-транспорт.
 - 📊 **Экспорт данных**: В Excel (`.xlsx` со стилями), CSV, JSON, JSONL, а также в Pandas и Polars DataFrame.
 - 💻 **Консольная утилита (CLI)**: Быстрый поиск прямо из терминала через `avito-sdk search` или `avito-parser`.
 - 🌐 **Мультиплатформенность**: Поддержка Python 3.8 – 3.16+, Free-Threaded No-GIL (3.13t–3.15t) и PyPy.
 
 ---
 
-## 📦 Установка
+## 🖥️ Графический интерфейс Avito SDK Pro (GUI)
+
+Для тех, кто хочет сразу запустить мониторинг и снайпинг выгодных объявлений без написания кода, доступен удобный графический интерфейс:
+
+### 1. Запуск автономного приложения для Windows (без Python):
+1. Скачайте архив **[AvitoSDK_Pro_Windows_x64.zip](https://github.com/eminsk/avito-sdk/releases/latest)** из раздела [Releases](https://github.com/eminsk/avito-sdk/releases).
+2. Распакуйте и запустите `AvitoSDK_Pro.exe`.
+3. Все популярные категории и фильтр цен уже настроены по умолчанию!
+
+### 2. Запуск через Python / PyPI:
+```bash
+# Установка пакета с поддержкой GUI
+pip install "avito-sdk[gui]"
+
+# Запуск интерфейса одной командой
+avito-gui
+```
+Или из клонированного репозитория:
+```bash
+python run_gui.py
+# либо дважды кликните по run_gui.bat
+```
+
+### Возможности графического интерфейса:
+- 🔍 **Вкладка «Мониторинг»**: одновременный опрос нескольких ссылок Avito, фильтры цен (Мин/Макс), белые и черные списки слов, настраиваемый интервал с анти-детект рандомизацией.
+- ⚡ **Вкладка «Живая лента»**: появление карточек новых лотов в реальном времени с кнопкой «Открыть на Avito ↗» для мгновенного перехода к сделке.
+- 📊 **Экспорт в Excel**: сохранение всей живой ленты в красиво отформатированный файл `.xlsx` с кликабельными ссылками.
+- 🌐 **Вкладка «Прокси»**: ввод строки прокси любого формата и кнопка «🔍 Проверить прокси» с моментальным замером пинга (мс).
+- ✈️ **Вкладка «Telegram»**: настройка отправки карточек объявлений вашему боту, поддержка отдельного прокси для обхода блокировок Telegram и кнопка тестовой отправки сообщения в чат.
+- 📋 **Вкладка «Журнал событий»**: отображение хода проверок, ротации IP и статусов ответов.
+
+---
+
+## 📦 Установка для разработчиков
 
 ```bash
-# Базовая установка через PyPI
+# Базовая библиотека
 pip install avito-sdk
 
-# С поддержкой обхода анти-бот защиты (рекомендуется)
-pip install "avito-sdk[tls]"
+# С графическим интерфейсом
+pip install "avito-sdk[gui]"
 
-# Полная установка (Excel, TLS, Async, DataFrames)
+# Полная установка (GUI, Excel, TLS, Async, DataFrames)
 pip install "avito-sdk[all]"
 ```
 
@@ -67,35 +103,55 @@ curl -sS https://eminsk.github.io/ppa/setup.sh | sudo bash
 sudo apt install python3-avito-sdk
 ```
 
-Или через Conda / Mamba:
-```bash
-conda install -c conda-forge avito-sdk
-```
+---
+
+## 🌟 Что нового в версии 0.4.3
+
+- 🎨 **Современный десктопный GUI (`AvitoSDK_Pro`)**: стильный темный интерфейс на CustomTkinter с живой лентой лотов, кнопкой мгновенного выкупа и автосохранением конфигурации.
+- 💎 **Автономная сборка `.exe` с фирменной иконкой**: переработана архитектура запуска, встроен `certifi` CA-бандл и устранены сбои `curl: (77)` в PyInstaller.
+- 🌐 **Универсальная поддержка всех типов прокси**: детальные пресеты для дешевых серверных прокси, Pay-As-You-Go мобильного трафика и модемов с авторотацией по API.
+- ✈️ **Telegram-прокси изоляция**: отдельный настраиваемый прокси-канал для `api.telegram.org` (решает проблему блокировок Telegram в сетях РФ при параллельном парсинге).
+- ⚡ **Обновление пресетов**: преднастроенные ссылки под снайпинг климатической техники (Smartmi, увлажнители, мойки) с ценовым порогом до 5 000 ₽.
 
 ---
 
-## 🌟 Что нового в версии 0.4.2
+## 🌐 Выбор и настройка сетевых прокси
 
-- 🛡️ **Устойчивость SSL CA в PyInstaller и авто-восстановление при `curl: (77)`:** Динамический поиск CA-сертификатов (`_MEIPASS`, `certifi`, переменные окружения), конвертация кириллических путей Windows в короткий формат 8.3 (`GetShortPathNameW`) и безопасный фолбэк на `verify=False`.
-- ⚡ **100% чистый HTTP без браузеров и Playwright:** Полная архитектура Zero-Browser с поддержкой PyPy 3.8–3.12 и Free-Threaded No-GIL (3.13t–3.16t).
-- 🔗 **Пакетный сбор по нескольким ссылкам (Multi-Link Scraping):** Отправляйте сразу 2, 3, 4 или более ссылок в одном сообщении Telegram-боту `@eminsk_avito_bot`. Бот последовательно собирает каждую ссылку с заданным лимитом (до 1000+ объявлений) и присылает отдельные файлы Excel.
-- 🚀 **Параллельные потоки Fast и Turbo (до 8–16 воркеров):** Ускорение сбора в 2–4 раза благодаря адаптивному микро-сглаживанию задержек между запросами.
-- 🌐 **Строгий аудит мобильного прокси (`[ProxyAudit]`):** Автоматическая верификация купленного мобильного 4G/LTE прокси с ротацией IP при каждом запуске.
-- 📝 **Постоянное файловое логирование (`storage/logs/avito_bot.log`):** Автоматическая ротация (10 МБ × 5 файлов). Логи полностью исключены из Git (`.gitignore`).
-- 🔒 **Конфиденциальность на лету (`PrivacyFilter`):** Учётные данные прокси и токены ботов маскируются в логах.
-- 🧹 **Гарантированное закрытие ресурсов (Zero Socket Leaks):** Все HTTP-сессии, сокеты и соединения всегда гарантированно закрываются.
+Avito SDK Pro поддерживает любые типы прокси. Выберите наиболее подходящий вариант под ваш бюджет и задачи:
 
----
+### 1. Серверные статические прокси (IPv4 / SOCKS5 — от 30–50 ₽/мес)
+* **Для чего подходит:** Одиночный спокойный мониторинг 1–3 ссылок с интервалом от 25–40 секунд.
+* **Где взять:** Proxy-Seller, SpaceProxy, PX6 и другие провайдеры.
+* **Как подключить:**
+  ```python
+  from avito_sdk import AvitoClient
 
-## 🌐 Требования к мобильным прокси и регламент поддержки
+  # Формат: логин:пароль@хост:порт
+  client = AvitoClient(proxy="http://user:pass@185.123.45.67:8000")
+  ```
+* **Рекомендация:** Держите интервал между проверками не менее 25–30 секунд и `max_workers=1`. В GUI встроена кнопка «Проверить прокси», которая сразу покажет, отвечает ли Avito через ваш серверный IP.
 
-> [!IMPORTANT]
-> **Обязательное условие стабильной работы и официальный регламент поддержки:**
-> 1. Для стабильного сбора данных с Авито (особенно от 100 до 1000+ объявлений, сбора характеристик и работы в 4–8 потоков) **критически необходим качественный купленный мобильный 4G/LTE прокси с автоматической ротацией внешнего IP** (например, через [MobileProxy.space](https://mobileproxy.space/?p=32111)).
-> 2. **Аудит в логах:** Система при каждом запуске и каждом запросе фиксирует статус прокси с меткой `[ProxyAudit]`.
-> 3. ⛔ **Регламент обращений:** **Если сбор данных запускается БЕЗ купленного мобильного 4G-прокси с ротацией IP (через прямой серверный/домашний IP или статические датацентр-прокси), любые проблемы с блокировками Avito WAF, капчей SmartCaptcha, ошибками 429 Too Many Requests и 439 НЕ РАССМАТРИВАЮТСЯ И ТЕХПОДДЕРЖКЕ НЕ ПОДЛЕЖАТ.**
-> 4. **Логирование:** Полная история работы сохраняется в `storage/logs/avito_bot.log` (ротация 10 МБ × 5 файлов). Логи не попадают в Git, а логины и пароли маскируются через `PrivacyFilter`.
-> 5. **Чистое завершение:** Все сетевые соединения и сессии всегда гарантированно закрываются.
+### 2. Мобильные прокси с оплатой за трафик — Pay-As-You-Go (~200 ₽ за 1 ГБ)
+* **Для чего подходит:** Идеальный выбор для частного непрерывного мониторинга **без переплат за выделенный модем** (не нужно платить 2500 ₽/мес!).
+* **Где взять:** [AstroProxy](https://astroproxy.com) или [Asocks](https://asocks.com). Пополнение от 100 ₽ через СБП или банковскую карту РФ.
+* **Экономика:** 1 ГБ мобильного трафика стоит около 200–250 ₽. Поскольку Avito SDK запрашивает только чистый HTML/JSON без картинок (около 10–15 КБ на запрос), **1 ГБ хватает на 70 000+ проверок** (целый месяц круглосуточного снайпинга каждые 30 секунд!).
+* **Как подключить:**
+  ```python
+  client = AvitoClient(proxy="http://user:pass@asocks-proxy.com:port")
+  ```
+  Ротация мобильного IP происходит прозрачно на стороне провайдера при каждом новом подключении.
+
+### 3. Выделенные мобильные 4G/LTE модемы с ротацией по ссылке
+* **Для чего подходит:** Высоконагруженный коммерческий парсинг сотен страниц, сбор характеристик и работа в 4–16 параллельных потоков.
+* **Где взять:** [MobileProxy.space](https://mobileproxy.space/?p=32111), iProxy и др.
+* **Как подключить:**
+  ```python
+  client = AvitoClient(
+      proxy="http://login:password@proxy-domain.space:port",
+      proxy_change_url="https://changeip.mobileproxy.space/?proxy_key=ВАШ_КЛЮЧ",
+  )
+  ```
+  Парсер автоматически вызывает смену IP при обнаружении задержек или перед сменой страниц.
 
 ---
 
