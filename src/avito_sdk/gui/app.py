@@ -32,18 +32,31 @@ from avito_sdk.export import to_excel, to_json
 logger = logging.getLogger("avito_sdk.gui")
 
 
+def _get_base_dir() -> Path:
+    """Return the application base directory (safe for both normal and PyInstaller frozen execution)."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    try:
+        # parent of src/ is repository root
+        return Path(__file__).resolve().parent.parent.parent.parent
+    except Exception:
+        return Path.cwd()
+
+
 class GUIConfig:
     """Persistent configuration for the GUI application."""
 
-    CONFIG_PATH = Path("storage/gui_config.json")
+    CONFIG_PATH = _get_base_dir() / "storage" / "gui_config.json"
 
     def __init__(self):
         self.urls: List[str] = [
-            "https://www.avito.ru/all/bytovaya_tehnika/klimaticheskoe_oborudovanie/pribory_dlia_obrabotki_vozduxa-ASgBAgICAkRguE_SB8BP/category-uvlazhnitel-vozduha?s=104"
+            "https://www.avito.ru/all/bytovaya_tehnika/klimaticheskoe_oborudovanie/pribory_dlia_obrabotki_vozduxa-ASgBAgICAkRguE_SB8BP/category-uvlazhnitel-vozduha?s=104",
+            "https://www.avito.ru/all/bytovaya_tehnika?q=smartmi&s=104",
+            "https://www.avito.ru/all/bytovaya_tehnika/klimaticheskoe_oborudovanie/category-moyka-vozduha?s=104",
         ]
         self.interval_sec: int = 30
         self.min_price: str = ""
-        self.max_price: str = ""
+        self.max_price: str = "5000"
         self.white_keywords: str = ""
         self.black_keywords: str = ""
         self.proxy_string: str = ""
@@ -741,7 +754,7 @@ class AvitoGUIApp:
             self.log("Живая лента пуста, нечего экспортировать в Excel.")
             return
 
-        out_path = Path(f"result/export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
+        out_path = _get_base_dir() / "result" / f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         out_path.parent.mkdir(parents=True, exist_ok=True)
         try:
             to_excel(self.discovered_items, out_path)
