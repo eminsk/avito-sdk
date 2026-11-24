@@ -489,7 +489,7 @@ Once connected, simply prompt your agent in natural language:
 | Feature | Desktop GUI Parsers | **avito-sdk** |
 | :--- | :---: | :---: |
 | Target Audience | End-users wanting a desktop GUI app | Developers, bots, ML pipelines & servers |
-| Graphical Interface | ✅ Desktop GUI (Tkinter / Flet) | ❌ None (100% Headless) |
+| Graphical Interface | ⚠️ Legacy Tkinter / Flet (Heavy, Freezes) | ✅ Modern Dark Desktop GUI (`avito-gui`, CustomTkinter) |
 | Server / Docker / VPS | Requires virtual display (Xvfb) | ✅ Native headless out of the box |
 | Async API (`asyncio`) | ❌ No | ✅ `AsyncAvitoClient` |
 | Telegram Bots (Aiogram) | Difficult | ✅ `pip install avito-sdk` |

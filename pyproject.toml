@@ -63,11 +63,15 @@ async = [
 dataframe = [
     "pandas>=1.5.0",
 ]
+gui = [
+    "customtkinter>=6.0.0",
+]
 all = [
     "curl-cffi>=0.7.0",
     "openpyxl>=3.0.0",
     "httpx>=0.24.0",
     "pandas>=1.5.0",
+    "customtkinter>=6.0.0",
 ]
 dev = [
     "pytest>=7.0.0",
@@ -79,6 +83,7 @@ avito = "avito_sdk.cli:main"
 avito-sdk = "avito_sdk.cli:main"
 avito-parser = "avito_sdk.cli:main"
 avito-mcp = "avito_sdk.mcp_server:main_mcp"
+avito-gui = "avito_sdk.gui:main_gui"
 
 [project.urls]
 Homepage = "https://eminsk.github.io/#avito-sdk"
