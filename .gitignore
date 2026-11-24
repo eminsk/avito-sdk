@@ -38,6 +38,8 @@ cookies.txt
 /save_*.py
 /summarize_*.py
 *.png
+!assets/*.png
+!src/avito_sdk/gui/assets/*.png
 *.html
 .env
 *.env
