@@ -1,10 +1,10 @@
 """
 avito-sdk: High-performance Avito scraping & data extraction SDK for Python.
 
-Includes enhancements from Duff89/parser_avito:
-- PR #334: Real-time price change tracking and seller name extraction
-- PR #337: Deep parameters and characteristics parsing («О помещении», авто, etc.)
-- PR #329 / Issue #305: Full description parsing from microdata & mobile API
+Key features:
+- Real-time price change tracking and seller name extraction
+- Deep parameters and characteristics parsing («О помещении», авто, etc.)
+- Full description parsing from microdata & mobile API
 - Asynchronous and Synchronous clients
 - Headless execution (Zero GUI / Zero Tkinter dependencies)
 - Universal runtime support (Python 3.8-3.16, Free-Threaded No-GIL, PyPy)

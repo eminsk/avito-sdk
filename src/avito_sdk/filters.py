@@ -1,5 +1,5 @@
 """
-Comprehensive ad filtering engine (AdsFilter), ported and enhanced from Duff89/parser_avito.
+Comprehensive ad filtering engine (AdsFilter).
 Supports all 9 filters:
 1. only_new_or_changed (viewed filter with price-drop pass-through)
 2. min_price / max_price

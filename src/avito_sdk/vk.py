@@ -1,6 +1,5 @@
 """
-VKontakte notification engine (VKNotifier) for avito-sdk.
-Ported from Duff89/parser_avito (integrations/notifications/vk.py):
+VKontakte notification engine (VKNotifier) for avito-sdk:
 - Sends formatted item alerts with old/new price arrows (📉 50 000 ₽ ➔ 45 000 ₽)
 - Uploads item photos directly to VK messages (photos.getMessagesUploadServer -> photos.saveMessagesPhoto)
 - Supports multiple recipient user_ids

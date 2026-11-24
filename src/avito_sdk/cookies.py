@@ -1,6 +1,5 @@
 """
-Mobile proxy configuration parsing, external cookie providers, and phone extraction utilities.
-Ported and modernized from Duff89/parser_avito:
+Mobile proxy configuration parsing, external cookie providers, and phone extraction utilities:
 - Flexible mobile proxy parsing (user:pass@ip:port, ip:port@user:pass, ip:port:user:pass)
 - External API cookie providers (SPFA)
 - URL conversion to mobile API

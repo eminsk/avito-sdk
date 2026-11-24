@@ -1,5 +1,5 @@
 """
-Configuration loader and writer for avito-sdk, 100% compatible with Duff89/parser_avito's config.toml.
+Configuration loader and writer for avito-sdk, compatible with standard config.toml.
 Supports Python 3.11+ built-in tomllib as well as fallback TOML parsing for Python 3.8-3.10.
 """
 

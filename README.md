@@ -24,7 +24,7 @@
 [![Donate USDT](https://img.shields.io/badge/Donate-USDT_(TRC20)-26A17B?style=flat&logo=tether&logoColor=white)](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P)
 
 > **High-performance Avito scraping and data extraction SDK for Python.**  
-> Developed by core contributor to [`Duff89/parser_avito`](https://github.com/Duff89/parser_avito).
+> Production-grade, autonomous Avito scraping and data extraction engine for Python.
 
 > ### 🤝 Community, Issues & Support
 > - 🐛 **Found a bug or parser issue?** Please [Open an Issue](https://github.com/eminsk/avito-sdk/issues) — parser layout fixes and bug reports are prioritized!
@@ -484,17 +484,17 @@ Once connected, simply prompt your agent in natural language:
 
 ---
 
-## 🛠️ Comparison: `parser_avito` (GUI) vs `avito-sdk` (Library)
+## 🛠️ Comparison: Desktop GUI Parsers vs `avito-sdk` (Library)
 
-| Feature | Duff89/parser_avito | **avito-sdk** |
+| Feature | Desktop GUI Parsers | **avito-sdk** |
 | :--- | :---: | :---: |
 | Target Audience | End-users wanting a desktop GUI app | Developers, bots, ML pipelines & servers |
-| Graphical Interface | ✅ CustomTkinter / Tkinter GUI | ❌ None (100% Headless) |
+| Graphical Interface | ✅ Desktop GUI (Tkinter / Flet) | ❌ None (100% Headless) |
 | Server / Docker / VPS | Requires virtual display (Xvfb) | ✅ Native headless out of the box |
 | Async API (`asyncio`) | ❌ No | ✅ `AsyncAvitoClient` |
 | Telegram Bots (Aiogram) | Difficult | ✅ `pip install avito-sdk` |
-| Price Tracking (PR #334) | ✅ Supported | ✅ Built-in `PriceTracker` engine |
-| Parameters Parsing (PR #337) | ✅ Supported | ✅ Beduin & Mobile API parser |
+| Price History Tracking | ⚠️ Limited / External | ✅ Built-in `PriceTracker` engine |
+| Extended Item Parameters | ⚠️ Limited / External | ✅ Beduin & Mobile API parser |
 | Python 3.8 – 3.16+ | 3.11 – 3.13 | ✅ 3.8 – 3.16, Free-Threaded No-GIL (3.13t–3.16t), PyPy |
 
 ---

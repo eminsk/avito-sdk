@@ -4,7 +4,7 @@ interactive Telegram Bot Controller (AvitoTelegramBot) with:
 - Live visual progress bars in Telegram ([████████░░░░░░░░] 50%)
 - Direct Excel (.xlsx) report upload to Telegram chat/channel (sendDocument)
 - Mobile proxy configuration and automatic IP rotation tracking
-- MarkdownV2 formatting compatible with Duff89/parser_avito
+- Telegram MarkdownV2 message formatting
 """
 
 from __future__ import annotations

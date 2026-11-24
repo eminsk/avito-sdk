@@ -1,6 +1,6 @@
 """
-Comprehensive test suite verifying 100% feature parity with Duff89/parser_avito
-plus avito-sdk exclusive features (multithreading, Telegram Bot, progress bars, Excel upload).
+Comprehensive test suite verifying full feature coverage
+including avito-sdk exclusive features (multithreading, Telegram Bot, progress bars, Excel upload).
 """
 
 from datetime import datetime, timedelta, timezone

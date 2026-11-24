@@ -23,7 +23,7 @@
 [![Donate USDT](https://img.shields.io/badge/Donate-USDT_(TRC20)-26A17B?style=flat&logo=tether&logoColor=white)](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P)
 
 > **Высокопроизводительная библиотека и SDK для работы с Avito без GUI.**  
-> Разработана ключевым контрибьютором [`Duff89/parser_avito`](https://github.com/Duff89/parser_avito).
+> Автономная высокопроизводительная библиотека и SDK для работы с Avito без GUI.
 
 > ### 🤝 Сообщество, поддержка и обратная связь
 > - 🐛 **Нашли ошибку или изменилась вёрстка Авито?** [Откройте Issue (тикет)](https://github.com/eminsk/avito-sdk/issues) — баги и правки парсера выходят в приоритетном порядке!
@@ -480,17 +480,17 @@ claude mcp add avito avito-mcp -- --workers 2
 
 ---
 
-## 🛠️ Сравнение: `parser_avito` (GUI) vs `avito-sdk` (Библиотека)
+## 🛠️ Сравнение: Десктопные парсеры (GUI) vs `avito-sdk` (Библиотека)
 
-| Функция | Duff89/parser_avito | **avito-sdk** |
+| Функция | Обычные десктопные парсеры (GUI) | **avito-sdk** |
 | :--- | :---: | :---: |
 | Назначение | Десктопное приложение для пользователей | Автономная Python-библиотека & SDK |
-| Графический интерфейс | ✅ Есть (CustomTkinter / GUI) | ❌ Отсутствует (100% Headless) |
+| Графический интерфейс | ✅ Есть (GUI на Flet / Tkinter) | ❌ Отсутствует (100% Headless) |
 | Запуск на сервере / Docker / VPS | Требует виртуальный дисплей (xvfb) | ✅ Из коробки без зависимостей |
 | Асинхронный API (`asyncio`) | ❌ Нет | ✅ `AsyncAvitoClient` |
 | Использование в Telegram-ботах | Сложно | ✅ `pip install avito-sdk` |
-| Отслеживание цен (PR #334) | ✅ Есть | ✅ Встроенный `PriceTracker` |
-| Характеристики товара (PR #337) | ✅ Есть | ✅ Глубокий парсер Beduin & Mobile |
+| Отслеживание истории цен | ⚠️ Ограничено | ✅ Встроенный `PriceTracker` |
+| Характеристики товара и параметры | ⚠️ Ограничено | ✅ Глубокий парсер Beduin & Mobile |
 | Поддержка Python 3.8 – 3.16+ | 3.11 – 3.13 | ✅ 3.8 – 3.16, No-GIL, PyPy |
 
 ---
