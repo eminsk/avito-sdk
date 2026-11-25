@@ -33,6 +33,7 @@ logs/
 *.log
 run_telegram_bot.py
 cookies.txt
+coocky.txt
 /test_*.py
 /inspect_*.py
 /benchmark_*.py
