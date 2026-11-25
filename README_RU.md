@@ -11,7 +11,8 @@
   <b>🇷🇺 Документация на русском</b>
 </p>
 
-[![Release Version](https://img.shields.io/badge/релиз-v0.4.4-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.4)
+[![Release Version](https://img.shields.io/badge/релиз-v0.4.5-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.5)
+[![Glama MCP Server](https://glama.ai/mcp/servers/eminsk/avito-sdk/badges/score.svg)](https://glama.ai/mcp/servers/eminsk/avito-sdk)
 [![Бесплатный тест прокси 3 часа](https://img.shields.io/badge/Прокси_без_VPN-Тест_3_часа_бесплатно-00C853?style=flat&logo=cloudflare&logoColor=white)](https://mobileproxy.rent/user.html?free&p=279117)
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/avito-sdk/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/avito-sdk.svg?style=flat&logo=pypi)](https://pypi.org/project/avito-sdk/)
@@ -427,7 +428,9 @@ avito-mcp --proxy "http://user:pass@ip:port" --proxy-change-url "https://..."
 
 ## 🤖 Встроенный MCP (Model Context Protocol) Сервер
 
-В **avito-sdk** встроен сервер открытого стандарта [Model Context Protocol (MCP)](https://modelcontextprotocol.io) (`avito-mcp` или `avito-sdk mcp`), работающий по протоколу JSON-RPC 2.0 через `stdio`.
+[![eminsk/avito-sdk MCP server](https://glama.ai/mcp/servers/eminsk/avito-sdk/badges/score.svg)](https://glama.ai/mcp/servers/eminsk/avito-sdk)
+
+В **avito-sdk** встроен сервер открытого стандарта [Model Context Protocol (MCP)](https://modelcontextprotocol.io) (`avito-mcp` или `avito-sdk mcp`), работающий по протоколу JSON-RPC 2.0 через `stdio` (опубликован в каталоге [Glama MCP](https://glama.ai/mcp/servers/eminsk/avito-sdk)).
 
 Это позволяет искусственному интеллекту в **Google Antigravity**, **Claude Code & Claude Desktop**, **Cursor IDE**, **OpenAI Codex** и **Windsurf** напрямую взаимодействовать с Авито: искать товары, извлекать глубокие характеристики («О помещении», авто и т.д.) и отслеживать снижение цен.
 

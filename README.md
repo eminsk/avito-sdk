@@ -11,7 +11,8 @@
   <a href="https://github.com/eminsk/avito-sdk/blob/main/README_RU.md">🇷🇺 Документация на русском</a>
 </p>
 
-[![Release Version](https://img.shields.io/badge/release-v0.4.4-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.4)
+[![Release Version](https://img.shields.io/badge/release-v0.4.5-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.5)
+[![Glama MCP Server](https://glama.ai/mcp/servers/eminsk/avito-sdk/badges/score.svg)](https://glama.ai/mcp/servers/eminsk/avito-sdk)
 [![Free 3h Proxy Trial](https://img.shields.io/badge/Mobile_Proxy-Free_3h_Trial_(No_VPN)-00C853?style=flat&logo=cloudflare&logoColor=white)](https://mobileproxy.rent/user.html?free&p=279117)
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/avito-sdk/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/avito-sdk.svg?style=flat&logo=pypi)](https://pypi.org/project/avito-sdk/)
@@ -408,7 +409,9 @@ avito-mcp --proxy "http://user:pass@ip:port" --proxy-change-url "https://..."
 
 ## 🤖 Native MCP (Model Context Protocol) Server
 
-**avito-sdk** includes a native, high-performance [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server (`avito-mcp` or `avito-sdk mcp`) communicating over JSON-RPC 2.0 `stdio`.
+[![eminsk/avito-sdk MCP server](https://glama.ai/mcp/servers/eminsk/avito-sdk/badges/score.svg)](https://glama.ai/mcp/servers/eminsk/avito-sdk)
+
+**avito-sdk** includes a native, high-performance [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server (`avito-mcp` or `avito-sdk mcp`) communicating over JSON-RPC 2.0 `stdio` (listed on [Glama MCP](https://glama.ai/mcp/servers/eminsk/avito-sdk)).
 
 It enables frontier AI assistants and agentic IDEs — **Google Antigravity**, **Anthropic Claude Code & Claude Desktop**, **Cursor IDE**, **OpenAI Codex**, and **Windsurf** — to autonomously search Avito, inspect item parameters («О помещении», авто, etc.), and monitor price drops.
 
