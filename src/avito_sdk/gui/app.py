@@ -26,6 +26,7 @@ except ImportError:
 
 from avito_sdk import __version__
 from avito_sdk.client import AvitoClient
+from avito_sdk.config import ISSUES_URL, TELEGRAM_CHANNEL_URL
 from avito_sdk.cookies import ExternalApiCookiesProvider
 from avito_sdk.export import to_excel, to_json
 from avito_sdk.http import CURL_CFFI_AVAILABLE
@@ -225,17 +226,29 @@ class AvitoGUIApp:
         )
         badge_label.pack(side="left", padx=5, pady=18)
 
-        btn_issues = ctk.CTkButton(
+        btn_issues = self._make_link_button(
             header_frame,
             text="🐛 Баги / GitHub",
+            url=ISSUES_URL,
             width=120,
             height=28,
             fg_color="#334155",
             hover_color="#475569",
             font=ctk.CTkFont(size=12, weight="bold"),
-            command=lambda: webbrowser.open("https://github.com/eminsk/avito-sdk/issues"),
         )
         btn_issues.pack(side="right", padx=(6, 16), pady=16)
+
+        btn_tg_header = self._make_link_button(
+            header_frame,
+            text="✈️ Telegram",
+            url=TELEGRAM_CHANNEL_URL,
+            width=110,
+            height=28,
+            fg_color="#0284c7",
+            hover_color="#0369a1",
+            font=ctk.CTkFont(size=12, weight="bold"),
+        )
+        btn_tg_header.pack(side="right", padx=(6, 0), pady=16)
 
         self.status_pill = ctk.CTkLabel(
             header_frame,
@@ -485,27 +498,27 @@ class AvitoGUIApp:
         )
         lbl_promo.pack(side="left", padx=14, pady=8)
 
-        btn_mobile_link = ctk.CTkButton(
+        btn_mobile_link = self._make_link_button(
             promo_frame,
             text="MobileProxy.space ↗",
+            url=DEFAULT_REFERRAL_URL,
             width=165,
             height=28,
             fg_color="#e11d48",
             hover_color="#be123c",
             font=ctk.CTkFont(size=11, weight="bold"),
-            command=lambda: webbrowser.open(DEFAULT_REFERRAL_URL),
         )
         btn_mobile_link.pack(side="right", padx=(6, 12), pady=8)
 
-        btn_mobile_trial = ctk.CTkButton(
+        btn_mobile_trial = self._make_link_button(
             promo_frame,
             text="🎁 Тест 3ч бесплатно",
+            url=DEFAULT_FREE_TRIAL_URL,
             width=145,
             height=28,
             fg_color="#0f766e",
             hover_color="#115e59",
             font=ctk.CTkFont(size=11, weight="bold"),
-            command=lambda: webbrowser.open(DEFAULT_FREE_TRIAL_URL),
         )
         btn_mobile_trial.pack(side="right", padx=(6, 0), pady=8)
 
@@ -565,15 +578,15 @@ class AvitoGUIApp:
         )
         self.lbl_proxy_status.pack(side="left", padx=6)
 
-        btn_proxy_help = ctk.CTkButton(
+        btn_proxy_help = self._make_link_button(
             btn_row,
             text="🐛 Сообщить о баге на GitHub",
+            url=ISSUES_URL,
             width=190,
             height=28,
             fg_color="#334155",
             hover_color="#475569",
             font=ctk.CTkFont(size=11),
-            command=lambda: webbrowser.open("https://github.com/eminsk/avito-sdk/issues"),
         )
         btn_proxy_help.pack(side="right", padx=10)
 
@@ -631,7 +644,7 @@ class AvitoGUIApp:
 
         # Test TG Button
         btn_row = ctk.CTkFrame(card, fg_color="transparent")
-        btn_row.pack(anchor="w", padx=20, pady=8)
+        btn_row.pack(fill="x", padx=20, pady=8)
 
         self.btn_test_tg = ctk.CTkButton(
             btn_row,
@@ -647,6 +660,27 @@ class AvitoGUIApp:
             btn_row, text="Статус: Не проверялся", font=ctk.CTkFont(size=12), text_color="#94a3b8"
         )
         self.lbl_tg_status.pack(side="left", padx=6)
+
+        btn_tg_community = self._make_link_button(
+            btn_row,
+            text="📢 Канал и чат (@avito_sdk_pro)",
+            url=TELEGRAM_CHANNEL_URL,
+            width=220,
+            height=28,
+            fg_color="#1e293b",
+            hover_color="#334155",
+            font=ctk.CTkFont(size=11, weight="bold"),
+        )
+        btn_tg_community.pack(side="right", padx=10)
+
+    def _make_link_button(self, parent: Any, text: str, url: str, **kwargs: Any) -> Any:
+        """Create a CustomTkinter button that opens ``url`` in the default browser."""
+        return ctk.CTkButton(
+            parent,
+            text=text,
+            command=lambda target_url=url: webbrowser.open(target_url),
+            **kwargs,
+        )
 
     def _build_logs_tab(self) -> None:
         tab = self.tab_logs

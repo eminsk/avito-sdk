@@ -12,6 +12,8 @@ def test_cli_help(capsys):
     assert exc_info.value.code == 0
     captured = capsys.readouterr()
     assert "High-performance Avito Scraper" in captured.out
+    assert "https://t.me/avito_sdk_pro" in captured.out
+    assert "https://mobileproxy.rent/user.html?free&p=279117" in captured.out
 
 
 def test_cli_drops(tmp_path, capsys):

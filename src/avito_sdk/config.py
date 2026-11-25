@@ -9,6 +9,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+TELEGRAM_CHANNEL_URL = "https://t.me/avito_sdk_pro"
+DOCS_URL = "https://eminsk.github.io/#avito-sdk"
+ISSUES_URL = "https://github.com/eminsk/avito-sdk/issues"
+
 
 @dataclass
 class AvitoConfig:

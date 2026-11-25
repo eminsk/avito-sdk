@@ -10,7 +10,9 @@ import sys
 from pathlib import Path
 
 from avito_sdk.client import AvitoClient
+from avito_sdk.config import DOCS_URL, ISSUES_URL, TELEGRAM_CHANNEL_URL
 from avito_sdk.export import to_csv, to_excel, to_json
+from avito_sdk.mobileproxy import DEFAULT_FREE_TRIAL_URL
 from avito_sdk.tracker import PriceTracker
 
 
@@ -18,6 +20,13 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="avito-sdk",
         description="High-performance Avito Scraper & SDK with price tracking and parameters extraction",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            f"Telegram Channel & Support: {TELEGRAM_CHANNEL_URL}\n"
+            f"Free 3h Mobile Proxy Trial (no VPN in RU): {DEFAULT_FREE_TRIAL_URL}\n"
+            f"Docs & Portal: {DOCS_URL}\n"
+            f"Issues: {ISSUES_URL}"
+        ),
     )
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
 

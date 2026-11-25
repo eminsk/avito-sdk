@@ -47,11 +47,16 @@ def test_gui_module_exports():
     import avito_sdk
     import avito_sdk.gui.app as gui_app
     from avito_sdk.gui import main_gui
+    from avito_sdk.config import DOCS_URL, ISSUES_URL, TELEGRAM_CHANNEL_URL
     from avito_sdk.cookies import ParsePhone
     from avito_sdk.mobileproxy import DEFAULT_FREE_TRIAL_URL, DEFAULT_REFERRAL_URL
 
     assert callable(main_gui)
+    assert callable(gui_app.AvitoGUIApp._make_link_button)
     assert gui_app.__version__ == avito_sdk.__version__
     assert ParsePhone.API_URL == "https://spfa.pro/api/phone/"
     assert DEFAULT_REFERRAL_URL == "https://mobileproxy.rent/?p=279117"
     assert DEFAULT_FREE_TRIAL_URL == "https://mobileproxy.rent/user.html?free&p=279117"
+    assert TELEGRAM_CHANNEL_URL == "https://t.me/avito_sdk_pro"
+    assert DOCS_URL == "https://eminsk.github.io/#avito-sdk"
+    assert ISSUES_URL == "https://github.com/eminsk/avito-sdk/issues"
