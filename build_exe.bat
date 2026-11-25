@@ -6,11 +6,15 @@ echo   Сборка автономного дистрибутива Avito SDK Pr
 echo ========================================================
 cd /d "%~dp0"
 
-where uv >nul 2>nul
-if %ERRORLEVEL% equ 0 (
-    uv run --no-sync pyinstaller AvitoSDK_Pro.spec --noconfirm
+if exist ".venv-py312\Scripts\pyinstaller.exe" (
+    .venv-py312\Scripts\pyinstaller.exe AvitoSDK_Pro.spec --noconfirm
 ) else (
-    pyinstaller AvitoSDK_Pro.spec --noconfirm
+    where uv >nul 2>nul
+    if %ERRORLEVEL% equ 0 (
+        uv run --no-sync pyinstaller AvitoSDK_Pro.spec --noconfirm
+    ) else (
+        pyinstaller AvitoSDK_Pro.spec --noconfirm
+    )
 )
 
 if %ERRORLEVEL% equ 0 (

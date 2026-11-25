@@ -143,7 +143,7 @@ Avito SDK Pro поддерживает любые типы прокси. Выб�
 
 ### 3. Выделенные мобильные 4G/LTE модемы с ротацией по ссылке
 * **Для чего подходит:** Высоконагруженный коммерческий парсинг сотен страниц, сбор характеристик и работа в 4–16 параллельных потоков.
-* **Где взять:** [MobileProxy.space](https://mobileproxy.space/?p=32111), iProxy и др.
+* **Где взять:** [MobileProxy.space](https://mobileproxy.space/?p=279117) ([бесплатный тест 3 часа](https://mobileproxy.space/user.html?free&p=279117)), iProxy и др.
 * **Как подключить:**
   ```python
   client = AvitoClient(

@@ -25,9 +25,12 @@ except ImportError:
     ctk = None
 
 from avito_sdk.client import AvitoClient
+from avito_sdk.cookies import ExternalApiCookiesProvider
+from avito_sdk.export import to_excel, to_json
+from avito_sdk.http import CURL_CFFI_AVAILABLE
+from avito_sdk.mobileproxy import DEFAULT_FREE_TRIAL_URL, DEFAULT_REFERRAL_URL
 from avito_sdk.models import Item
 from avito_sdk.telegram import TelegramNotifier
-from avito_sdk.export import to_excel, to_json
 
 logger = logging.getLogger("avito_sdk.gui")
 
@@ -61,9 +64,11 @@ class GUIConfig:
         self.black_keywords: str = ""
         self.proxy_string: str = ""
         self.proxy_change_url: str = ""
+        self.spfa_api_key: str = ""
         self.tg_token: str = ""
         self.tg_chat_id: str = ""
         self.tg_proxy: str = ""
+        self.tg_notify: bool = True
         self.tg_only_text: bool = False
         self.only_new: bool = True
         self.track_price_drops: bool = True
@@ -71,9 +76,14 @@ class GUIConfig:
     @classmethod
     def load(cls) -> "GUIConfig":
         cfg = cls()
-        if cls.CONFIG_PATH.exists():
+        candidate = cls.CONFIG_PATH
+        if not candidate.exists() and hasattr(sys, "_MEIPASS"):
+            bundled = Path(sys._MEIPASS) / "storage" / "gui_config.json"
+            if bundled.exists():
+                candidate = bundled
+        if candidate.exists():
             try:
-                data = json.loads(cls.CONFIG_PATH.read_text(encoding="utf-8"))
+                data = json.loads(candidate.read_text(encoding="utf-8"))
                 for k, v in data.items():
                     if hasattr(cfg, k):
                         setattr(cfg, k, v)
@@ -153,11 +163,13 @@ class AvitoGUIApp:
         self.item_queue: queue.Queue[Item] = queue.Queue()
 
         self.seen_ids: Set[int] = set()
+        self.seen_prices: Dict[int, int] = {}
         self.discovered_items: List[Item] = []
         self.stats_found = 0
         self.stats_tg_sent = 0
         self.stats_checks = 0
 
+        self._sdk_log_handler = self._attach_sdk_logger()
         self._build_ui()
         self._load_config_into_ui()
         self._start_pollers()
@@ -197,9 +209,10 @@ class AvitoGUIApp:
         )
         title_label.pack(side="left", padx=(0 if self.logo_image else 20, 8), pady=12)
 
+        tls_mode = "Chrome TLS (curl_cffi)" if CURL_CFFI_AVAILABLE else "Standard HTTP"
         badge_label = ctk.CTkLabel(
             header_frame,
-            text="v0.4.3 • Autonomous",
+            text=f"v0.4.3 • {tls_mode}",
             font=ctk.CTkFont(size=11),
             text_color="#94a3b8",
             fg_color="#334155",
@@ -277,6 +290,21 @@ class AvitoGUIApp:
         self._build_tg_tab()
         self._build_logs_tab()
 
+    def _make_labeled_entry(
+        self, parent: Any, label: str, placeholder: str, width: Optional[int] = None, expand: bool = False
+    ) -> Any:
+        box = ctk.CTkFrame(parent, fg_color="transparent")
+        box.pack(side="left", fill="x" if expand else "none", expand=expand, padx=4)
+        ctk.CTkLabel(
+            box, text=label, font=ctk.CTkFont(size=11), text_color="#94a3b8"
+        ).pack(anchor="w", padx=2, pady=(0, 2))
+        kwargs: Dict[str, Any] = {"placeholder_text": placeholder}
+        if width is not None:
+            kwargs["width"] = width
+        entry = ctk.CTkEntry(box, **kwargs)
+        entry.pack(fill="x" if expand else "none")
+        return entry
+
     def _build_monitor_tab(self) -> None:
         tab = self.tab_monitor
 
@@ -306,24 +334,22 @@ class AvitoGUIApp:
         price_row = ctk.CTkFrame(filter_card, fg_color="transparent")
         price_row.pack(fill="x", padx=10, pady=4)
 
-        self.ent_min_price = ctk.CTkEntry(price_row, placeholder_text="Мин. цена (₽)", width=160)
-        self.ent_min_price.pack(side="left", padx=4)
-
-        self.ent_max_price = ctk.CTkEntry(price_row, placeholder_text="Макс. цена (₽)", width=160)
-        self.ent_max_price.pack(side="left", padx=4)
+        self.ent_min_price = self._make_labeled_entry(
+            price_row, "Мин. цена (₽):", "Например: 500", width=160
+        )
+        self.ent_max_price = self._make_labeled_entry(
+            price_row, "Макс. цена (₽):", "Например: 5000", width=160
+        )
 
         kw_row = ctk.CTkFrame(filter_card, fg_color="transparent")
         kw_row.pack(fill="x", padx=10, pady=(4, 10))
 
-        self.ent_white_kw = ctk.CTkEntry(
-            kw_row, placeholder_text="Белый список (слова через запятую)", width=220
+        self.ent_white_kw = self._make_labeled_entry(
+            kw_row, "Белый список слов (через запятую):", "Например: smartmi, новый", expand=True
         )
-        self.ent_white_kw.pack(side="left", fill="x", expand=True, padx=4)
-
-        self.ent_black_kw = ctk.CTkEntry(
-            kw_row, placeholder_text="Минус-слова (черный список)", width=220
+        self.ent_black_kw = self._make_labeled_entry(
+            kw_row, "Минус-слова / Чёрный список:", "Например: запчасти, сломан, фильтр", expand=True
         )
-        self.ent_black_kw.pack(side="left", fill="x", expand=True, padx=4)
 
         # Right side: Control buttons & settings
         col_right = ctk.CTkFrame(tab, width=320, fg_color="#0f172a", corner_radius=10)
@@ -358,7 +384,7 @@ class AvitoGUIApp:
         self.chk_price_drops.pack(anchor="w", padx=16, pady=6)
 
         self.chk_tg_notify = ctk.CTkCheckBox(
-            col_right, text="Шлать алерты в Telegram", onvalue=True, offvalue=False
+            col_right, text="Слать алерты в Telegram", onvalue=True, offvalue=False
         )
         self.chk_tg_notify.select()
         self.chk_tg_notify.pack(anchor="w", padx=16, pady=6)
@@ -459,14 +485,26 @@ class AvitoGUIApp:
         btn_mobile_link = ctk.CTkButton(
             promo_frame,
             text="MobileProxy.space ↗",
-            width=170,
+            width=165,
             height=28,
             fg_color="#e11d48",
             hover_color="#be123c",
             font=ctk.CTkFont(size=11, weight="bold"),
-            command=lambda: webbrowser.open("https://mobileproxy.space/?p=32111"),
+            command=lambda: webbrowser.open(DEFAULT_REFERRAL_URL),
         )
-        btn_mobile_link.pack(side="right", padx=12, pady=8)
+        btn_mobile_link.pack(side="right", padx=(6, 12), pady=8)
+
+        btn_mobile_trial = ctk.CTkButton(
+            promo_frame,
+            text="🎁 Тест 3ч бесплатно",
+            width=145,
+            height=28,
+            fg_color="#0f766e",
+            hover_color="#115e59",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=lambda: webbrowser.open(DEFAULT_FREE_TRIAL_URL),
+        )
+        btn_mobile_trial.pack(side="right", padx=(6, 0), pady=8)
 
         lbl_proxy = ctk.CTkLabel(card, text="Строка прокси (HTTP / SOCKS5):", font=ctk.CTkFont(size=12, weight="bold"))
         lbl_proxy.pack(anchor="w", padx=20, pady=(6, 2))
@@ -488,7 +526,22 @@ class AvitoGUIApp:
         self.ent_proxy_change = ctk.CTkEntry(
             card, placeholder_text="Ссылка смены IP (опционально, для серверных прокси оставить пустым)", width=650
         )
-        self.ent_proxy_change.pack(anchor="w", padx=20, pady=(0, 16))
+        self.ent_proxy_change.pack(anchor="w", padx=20, pady=(0, 12))
+
+        lbl_spfa = ctk.CTkLabel(
+            card,
+            text="API-ключ spfa.pro (опционально — помогает серверным прокси без ротации обходить 429):",
+            font=ctk.CTkFont(size=12),
+        )
+        lbl_spfa.pack(anchor="w", padx=20, pady=(4, 2))
+
+        self.ent_spfa_key = ctk.CTkEntry(
+            card,
+            placeholder_text="Оставьте пустым для мобильных прокси или вставьте ключ от spfa.pro для серверных",
+            width=650,
+            show="*",
+        )
+        self.ent_spfa_key.pack(anchor="w", padx=20, pady=(0, 16))
 
         # Check proxy button & status
         btn_row = ctk.CTkFrame(card, fg_color="transparent")
@@ -624,6 +677,7 @@ class AvitoGUIApp:
 
         self.ent_proxy_str.insert(0, str(self.config.proxy_string or ""))
         self.ent_proxy_change.insert(0, str(self.config.proxy_change_url or ""))
+        self.ent_spfa_key.insert(0, str(self.config.spfa_api_key or ""))
 
         self.ent_tg_token.insert(0, str(self.config.tg_token or ""))
         self.ent_tg_chat_id.insert(0, str(self.config.tg_chat_id or ""))
@@ -638,6 +692,11 @@ class AvitoGUIApp:
             self.chk_price_drops.select()
         else:
             self.chk_price_drops.deselect()
+
+        if self.config.tg_notify:
+            self.chk_tg_notify.select()
+        else:
+            self.chk_tg_notify.deselect()
 
         if self.config.tg_only_text:
             self.chk_tg_text_only.select()
@@ -660,6 +719,7 @@ class AvitoGUIApp:
 
         self.config.proxy_string = self.ent_proxy_str.get().strip()
         self.config.proxy_change_url = self.ent_proxy_change.get().strip()
+        self.config.spfa_api_key = self.ent_spfa_key.get().strip()
 
         self.config.tg_token = self.ent_tg_token.get().strip()
         self.config.tg_chat_id = self.ent_tg_chat_id.get().strip()
@@ -667,6 +727,7 @@ class AvitoGUIApp:
 
         self.config.only_new = bool(self.chk_only_new.get())
         self.config.track_price_drops = bool(self.chk_price_drops.get())
+        self.config.tg_notify = bool(self.chk_tg_notify.get())
         self.config.tg_only_text = bool(self.chk_tg_text_only.get())
 
         self.config.save()
@@ -781,32 +842,100 @@ class AvitoGUIApp:
         )
         btn_open.pack(side="right")
 
-    # ------------------ Testing Tools ------------------
+    # ------------------ Testing Tools & Cookie Helpers ------------------
+
+    def _attach_sdk_logger(self) -> logging.Handler:
+        queue_ref = self.log_queue
+
+        class _QueueLogHandler(logging.Handler):
+            def emit(self, record: logging.LogRecord) -> None:
+                if record.levelno < logging.INFO:
+                    return
+                ts = datetime.now().strftime("%H:%M:%S")
+                msg = record.getMessage()
+                if record.levelno >= logging.WARNING:
+                    queue_ref.put(f"[{ts}] [WARN] {msg}\n")
+                else:
+                    queue_ref.put(f"[{ts}] {msg}\n")
+
+        handler = _QueueLogHandler()
+        sdk_logger = logging.getLogger("avito_sdk")
+        sdk_logger.setLevel(logging.INFO)
+        sdk_logger.addHandler(handler)
+        return handler
+
+    def _load_cookies_bundle(
+        self, proxy: Optional[str], spfa_key: Optional[str]
+    ) -> tuple[Dict[str, str], Optional[ExternalApiCookiesProvider]]:
+        cookies: Dict[str, str] = {}
+        spfa_provider: Optional[ExternalApiCookiesProvider] = None
+
+        own_cookies_file = _get_base_dir() / "storage" / "own_cookies.json"
+        if own_cookies_file.exists():
+            try:
+                loaded = json.loads(own_cookies_file.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    cookies.update({str(k): str(v) for k, v in loaded.items()})
+                    self.log(f"🍪 Загружены cookies из {own_cookies_file.name} ({len(cookies)} шт.)")
+            except Exception as e:
+                logger.warning(f"Failed to read own_cookies.json: {e}")
+
+        if spfa_key:
+            try:
+                spfa_provider = ExternalApiCookiesProvider(
+                    api_key=spfa_key,
+                    proxy=proxy or None,
+                    storage_path=str(_get_base_dir() / "storage" / "cookies_external.json"),
+                )
+                ext_cookies, _ua = spfa_provider.get_cookies()
+                if ext_cookies:
+                    cookies.update(ext_cookies)
+                    self.log(f"🔑 Подключены cookies spfa.pro ({len(ext_cookies)} шт.)")
+            except Exception as e:
+                self.log(f"⚠️ Ошибка получения cookies spfa.pro: {e}")
+
+        return cookies, spfa_provider
 
     def _check_proxy(self) -> None:
         proxy = self.ent_proxy_str.get().strip()
+        proxy_change = self.ent_proxy_change.get().strip()
+        spfa_key = self.ent_spfa_key.get().strip()
         self.lbl_proxy_status.configure(text="Статус: Проверка соединения...", text_color="#f59e0b")
 
         def _run():
             try:
                 t0 = time.time()
-                client = AvitoClient(proxy=proxy or None)
+                cookies, _ = self._load_cookies_bundle(proxy or None, spfa_key or None)
+                client = AvitoClient(
+                    proxy=proxy or None,
+                    proxy_change_url=proxy_change or None,
+                    cookies=cookies or None,
+                )
                 res = client.scrape_page_items("https://www.avito.ru/rossiya")
                 dt = int((time.time() - t0) * 1000)
                 client.close()
-                self.log(f"Проверка прокси успешна! Ответ за {dt} мс, карточек получено: {len(res)}")
-                self.root.after(
-                    0,
-                    lambda: self.lbl_proxy_status.configure(
-                        text=f"Статус: ✅ Работает ({dt} мс)", text_color="#22c55e"
-                    ),
-                )
+                if res:
+                    self.log(f"Проверка прокси успешна! Ответ за {dt} мс, карточек получено: {len(res)}")
+                    self.root.after(
+                        0,
+                        lambda: self.lbl_proxy_status.configure(
+                            text=f"Статус: ✅ Работает ({dt} мс, {len(res)} лотов)", text_color="#22c55e"
+                        ),
+                    )
+                else:
+                    self.log("Прокси отвечает, но Авито вернул 0 карточек (возможно, 429 WAF — нужен мобильный прокси или ключ spfa.pro).")
+                    self.root.after(
+                        0,
+                        lambda: self.lbl_proxy_status.configure(
+                            text=f"Статус: ⚠️ 0 карточек / 429 WAF ({dt} мс)", text_color="#f59e0b"
+                        ),
+                    )
             except Exception as e:
                 self.log(f"Ошибка проверки прокси: {e}")
                 self.root.after(
                     0,
                     lambda: self.lbl_proxy_status.configure(
-                        text=f"Статус: ❌ Ошибка подключения", text_color="#ef4444"
+                        text="Статус: ❌ Ошибка подключения", text_color="#ef4444"
                     ),
                 )
 
@@ -907,11 +1036,17 @@ class AvitoGUIApp:
     def _monitoring_loop(self) -> None:
         client = None
         notifier = None
+        spfa_provider = None
 
         try:
+            cookies, spfa_provider = self._load_cookies_bundle(
+                self.config.proxy_string or None,
+                self.config.spfa_api_key or None,
+            )
             client = AvitoClient(
                 proxy=self.config.proxy_string or None,
                 proxy_change_url=self.config.proxy_change_url or None,
+                cookies=cookies or None,
             )
 
             if self.config.tg_token and self.config.tg_chat_id:
@@ -941,14 +1076,45 @@ class AvitoGUIApp:
                             black_keywords=[k.strip() for k in self.config.black_keywords.split(",") if k.strip()] if self.config.black_keywords else None,
                         )
 
+                        if not items and spfa_provider is not None:
+                            self.log("🔄 Обновление cookies через spfa.pro и повтор запроса...")
+                            try:
+                                new_cookies, _ua = spfa_provider.unblock_or_refresh()
+                                if new_cookies:
+                                    client.transport.cookies.update(new_cookies)
+                                    items = client.scrape_url(
+                                        url=url,
+                                        max_pages=1,
+                                        max_workers=1,
+                                        min_price=int(self.config.min_price) if self.config.min_price.isdigit() else None,
+                                        max_price=int(self.config.max_price) if self.config.max_price.isdigit() else None,
+                                        white_keywords=[k.strip() for k in self.config.white_keywords.split(",") if k.strip()] if self.config.white_keywords else None,
+                                        black_keywords=[k.strip() for k in self.config.black_keywords.split(",") if k.strip()] if self.config.black_keywords else None,
+                                    )
+                            except Exception as spfa_err:
+                                self.log(f"Ошибка обновления cookies spfa.pro: {spfa_err}")
+
                         self.stats_checks += 1
 
                         new_count = 0
                         for item in items:
-                            if item.id in self.seen_ids:
+                            is_new_item = item.id not in self.seen_ids
+                            is_price_drop = (
+                                not is_new_item
+                                and self.config.track_price_drops
+                                and item.price is not None
+                                and item.id in self.seen_prices
+                                and item.price < self.seen_prices[item.id]
+                            )
+                            if not is_new_item and not is_price_drop:
                                 continue
 
+                            if is_price_drop:
+                                item.old_price = self.seen_prices[item.id]
                             self.seen_ids.add(item.id)
+                            if item.price is not None:
+                                self.seen_prices[item.id] = item.price
+
                             self.discovered_items.insert(0, item)
                             self.stats_found += 1
                             new_count += 1
@@ -956,11 +1122,12 @@ class AvitoGUIApp:
                             self.item_queue.put(item)
 
                             # Send Telegram alert
-                            if notifier and (not is_first_pass or not self.config.only_new):
+                            if notifier and self.config.tg_notify and (not is_first_pass or not self.config.only_new or is_price_drop):
                                 try:
                                     notifier.notify(item)
                                     self.stats_tg_sent += 1
-                                    self.log(f"✈️ Алерт отправлен в TG: {item.title[:45]} ({item.price} ₽)")
+                                    tag = "📉 Снижение цены" if is_price_drop else "✈️ Алерт"
+                                    self.log(f"{tag} отправлен в TG: {item.title[:45]} ({item.price} ₽)")
                                 except Exception as e:
                                     self.log(f"Ошибка отправки алерта: {e}")
 
@@ -998,6 +1165,8 @@ class AvitoGUIApp:
     def _on_close(self) -> None:
         self.stop_monitoring()
         self._save_ui_to_config()
+        if getattr(self, "_sdk_log_handler", None):
+            logging.getLogger("avito_sdk").removeHandler(self._sdk_log_handler)
         self.root.destroy()
 
     def run(self) -> None:

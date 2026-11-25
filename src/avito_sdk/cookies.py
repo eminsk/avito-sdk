@@ -28,7 +28,7 @@ class ParsedProxy:
 
 def parse_proxy_config(proxy_str: Optional[str], change_ip_url: Optional[str] = None) -> Optional[ParsedProxy]:
     """
-    Parse flexible proxy formats supported by parser_avito:
+    Parse flexible proxy formats:
     - http://user:pass@ip:port
     - user:pass@ip:port
     - ip:port@user:pass
@@ -82,7 +82,7 @@ def parse_proxy_config(proxy_str: Optional[str], change_ip_url: Optional[str] = 
 
 class ExternalApiCookiesProvider:
     """
-    SPFA External API cookie provider (ported from parser_avito/parser/cookies/external_api.py).
+    External API cookie provider (SPFA).
     Purchases and unblocks mobile session cookies & TLS fingerprints via https://spfa.pro/api.
     """
 
@@ -187,7 +187,7 @@ class ExternalApiCookiesProvider:
 class AvitoUrlConverter:
     """
     Converts public Avito web URLs into mobile API URLs via https://spfa.pro/api/avito-url/
-    with local JSON caching (ported from parser_avito/parser/url_converter.py).
+    with local JSON caching.
     """
 
     ENDPOINT = "https://spfa.pro/api/avito-url/"
@@ -228,11 +228,10 @@ class AvitoUrlConverter:
 
 class ParsePhone:
     """
-    Batch phone number extractor via https://spfa.ru/api/phone/
-    (ported from parser_avito/utils/parse_phone.py).
+    Batch phone number extractor via https://spfa.pro/api/phone/.
     """
 
-    API_URL = "https://spfa.ru/api/phone/"
+    API_URL = "https://spfa.pro/api/phone/"
     BATCH_SIZE = 10
 
     def __init__(self, api_key: str, timeout: int = 30):

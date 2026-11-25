@@ -123,7 +123,7 @@ Avito SDK Pro adapts to your budget and monitoring workload:
 
 ### 3. Dedicated 4G/LTE Mobile Modems with API Rotation
 * **Best for:** High-volume commercial scraping of hundreds of pages and thousands of listings in 4–16 parallel workers.
-* **Recommended provider:** [MobileProxy.space](https://mobileproxy.space/?p=32111).
+* **Recommended provider:** [MobileProxy.space](https://mobileproxy.space/?p=279117) ([Free 3-Hour Trial](https://mobileproxy.space/user.html?free&p=279117)).
 * **Connection:**
   ```python
   client = AvitoClient(

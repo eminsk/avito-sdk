@@ -6,11 +6,15 @@ echo   Запуск Avito SDK Pro (Графический интерфейс)...
 echo ========================================================
 cd /d "%~dp0"
 
-where uv >nul 2>nul
-if %ERRORLEVEL% equ 0 (
-    uv run --no-sync python run_gui.py
+if exist ".venv-py312\Scripts\python.exe" (
+    .venv-py312\Scripts\python.exe run_gui.py
 ) else (
-    python run_gui.py
+    where uv >nul 2>nul
+    if %ERRORLEVEL% equ 0 (
+        uv run --no-sync python run_gui.py
+    ) else (
+        python run_gui.py
+    )
 )
 
 if %ERRORLEVEL% neq 0 (

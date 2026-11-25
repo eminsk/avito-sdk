@@ -23,20 +23,28 @@ def test_gui_config_defaults_and_serialization(tmp_path, monkeypatch):
     cfg.tg_token = "123456:ABC-DEF"
     cfg.tg_chat_id = "987654321"
     cfg.proxy_string = "http://user:pass@1.2.3.4:8080"
+    cfg.spfa_api_key = "test-spfa-key"
+    cfg.tg_notify = False
     cfg.save()
 
     assert test_cfg_path.exists()
     loaded_data = json.loads(test_cfg_path.read_text(encoding="utf-8"))
     assert loaded_data["interval_sec"] == 45
     assert loaded_data["tg_token"] == "123456:ABC-DEF"
+    assert loaded_data["spfa_api_key"] == "test-spfa-key"
+    assert loaded_data["tg_notify"] is False
 
     # Reload from disk
     reloaded_cfg = GUIConfig.load()
     assert reloaded_cfg.interval_sec == 45
     assert reloaded_cfg.tg_token == "123456:ABC-DEF"
     assert reloaded_cfg.proxy_string == "http://user:pass@1.2.3.4:8080"
+    assert reloaded_cfg.spfa_api_key == "test-spfa-key"
+    assert reloaded_cfg.tg_notify is False
 
 
 def test_gui_module_exports():
     from avito_sdk.gui import main_gui
+    from avito_sdk.cookies import ParsePhone
     assert callable(main_gui)
+    assert ParsePhone.API_URL == "https://spfa.pro/api/phone/"
