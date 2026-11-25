@@ -42,6 +42,7 @@ cookies.txt
 *.png
 !assets/*.png
 !src/avito_sdk/gui/assets/*.png
+!docs/images/*.png
 *.html
 .env
 *.env
