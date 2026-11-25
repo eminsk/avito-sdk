@@ -828,6 +828,9 @@ class AvitoGUIApp:
         lbl_time.pack(side="left")
 
         price_text = f"{item.price:,} ₽".replace(",", " ") if item.price else "Цена не указана"
+        if item.price_drop:
+            drop_str = f"{item.price_drop:,} ₽".replace(",", " ")
+            price_text = f"{price_text} (📉 -{drop_str})"
         lbl_price = ctk.CTkLabel(
             row_top,
             text=f"💰 {price_text}",
@@ -848,8 +851,9 @@ class AvitoGUIApp:
         lbl_title.pack(anchor="w", padx=10, pady=(2, 2))
 
         meta_parts = []
-        if item.location:
-            meta_parts.append(f"📍 {item.location}")
+        location_text = item.location_name or item.address
+        if location_text:
+            meta_parts.append(f"📍 {location_text}")
         if item.seller_name:
             meta_parts.append(f"👤 {item.seller_name}")
 

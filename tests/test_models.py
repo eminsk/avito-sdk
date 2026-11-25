@@ -34,6 +34,11 @@ def test_item_no_price_change():
     item = Item(id=999, price=5000)
     assert item.has_price_changed is False
     assert item.price_drop is None
+    assert item.location is None
+    item_loc = Item(id=1000, location_name="Москва", address="ул. Тверская")
+    assert item_loc.location == "Москва"
+    item_addr = Item(id=1001, address="Казань")
+    assert item_addr.location == "Казань"
 
 
 def test_search_filter():

@@ -36,6 +36,10 @@
 > - ⭐ **Find this SDK useful?** Give it a star on GitHub — it helps more developers discover the library!
 > - ☕ **Support development (USDT TRC-20):** `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P` ([Verify on TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))
 
+<p align="center">
+  <img src="docs/images/gui_monitor.png" alt="Avito SDK Pro Desktop GUI — Monitoring & Filters" width="820">
+</p>
+
 ---
 
 ## 🚀 Key Features
@@ -82,6 +86,10 @@ python run_gui.py
 - 🌐 **Proxy Tab**: 1-click proxy connectivity test with ping latency measurement in milliseconds.
 - ✈️ **Telegram Tab**: Instant deal notification dispatch with support for dedicated Telegram proxies to bypass regional ISP throttling.
 - 🐛 **Bug Tracker Integration**: Instant 1-click access to the [GitHub Issue Tracker](https://github.com/eminsk/avito-sdk/issues).
+
+<p align="center">
+  <img src="docs/images/gui_feed.png" alt="Avito SDK Pro Desktop GUI — Live Feed & Price-Drop Tracking" width="820">
+</p>
 
 ---
 

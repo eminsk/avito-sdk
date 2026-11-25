@@ -48,6 +48,11 @@ class Item:
     raw_data: Optional[Dict[str, Any]] = None
 
     @property
+    def location(self) -> Optional[str]:
+        """Human-readable location label preferring ``location_name`` over ``address``."""
+        return self.location_name or self.address
+
+    @property
     def price_drop(self) -> Optional[int]:
         """Returns the price drop amount if the price decreased, else None."""
         if self.old_price is not None and self.old_price > self.price:

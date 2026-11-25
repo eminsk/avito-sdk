@@ -36,6 +36,10 @@
 > - ⭐ **Полезен SDK?** Поставьте звезду репозиторию на GitHub — это помогает проекту развиваться!
 > - ☕ **Поддержать разработку (USDT TRC-20):** `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P` ([Проверить в TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))
 
+<p align="center">
+  <img src="docs/images/gui_monitor.png" alt="Avito SDK Pro Desktop GUI — Вкладка Мониторинг и фильтры" width="820">
+</p>
+
 ---
 
 ## 🚀 Возможности
@@ -85,6 +89,10 @@ python run_gui.py
 - 🌐 **Вкладка «Прокси»**: ввод строки прокси любого формата и кнопка «🔍 Проверить прокси» с моментальным замером пинга (мс).
 - ✈️ **Вкладка «Telegram»**: настройка отправки карточек объявлений вашему боту, поддержка отдельного прокси для обхода блокировок Telegram и кнопка тестовой отправки сообщения в чат.
 - 📋 **Вкладка «Журнал событий»**: отображение хода проверок, ротации IP и статусов ответов.
+
+<p align="center">
+  <img src="docs/images/gui_feed.png" alt="Avito SDK Pro Desktop GUI — Живая лента и трекер снижения цен" width="820">
+</p>
 
 ---
 
