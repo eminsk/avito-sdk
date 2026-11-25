@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "avito-sdk"
-version = "0.4.4"
+version = "0.4.5"
 description = "High-performance Avito scraping & data extraction SDK with modern desktop GUI, mobile proxy rotation, price tracking, parameters parsing, and async support"
 readme = "README.md"
 authors = [

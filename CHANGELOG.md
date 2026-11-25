@@ -2,6 +2,15 @@
 
 All notable changes to `avito-sdk` will be documented in this file.
 
+## [0.4.5] - 2026-11-25
+
+### Added & Fixed
+- **Item.location & Feed Cards Stability**: Added `@property def location` fallback (`location_name` or `address`) on `Item` model, resolving runtime `AttributeError` when displaying live listings in GUI cards.
+- **Price Drop Badge in Live Feed**: Highlighted listing discounts with `(📉 -...)` directly on feed cards.
+- **Official Community & Support Links**: Added direct `✈️ Telegram` link buttons in GUI header & Telegram tab to official channel `@avito_sdk_pro` and documentation links in GUI and CLI epilog.
+- **Native MCP Ecosystem & Catalogs**: Integrated `smithery.yaml` and `Dockerfile` for automated container indexing on Glama, Smithery, PulseMCP, and Awesome MCP Servers.
+- **High-DPI Showcase Media**: Embedded real GUI screenshots (`gui_monitor.png`, `gui_feed.png`) into README documentation.
+
 ## [0.4.4] - 2026-11-25
 
 ### Added & Fixed
