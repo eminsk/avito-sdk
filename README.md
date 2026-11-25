@@ -21,6 +21,7 @@
 [![Pure Native HTTP](https://img.shields.io/badge/Browser-Zero--Browser_%7C_Pure_Native_HTTP-informational?style=flat)](https://github.com/eminsk/avito-sdk)
 [![Tests](https://img.shields.io/badge/tests-84%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/avito-sdk)
 [![Desktop GUI](https://img.shields.io/badge/Desktop_GUI-CustomTkinter-blueviolet.svg?style=flat)](https://github.com/eminsk/avito-sdk#desktop-gui)
+[![Telegram Channel](https://img.shields.io/badge/Telegram_Channel-@avito__sdk__pro-26A5E4?style=flat&logo=telegram&logoColor=white)](https://t.me/avito_sdk_pro)
 [![Telegram Bot](https://img.shields.io/badge/Telegram_Bot-@eminsk__avito__bot-2CA5E0?style=flat&logo=telegram&logoColor=white)](https://t.me/eminsk_avito_bot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
 
@@ -29,6 +30,7 @@
 
 > ### 🤝 Community, Issues & Support
 > - 🌐 **Getting 429 / 403 without a proxy?** Claim a [3-Hour Free Mobile Proxy Trial](https://mobileproxy.rent/user.html?free&p=279117) ([MobileProxy Portal](https://mobileproxy.rent/?p=279117) — works in Russia without VPN).
+> - 📢 **Releases, proxy setups & community chat:** Join our [Telegram Channel (@avito_sdk_pro)](https://t.me/avito_sdk_pro).
 > - 🐛 **Found a bug or parser issue?** Please [Open an Issue](https://github.com/eminsk/avito-sdk/issues) — parser layout fixes and bug reports are prioritized!
 > - 💬 **Questions, proxy setups, or feature ideas?** Join our [GitHub Discussions](https://github.com/eminsk/avito-sdk/discussions).
 > - ⭐ **Find this SDK useful?** Give it a star on GitHub — it helps more developers discover the library!
@@ -553,11 +555,13 @@ If you find this project valuable, encounter issues, or want to support ongoing 
 * ⭐ **Star the Repository**: If avito-sdk powers your scraping or bots, give us a star on GitHub — it helps more developers discover the SDK!
 * 🐛 **Report Issues & Bugs**: Found a bug or did Avito update their layout? Please [open an Issue](https://github.com/eminsk/avito-sdk/issues) with reproduction details!
 * 💬 **Join Discussions**: Have feature ideas, architecture questions, or general feedback? Start or join a thread in [GitHub Discussions](https://github.com/eminsk/avito-sdk/discussions)!
+* 📢 **Telegram Channel & Chat**: Subscribe to [@avito_sdk_pro](https://t.me/avito_sdk_pro) for new `.exe` releases, proxy guides, and help in comments.
 * ☕ **Donate (USDT TRC-20)**:  
   `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P`  
   *(Network: TRON / TRC-20 | [Verify on TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))*
 
 [![GitHub Repo stars](https://img.shields.io/github/stars/eminsk/avito-sdk?style=social)](https://github.com/eminsk/avito-sdk)
+[![Telegram Channel](https://img.shields.io/badge/Telegram-@avito__sdk__pro-26A5E4?logo=telegram&style=flat-square)](https://t.me/avito_sdk_pro)
 [![GitHub Issues](https://img.shields.io/github/issues/eminsk/avito-sdk?color=red&style=flat-square)](https://github.com/eminsk/avito-sdk/issues)
 [![GitHub Discussions](https://img.shields.io/badge/Discussions-Join_Community-blue?logo=github&style=flat-square)](https://github.com/eminsk/avito-sdk/discussions)
 [![Donate USDT](https://img.shields.io/badge/Donate-USDT_(TRC20)-26A17B?style=flat-square&logo=tether&logoColor=white)](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P)

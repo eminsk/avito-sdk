@@ -20,6 +20,7 @@
 [![PyPy](https://img.shields.io/badge/PyPy-3.8_--_3.12-yellow.svg?style=flat&logo=pypy)](https://pypy.org/)
 [![Pure Native HTTP](https://img.shields.io/badge/Браузер-Zero--Browser_%7C_Чистый_HTTP-informational?style=flat)](https://github.com/eminsk/avito-sdk)
 [![Tests](https://img.shields.io/badge/тесты-84%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/avito-sdk)
+[![Telegram Канал](https://img.shields.io/badge/Telegram_Канал-@avito__sdk__pro-26A5E4?style=flat&logo=telegram&logoColor=white)](https://t.me/avito_sdk_pro)
 [![Telegram Bot](https://img.shields.io/badge/Telegram_Бот-@eminsk__avito__bot-2CA5E0?style=flat&logo=telegram&logoColor=white)](https://t.me/eminsk_avito_bot)
 [![Desktop GUI](https://img.shields.io/badge/Desktop_GUI-CustomTkinter-blueviolet.svg?style=flat)](https://github.com/eminsk/avito-sdk#desktop-gui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
@@ -29,6 +30,7 @@
 
 > ### 🤝 Сообщество, поддержка и обратная связь
 > - 🌐 **Ошибка 429 / 403 без прокси?** Возьмите [бесплатный тест мобильного прокси на 3 часа](https://mobileproxy.rent/user.html?free&p=279117) ([личный кабинет](https://mobileproxy.rent/?p=279117) — работает в РФ без VPN).
+> - 📢 **Релизы, обход 429 и помощь в чате:** подписывайтесь на [Telegram-канал @avito_sdk_pro](https://t.me/avito_sdk_pro).
 > - 🐛 **Нашли ошибку или изменилась вёрстка Авито?** [Откройте Issue (тикет)](https://github.com/eminsk/avito-sdk/issues) — баги и правки парсера выходят в приоритетном порядке!
 > - 💬 **Вопросы, настройка прокси или предложения?** Загляните в [GitHub Discussions (Обсуждения)](https://github.com/eminsk/avito-sdk/discussions).
 > - ⭐ **Полезен SDK?** Поставьте звезду репозиторию на GitHub — это помогает проекту развиваться!
@@ -559,11 +561,13 @@ claude mcp add avito avito-mcp -- --workers 2
 * ⭐ **Поставьте звезду репозиторию**: Это помогает развитию проекта и позволяет другим разработчикам быстрее находить SDK!
 * 🐛 **Сообщить об ошибке или проблеме**: Если что-то не работает, изменилась вёрстка Авито или возникла ошибка — [откройте Issue (запрос на исправление)](https://github.com/eminsk/avito-sdk/issues)!
 * 💬 **Обсуждения (Discussions)**: Есть идеи новых функций, вопросы или хотите поделиться опытом? Присоединяйтесь к [GitHub Discussions](https://github.com/eminsk/avito-sdk/discussions)!
+* 📢 **Telegram-канал и чат**: Подписывайтесь на [@avito_sdk_pro](https://t.me/avito_sdk_pro) — новые сборки `.exe`, гайды по прокси и помощь в комментариях.
 * ☕ **Поддержать разработку (USDT TRC-20)**:  
   `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P`  
   *(Сеть: TRON / TRC-20 | [Проверить в TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))*
 
 [![GitHub Repo stars](https://img.shields.io/github/stars/eminsk/avito-sdk?style=social)](https://github.com/eminsk/avito-sdk)
+[![Telegram Канал](https://img.shields.io/badge/Telegram-@avito__sdk__pro-26A5E4?logo=telegram&style=flat-square)](https://t.me/avito_sdk_pro)
 [![GitHub Issues](https://img.shields.io/github/issues/eminsk/avito-sdk?color=red&style=flat-square)](https://github.com/eminsk/avito-sdk/issues)
 [![GitHub Discussions](https://img.shields.io/badge/Discussions-Join_Community-blue?logo=github&style=flat-square)](https://github.com/eminsk/avito-sdk/discussions)
 [![Donate USDT](https://img.shields.io/badge/Donate-USDT_(TRC20)-26A17B?style=flat-square&logo=tether&logoColor=white)](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P)
