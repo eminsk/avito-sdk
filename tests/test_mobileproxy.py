@@ -16,6 +16,8 @@ from avito_sdk.client import AvitoClient
 
 def test_mobileproxy_partner_links():
     from avito_sdk.mobileproxy import DEFAULT_FREE_TRIAL_URL, DEFAULT_REFERRAL_URL
+    assert "mobileproxy.rent" in DEFAULT_REFERRAL_URL
+    assert "mobileproxy.rent" in DEFAULT_FREE_TRIAL_URL
     assert "279117" in DEFAULT_REFERRAL_URL
     assert "279117" in DEFAULT_FREE_TRIAL_URL
     assert "free" in DEFAULT_FREE_TRIAL_URL

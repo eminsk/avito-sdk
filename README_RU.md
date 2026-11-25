@@ -143,7 +143,7 @@ Avito SDK Pro поддерживает любые типы прокси. Выб�
 
 ### 3. Выделенные мобильные 4G/LTE модемы с ротацией по ссылке
 * **Для чего подходит:** Высоконагруженный коммерческий парсинг сотен страниц, сбор характеристик и работа в 4–16 параллельных потоков.
-* **Где взять:** [MobileProxy.space](https://mobileproxy.space/?p=279117) ([бесплатный тест 3 часа](https://mobileproxy.space/user.html?free&p=279117)), iProxy и др.
+* **Где взять:** [MobileProxy (mobileproxy.rent)](https://mobileproxy.rent/?p=279117) ([бесплатный тест 3 часа](https://mobileproxy.rent/user.html?free&p=279117)), iProxy и др.
 * **Как подключить:**
   ```python
   client = AvitoClient(
@@ -280,7 +280,7 @@ print(df[["id", "title", "price", "seller_name"]].head())
 > **Использование мобильных прокси (`proxy` + `proxy_change_url` / `mobileproxy_key`) обязательно при включении многопоточности (`max_workers > 1`), асинхронного режима (`concurrency > 1`) или глубокого сбора характеристик карточек (`enrich_details=True`)!**  
 > Антифрод-система Авито мгновенно блокирует (`403 Forbidden` / `429 Too Many Requests`) обычные серверные или датацентр-IP при частых запросах. Реальные 4G/LTE SIM-карты делят IP-адреса с миллионами мобильных абонентов, поэтому Авито не может забанить мобильную подсеть оператора.
 
-> 📱 **Рекомендуемый сервис**: [MobileProxy.space](https://mobileproxy.space/?p=279117) *(доступен [бесплатный тест на 3 часа](https://mobileproxy.space/user.html?free&p=279117))*  
+> 📱 **Рекомендуемый сервис**: [MobileProxy (mobileproxy.rent)](https://mobileproxy.rent/?p=279117) *(доступен [бесплатный тест на 3 часа](https://mobileproxy.rent/user.html?free&p=279117))*  
 > Быстрые приватные мобильные прокси на реальных SIM-картах (МТС, Мегафон, Билайн, Tele2) с мгновенной сменой IP по URL или API.
 
 #### Вариант А: Быстрое подключение по ключу `mobileproxy_key`

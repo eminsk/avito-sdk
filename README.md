@@ -123,7 +123,7 @@ Avito SDK Pro adapts to your budget and monitoring workload:
 
 ### 3. Dedicated 4G/LTE Mobile Modems with API Rotation
 * **Best for:** High-volume commercial scraping of hundreds of pages and thousands of listings in 4–16 parallel workers.
-* **Recommended provider:** [MobileProxy.space](https://mobileproxy.space/?p=279117) ([Free 3-Hour Trial](https://mobileproxy.space/user.html?free&p=279117)).
+* **Recommended provider:** [MobileProxy.space / mobileproxy.rent](https://mobileproxy.rent/?p=279117) ([Free 3-Hour Trial](https://mobileproxy.rent/user.html?free&p=279117)).
 * **Connection:**
   ```python
   client = AvitoClient(
@@ -258,7 +258,7 @@ print(df[["id", "title", "price", "seller_name"]].head())
 > **Using a Mobile Proxy (`proxy` + `proxy_change_url` / `mobileproxy_key`) is mandatory when running multithreaded (`max_workers > 1`), high-concurrency async, or deep card scraping (`enrich_details=True`)!**  
 > Avito's anti-fraud firewall aggressively rate-limits (`429`) and bans (`403`) standard server/datacenter IP addresses under parallel load. Real 4G/LTE SIM cards share IP pools with millions of cellular subscribers, making them immune to subnet-level bans.
 
-> 📱 **Recommended Provider**: [MobileProxy.space](https://mobileproxy.space/?p=279117) *(Get a [Free 3-Hour Trial](https://mobileproxy.space/user.html?free&p=279117))*  
+> 📱 **Recommended Provider**: [MobileProxy.space / mobileproxy.rent](https://mobileproxy.rent/?p=279117) *(Get a [Free 3-Hour Trial](https://mobileproxy.rent/user.html?free&p=279117))*  
 > Dedicated 4G/LTE mobile proxies across real SIM carriers (MTS, Megafon, Beeline, Tele2) with instant URL/API IP rotation.
 
 #### Option A: One-line setup via `mobileproxy_key`
