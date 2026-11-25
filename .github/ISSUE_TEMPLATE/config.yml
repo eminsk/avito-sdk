@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "🎁 429 / 403 Error? Claim Free 3h Mobile Proxy Trial (No VPN in RU)"
+    url: "https://mobileproxy.rent/user.html?free&p=279117"
+    about: "Avito blocks direct home/VPN IPs with HTTP 429/403. Get a free 3-hour 4G/LTE mobile proxy trial (works in Russia without VPN)."
+  - name: "📖 Proxy Setup Guide (Server + spfa.pro, AstroProxy, MobileProxy)"
+    url: "https://github.com/eminsk/avito-sdk#-choosing--configuring-proxies"
+    about: "Step-by-step proxy configuration before reporting connection blocks."
+  - name: "💬 Questions & Discussions"
+    url: "https://github.com/eminsk/avito-sdk/discussions"
+    about: "Ask questions about filters, proxies, Telegram alerts, or MCP server setup."

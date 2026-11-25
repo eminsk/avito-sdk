@@ -12,6 +12,7 @@
 </p>
 
 [![Release Version](https://img.shields.io/badge/release-v0.4.4-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.4)
+[![Free 3h Proxy Trial](https://img.shields.io/badge/Mobile_Proxy-Free_3h_Trial_(No_VPN)-00C853?style=flat&logo=cloudflare&logoColor=white)](https://mobileproxy.rent/user.html?free&p=279117)
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/avito-sdk/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/avito-sdk.svg?style=flat&logo=pypi)](https://pypi.org/project/avito-sdk/)
 [![Python Versions](https://img.shields.io/badge/python-3.8_--_3.16+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://pypi.org/project/avito-sdk/)
@@ -27,6 +28,7 @@
 > Production-grade, autonomous Avito scraping and data extraction engine for Python.
 
 > ### 🤝 Community, Issues & Support
+> - 🌐 **Getting 429 / 403 without a proxy?** Claim a [3-Hour Free Mobile Proxy Trial](https://mobileproxy.rent/user.html?free&p=279117) ([MobileProxy Portal](https://mobileproxy.rent/?p=279117) — works in Russia without VPN).
 > - 🐛 **Found a bug or parser issue?** Please [Open an Issue](https://github.com/eminsk/avito-sdk/issues) — parser layout fixes and bug reports are prioritized!
 > - 💬 **Questions, proxy setups, or feature ideas?** Join our [GitHub Discussions](https://github.com/eminsk/avito-sdk/discussions).
 > - ⭐ **Find this SDK useful?** Give it a star on GitHub — it helps more developers discover the library!

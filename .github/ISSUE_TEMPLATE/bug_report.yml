@@ -1,0 +1,51 @@
+name: "🐛 Bug Report / Сообщить об ошибке"
+description: "Report a parser layout change, GUI issue, or transport bug"
+title: "[BUG]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > 💡 **Ошибка 429 / 403 без прокси?** Проверьте сначала настройку прокси РФ или возьмите **[бесплатный 3-часовой тест мобильного прокси (без VPN)](https://mobileproxy.rent/user.html?free&p=279117)** (либо ключ `spfa.pro` для серверных).
+        > При багах вёрстки Авито или самого приложения приложите лог из вкладки **«Журнал событий»** (`storage/logs/avito_sdk.log`).
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: "Версия / Режим запуска (Component)"
+      options:
+        - "Windows Desktop GUI (AvitoSDK_Pro.exe v0.4.4)"
+        - "Python SDK / CLI (avito-sdk)"
+        - "MCP Server (avito-mcp)"
+    validations:
+      required: true
+
+  - type: input
+    id: os_python
+    attributes:
+      label: "ОС и версия Python / Сборки"
+      placeholder: "Windows 11 / AvitoSDK_Pro v0.4.4 или Python 3.12"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: proxy_type
+    attributes:
+      label: "Тип используемого прокси"
+      options:
+        - "Мобильный прокси с ротацией (MobileProxy / аналог)"
+        - "Серверный прокси + spfa.pro"
+        - "Pay-As-You-Go мобильный прокси (AstroProxy / Asocks)"
+        - "Серверный прокси без spfa.pro"
+        - "Без прокси (прямой IP)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: "Описание проблемы и лог (без личных паролей/ключей)"
+      description: "Укажите ссылку (или категорию) и скопируйте фрагмент лога."
+      render: shell
+    validations:
+      required: true

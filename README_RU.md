@@ -12,6 +12,7 @@
 </p>
 
 [![Release Version](https://img.shields.io/badge/релиз-v0.4.4-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.4)
+[![Бесплатный тест прокси 3 часа](https://img.shields.io/badge/Прокси_без_VPN-Тест_3_часа_бесплатно-00C853?style=flat&logo=cloudflare&logoColor=white)](https://mobileproxy.rent/user.html?free&p=279117)
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/avito-sdk/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/avito-sdk.svg?style=flat&logo=pypi)](https://pypi.org/project/avito-sdk/)
 [![Python Versions](https://img.shields.io/badge/python-3.8_--_3.16+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://pypi.org/project/avito-sdk/)
@@ -27,6 +28,7 @@
 > Автономная высокопроизводительная библиотека и SDK для работы с Avito без GUI.
 
 > ### 🤝 Сообщество, поддержка и обратная связь
+> - 🌐 **Ошибка 429 / 403 без прокси?** Возьмите [бесплатный тест мобильного прокси на 3 часа](https://mobileproxy.rent/user.html?free&p=279117) ([личный кабинет](https://mobileproxy.rent/?p=279117) — работает в РФ без VPN).
 > - 🐛 **Нашли ошибку или изменилась вёрстка Авито?** [Откройте Issue (тикет)](https://github.com/eminsk/avito-sdk/issues) — баги и правки парсера выходят в приоритетном порядке!
 > - 💬 **Вопросы, настройка прокси или предложения?** Загляните в [GitHub Discussions (Обсуждения)](https://github.com/eminsk/avito-sdk/discussions).
 > - ⭐ **Полезен SDK?** Поставьте звезду репозиторию на GitHub — это помогает проекту развиваться!
