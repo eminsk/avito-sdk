@@ -11,7 +11,7 @@
   <a href="https://github.com/eminsk/avito-sdk/blob/main/README_RU.md">🇷🇺 Документация на русском</a>
 </p>
 
-[![Release Version](https://img.shields.io/badge/release-v0.4.3-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.3)
+[![Release Version](https://img.shields.io/badge/release-v0.4.4-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.4)
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/avito-sdk/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/avito-sdk.svg?style=flat&logo=pypi)](https://pypi.org/project/avito-sdk/)
 [![Python Versions](https://img.shields.io/badge/python-3.8_--_3.16+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://pypi.org/project/avito-sdk/)
@@ -96,12 +96,12 @@ pip install "avito-sdk[all]"
 
 ---
 
-## 🌟 What's New in Version 0.4.3
+## 🌟 What's New in Version 0.4.4
 
-- 🎨 **Modern Desktop GUI**: Sleek dark UI built on CustomTkinter with live item cards, deal sniping, and persistent configuration.
-- 💎 **Standalone Windows Binary with Embedded Icon**: Windows Taskbar AppUserModelID integration, bundled `certifi` CA certificates, and full resolution of `curl: (77)` errors.
-- 🌐 **Universal Proxy Presets**: Explicit guides and support for server proxies, pay-as-you-go mobile traffic, and rotating modems.
-- ✈️ **Telegram Proxy Decoupling**: Separate proxy channel for `api.telegram.org` ensuring Telegram notifications deliver even when local network blocks Telegram.
+- 🛡️ **Bundled Native Chrome TLS (`curl_cffi 0.16.3`) in Windows `.exe`**: Standalone GUI builds now run on Python 3.12 with built-in Chrome TLS fingerprinting and a live header status badge.
+- 🔑 **`spfa.pro` Cookie Auto-Refresh & Phone API**: Updated `ParsePhone` to `https://spfa.pro/api/phone/` and added an optional `spfa_api_key` field in the Proxy tab for automated cookie recovery on static server proxies.
+- 🎨 **Cleaner Desktop UI & Price-Drop Alerts**: Added explicit labels for all filter controls, fixed Telegram notification toggles, enabled SQLite-backed `seen_prices` price-drop notifications, and aligned MobileProxy links to the VPN-free `mobileproxy.rent` mirror (`/?p=279117` & 3h free trial).
+- 💎 **Dynamic Versioning & Packaging Parity**: Synchronized dynamic version reporting across the GUI, MCP server, Debian package, Conda recipe, and PyPI README.
 
 ---
 
@@ -109,7 +109,7 @@ pip install "avito-sdk[all]"
 
 Avito SDK Pro adapts to your budget and monitoring workload:
 
-### 1. Datacenter / Server Static Proxies (IPv4 / SOCKS5 — ~\$0.50/mo)
+### 1. Datacenter / Server Static Proxies (IPv4 / SOCKS5 — ~$0.50/mo)
 * **Best for:** Low-frequency sniping of 1–3 search links with intervals of 25–45 seconds.
 * **Providers:** Proxy-Seller, SpaceProxy, PX6, etc.
 * **Connection string:** `http://user:pass@host:port` or `socks5://user:pass@host:port`.

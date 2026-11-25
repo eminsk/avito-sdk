@@ -24,6 +24,7 @@ try:
 except ImportError:
     ctk = None
 
+from avito_sdk import __version__
 from avito_sdk.client import AvitoClient
 from avito_sdk.cookies import ExternalApiCookiesProvider
 from avito_sdk.export import to_excel, to_json
@@ -123,7 +124,9 @@ class AvitoGUIApp:
         if sys.platform.startswith("win"):
             try:
                 import ctypes
-                ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("eminsk.avitosdkpro.monitor.0.4.3")
+                ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                    f"eminsk.avitosdkpro.monitor.{__version__}"
+                )
             except Exception:
                 pass
 
@@ -212,7 +215,7 @@ class AvitoGUIApp:
         tls_mode = "Chrome TLS (curl_cffi)" if CURL_CFFI_AVAILABLE else "Standard HTTP"
         badge_label = ctk.CTkLabel(
             header_frame,
-            text=f"v0.4.3 • {tls_mode}",
+            text=f"v{__version__} • {tls_mode}",
             font=ctk.CTkFont(size=11),
             text_color="#94a3b8",
             fg_color="#334155",

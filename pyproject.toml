@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "avito-sdk"
-version = "0.4.3"
+version = "0.4.4"
 description = "High-performance Avito scraping & data extraction SDK with modern desktop GUI, mobile proxy rotation, price tracking, parameters parsing, and async support"
 readme = "README.md"
 authors = [
@@ -93,6 +93,15 @@ Issues = "https://github.com/eminsk/avito-sdk/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/avito_sdk"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/.venv*",
+    "/dist*",
+    "/build*",
+    "/storage/*",
+    "/*.log",
+]
 
 [tool.pytest.ini_options]
 minversion = "7.0"

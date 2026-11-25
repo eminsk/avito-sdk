@@ -25,18 +25,25 @@ try:
 except Exception:
     pass
 
-# Ensure Windows Taskbar displays custom application icon instead of default Python icon
-if sys.platform.startswith("win"):
-    try:
-        import ctypes
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("eminsk.avitosdkpro.monitor.0.4.3")
-    except Exception:
-        pass
-
 # Ensure src/ is on sys.path if running from source
 src_dir = Path(__file__).resolve().parent / "src"
 if src_dir.exists():
     sys.path.insert(0, str(src_dir))
+
+try:
+    from avito_sdk import __version__ as _app_version
+except Exception:
+    _app_version = "0.4.4"
+
+# Ensure Windows Taskbar displays custom application icon instead of default Python icon
+if sys.platform.startswith("win"):
+    try:
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            f"eminsk.avitosdkpro.monitor.{_app_version}"
+        )
+    except Exception:
+        pass
 
 from avito_sdk.gui.app import run_app
 

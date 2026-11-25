@@ -2,6 +2,19 @@
 
 All notable changes to `avito-sdk` will be documented in this file.
 
+## [0.4.4] - 2026-11-25
+
+### Added & Fixed
+- **Bundled Native Chrome TLS in Standalone Windows `.exe`**: Switched PyInstaller builds (`AvitoSDK_Pro.spec`, `build_exe.bat`, `run_gui.bat`) to Python 3.12 with `curl_cffi` bundled natively and added a header TLS badge in the GUI.
+- **`spfa.pro` API Key & Phone Endpoint**: Updated `ParsePhone.API_URL` from deprecated `spfa.ru` to `https://spfa.pro/api/phone/` and added optional `spfa_api_key` cookie auto-refresh in the Proxy tab.
+- **GUI & Alerts Polish**: Added clear labels above filter controls, fixed Telegram toggle persistence and `seen_prices` price-drop notifications, attached SDK log queue streaming, and wired dynamic `__version__` across GUI & launcher.
+- **Unified Partner & Packaging Parity**: Synchronized all MobileProxy links to the VPN-free `mobileproxy.rent/?p=279117` mirror and 3-hour free trial, and aligned versions across PyPI, Conda recipe, and Debian packaging.
+
+## [0.4.3] - 2026-11-24
+
+### Added
+- **Avito SDK Pro Desktop GUI & Standalone Binary**: Dark CustomTkinter desktop UI (`AvitoSDK_Pro.exe`) with 3D icon, Windows Taskbar `AppUserModelID` integration, live sniping feed, 1-click proxy latency test, Telegram proxy decoupling, Excel export, and pre-configured climate presets.
+
 ## [0.4.2] - 2026-11-16
 
 ### Added & Enhanced

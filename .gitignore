@@ -11,6 +11,8 @@ build/
 
 # Virtual environments
 .venv/
+.venv*/
+dist_check/
 env/
 venv/
 ENV/

@@ -1,3 +1,11 @@
+python-avito-sdk (0.4.4-1) unstable; urgency=medium
+
+  * Release v0.4.4: Bundle Chrome TLS (curl_cffi) on Python 3.12 in Windows GUI builds.
+  * Update ParsePhone endpoint to spfa.pro and add optional spfa_api_key cookie refresh.
+  * Add GUI filter labels, dynamic versioning, and VPN-free mobileproxy.rent partner links.
+
+ -- eminsk <M_N_N@yahoo.com>  Wed, 25 Nov 2026 02:20:00 +0000
+
 python-avito-sdk (0.3.0-1) unstable; urgency=medium
 
   * Release v0.3.0: Dual live Telegram progress bars (overall + current link).

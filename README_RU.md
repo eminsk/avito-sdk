@@ -11,7 +11,7 @@
   <b>🇷🇺 Документация на русском</b>
 </p>
 
-[![Release Version](https://img.shields.io/badge/релиз-v0.4.3-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.3)
+[![Release Version](https://img.shields.io/badge/релиз-v0.4.4-0969da.svg?style=flat&logo=github)](https://github.com/eminsk/avito-sdk/releases/tag/v0.4.4)
 [![PyPI Version](https://img.shields.io/pypi/v/avito-sdk.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/avito-sdk/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/avito-sdk.svg?style=flat&logo=pypi)](https://pypi.org/project/avito-sdk/)
 [![Python Versions](https://img.shields.io/badge/python-3.8_--_3.16+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://pypi.org/project/avito-sdk/)
@@ -105,13 +105,12 @@ sudo apt install python3-avito-sdk
 
 ---
 
-## 🌟 Что нового в версии 0.4.3
+## 🌟 Что нового в версии 0.4.4
 
-- 🎨 **Современный десктопный GUI (`AvitoSDK_Pro`)**: стильный темный интерфейс на CustomTkinter с живой лентой лотов, кнопкой мгновенного выкупа и автосохранением конфигурации.
-- 💎 **Автономная сборка `.exe` с фирменной иконкой**: переработана архитектура запуска, встроен `certifi` CA-бандл и устранены сбои `curl: (77)` в PyInstaller.
-- 🌐 **Универсальная поддержка всех типов прокси**: детальные пресеты для дешевых серверных прокси, Pay-As-You-Go мобильного трафика и модемов с авторотацией по API.
-- ✈️ **Telegram-прокси изоляция**: отдельный настраиваемый прокси-канал для `api.telegram.org` (решает проблему блокировок Telegram в сетях РФ при параллельном парсинге).
-- ⚡ **Обновление пресетов**: преднастроенные ссылки под снайпинг климатической техники (Smartmi, увлажнители, мойки) с ценовым порогом до 5 000 ₽.
+- 🛡️ **Встроенный Chrome TLS (`curl_cffi 0.16.3`) в Windows `.exe`**: автономная сборка GUI переведена на Python 3.12 со встроенным TLS-отпечатком Chrome и индикатором статуса в шапке окна.
+- 🔑 **Поддержка `spfa.pro` (автообновление cookies и номера телефонов)**: обновлён эндпоинт `ParsePhone` (`https://spfa.pro/api/phone/`) и добавлено опциональное поле `spfa_api_key` на вкладке «Прокси» для дешёвых серверных прокси.
+- 🎨 **Улучшенный интерфейс и уведомления о снижении цены**: добавлены понятные подписи ко всем фильтрам, исправлен переключатель отправки в Telegram и алерты снижения цен по базе, а все партнёрские ссылки и 3-часовой триал переведены на работающее в РФ без VPN зеркало `mobileproxy.rent/?p=279117`.
+- 💎 **Единая динамическая версия и актуализация витрин**: синхронизированы версии в GUI, MCP-сервере, PyPI, Conda-рецепте и Debian-пакете.
 
 ---
 
