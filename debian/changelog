@@ -1,3 +1,10 @@
+python-avito-sdk (0.4.6-1) unstable; urgency=medium
+
+  * Release v0.4.6: Full Russian README.md and PyPI documentation localization
+    for Russian marketplace ecosystem parity with embedded absolute GUI media.
+
+ -- eminsk <M_N_Nik@yahoo.com>  Thu, 26 Nov 2026 10:15:00 +0000
+
 python-avito-sdk (0.4.4-1) unstable; urgency=medium
 
   * Release v0.4.4: Bundle Chrome TLS (curl_cffi) on Python 3.12 in Windows GUI builds.
